@@ -161,14 +161,16 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 
 - One repository with `frontend/` (Next.js App Router) and `backend/` (Express API).
 - TypeScript for both apps, npm and committed lockfiles.
-- Pin a supported Node.js LTS release compatible with the selected Next.js release when scaffolding begins.
+- Initial frontend scaffold versions: Next.js `16.4.0`, React `19.3.0`, Tailwind CSS `4.3.3`; the lockfile is authoritative for the resolved dependency tree.
+- Pin Node.js `24.21.0` in the repository `.nvmrc`; use Node 24 LTS for both apps. Re-check the official [Node.js release schedule](https://github.com/nodejs/release) before future major upgrades.
 - Use `.env.example` names/placeholders only, including `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`, `GEMINI_MODEL`, Google OAuth variables, email-provider variables, and frontend API base URL.
 - Build responsive customer flows and role-specific restaurant views with loading, empty, error, and degraded states.
 - Draft a visual design proposal for owner review before committing to brand-specific colors/assets.
 
 ## 11. CI, testing, performance, and deployment — approved baseline
 
-- Pull-request CI should run lint, typecheck, unit/integration tests, and production builds for both apps. Do not deploy from pull requests.
+- Use Biome `2.5.15` for linting/formatting and run typecheck, unit/integration tests, and production builds for both apps in pull-request CI. Do not deploy from pull requests.
+- Biome replaces the generated Next ESLint configuration: its dependency tree contained five high-severity development-only audit findings with no compatible automatic fix; `npm audit --omit=dev` reported zero production dependency findings. Do not force-downgrade `eslint-config-next` to an incompatible Next 14 version.
 - Interpret existing performance targets as p95: dashboard under 2 seconds, REST API under 500 ms, incident detection under 5 seconds, and AI response under 10 seconds. Test workload/concurrency and dataset size are still pending.
 - Keep Vercel (frontend), Render (backend), and MongoDB Atlas as the planned deployment platforms. Do not deploy without owner-provided accounts, domains, and secrets.
 - Use HTTPS, input validation, least-privilege authorization, auth rate limits, audit events without secrets, and restaurant-level data scoping.

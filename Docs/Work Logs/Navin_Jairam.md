@@ -23,3 +23,9 @@
 - Updated the README and backlog. S1-01 is Complete, S1-02 is Ready to Push, and S3-11 remains In Progress pending final app setup/run instructions.
 - **Validation:** all local Markdown links resolve; backlog additions and story totals were checked; auth/role alignment and fallback acceptance criteria were reviewed; `git diff --check` passes.
 - **Delivery:** documentation only; no application code or remote push was made on this branch.
+
+### S1-03 — Frontend setup standards and dependency review
+
+- Approved Node.js `24.21.0` and Biome `2.5.15` in the implementation decisions.
+- Replaced the generated Next ESLint plan after the audit found five high-severity development-only findings; production dependencies audited clean. No force downgrade was applied.
+- **Delivery:** standards recorded on the local S1-03 branch; no remote push was made.
