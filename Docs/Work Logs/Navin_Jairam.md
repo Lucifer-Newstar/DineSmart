@@ -134,3 +134,10 @@
 - Added a pure frontend navigation/access helper so Kitchen Staff and Reception see their intended workspace sections, Manager/Administrator can reach AI insights, and Customer sessions are routed to the guest home. The server's signed-principal authorization remains authoritative; this is presentation only, not a substitute for API RBAC.
 - **Implementation:** included in Dhanush's area-branch commit `7e69d80`; no separate task branch was created. The shared helper builds and passes Biome/type checks.
 - **Status:** S2-11 remains **In Progress** pending route coverage for the remaining operational APIs, customer ownership views, and role-specific workflow verification. No push or merge was made.
+
+### 2026-10-11 — Local area-branch integration and CI-equivalent validation
+
+- Created local `integration/ci-validation` from `feature/backend`, then merged `feature/ai` and `feature/frontend` in dependency order. Resolved app routing to retain inventory, health-score, and AI endpoints together and reconciled shared docs/backlog. Original area branches remain unchanged; nothing was pushed or merged into `main`.
+- **Integration merge commits:** `92604f7` and `b324460` (Navin).
+- **Validation on Node `24.21.0`, following `.github/workflows/ci.yml`:** frontend and backend `npm ci`, `npm audit` (zero vulnerabilities each), Biome lint, TypeScript typechecks, and production builds passed. Backend tests: 45 passed. Frontend has no configured test script. `git diff --check` passed.
+- **Limits:** this is a local CI-equivalent run, not a GitHub Actions result. Live MongoDB/Compose and Gemini credential verification remain unavailable.
