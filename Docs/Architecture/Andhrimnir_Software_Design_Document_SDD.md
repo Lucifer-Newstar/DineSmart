@@ -19,7 +19,7 @@ This Software Design Document defines the technical design of the Andhrímnir pl
 - Frontend: Next.js + React + Tailwind CSS
 - Backend: Node.js + Express.js REST APIs
 - Database: MongoDB Atlas
-- Authentication: Email/OTP, Google OAuth, JWT, RBAC
+- Authentication: Email/OTP registration and verification, Email/Password and Google OAuth login, JWT, RBAC
 - AI Layer: Gemini API
 - Deployment: Vercel (Frontend), Render (Backend)
 ## 3. High-Level Modules

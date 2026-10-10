@@ -136,7 +136,7 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 | Entity | Structure |
 | --- | --- |
 | Restaurant | Basic Information, Branch, Hours, Contact, Status |
-| Users | Admin, Manager, Reception, Kitchen, Waiter, Inventory Manager, Customer |
+| Users | Customer, Reception, Kitchen Staff, Manager, Administrator |
 | Tables | Number, Capacity, Zone, Status, Assigned Waiter, Reservation, Order |
 | Orders | Order ID, Customer, Table, Items, Status, Timeline |
 | Inventory | Item, Stock, Threshold, Supplier, Status |
@@ -144,3 +144,5 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 | Recommendations | Priority, Explanation, Impact, Confidence |
 | Analytics | Revenue, Orders, Wait Time, Peak Hours, Trends |
 | Health Score | Kitchen, Inventory, Orders, Reservations, Incidents |
+
+The SRS role list above is canonical for the MVP. Owner, Waiter, and Inventory Manager remain user/persona or responsibility labels—not additional MVP roles—until the permission matrix in the implementation-decisions draft is approved.

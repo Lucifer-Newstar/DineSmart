@@ -22,7 +22,7 @@ The documented MVP scope includes:
 | Frontend | Next.js, React, Tailwind CSS |
 | Backend | Node.js, Express.js REST APIs |
 | Data | MongoDB Atlas |
-| Authentication | Email/OTP, Google OAuth, JWT, RBAC |
+| Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC |
 | AI | Gemini API |
 | Deployment | Vercel (frontend), Render (backend) |
 

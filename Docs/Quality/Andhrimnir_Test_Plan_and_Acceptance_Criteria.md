@@ -15,7 +15,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 
 | Module | Included | Priority |
 | --- | --- | --- |
-| Authentication | Email/OTP, Google OAuth, JWT, RBAC | High |
+| Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC | High |
 | Customer Portal | Menu, Reservations, Orders | High |
 | Restaurant Dashboard | Orders, Inventory, Analytics, Health Score | High |
 | Incident Detection | Delays, Congestion, Shortages | High |
@@ -35,7 +35,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 
 | ID | Feature | Test Scenario | Expected Result | Priority |
 | --- | --- | --- | --- | --- |
-| TC-01 | Authentication | Register/Login with Email & OTP | User authenticated successfully | High |
+| TC-01 | Authentication | Register with Email/OTP; log in with Email/Password | Registration is verified and login succeeds | High |
 | TC-02 | Google OAuth | Login using Google | User redirected to dashboard | High |
 | TC-03 | Digital Menu | View menu and availability | Available items displayed | High |
 | TC-04 | Reservations | Create reservation | Reservation saved and visible | High |
@@ -60,7 +60,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 
 | ID | Acceptance Criterion |
 | --- | --- |
-| AC-01 | Users can register and log in using Email/OTP or Google OAuth. |
+| AC-01 | Users can register with Email/OTP and log in using Email/Password or Google OAuth. |
 | AC-02 | Role-based access restricts features appropriately. |
 | AC-03 | Customers can browse menu, reserve tables and place orders. |
 | AC-04 | Restaurant staff can manage orders, reservations and inventory. |
