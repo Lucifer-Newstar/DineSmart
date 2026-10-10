@@ -11,6 +11,9 @@ import { connectToDatabase } from "./database.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreService } from "./healthscore/health-score.service.js";
+import { MongoInventoryRepository } from "./inventory/inventory.repository.js";
+import { createInventoryRouter } from "./inventory/inventory.router.js";
+import { InventoryService } from "./inventory/inventory.service.js";
 
 export interface AppOptions {
   getDatabase?: () => Promise<Db>;
@@ -107,6 +110,19 @@ export function createApp(options: AppOptions = {}) {
         const { db, service: authService } = await createAuthRuntime();
         return {
           service: new HealthScoreService(new MongoHealthScoreRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/inventory",
+    createInventoryRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new InventoryService(new MongoInventoryRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
