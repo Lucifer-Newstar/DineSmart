@@ -2,7 +2,7 @@
 
 **Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository contains the product and technical documentation, a documentation-conversion utility, and initial Next.js and Express application shells. Product workflows, database integration, and authentication have not yet been implemented.
+> This repository contains the product and technical documentation, a documentation-conversion utility, and initial Next.js and Express application shells. Restaurant workflows, authentication, and database-backed product features have not yet been implemented.
 
 ## Product vision
 
@@ -21,7 +21,7 @@ The documented MVP scope includes:
 | --- | --- |
 | Frontend | Next.js `16.4.0` App Router, React `19.3.0`, Tailwind CSS `4.3.3`, TypeScript, Biome `2.5.15` |
 | Backend | Node.js `24.21.0` LTS, Express `5.3.0`, TypeScript |
-| Data | MongoDB Atlas |
+| Data | MongoDB Atlas (planned production), local MongoDB for development via Docker Compose, official MongoDB Node driver |
 | Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC |
 | AI | Gemini API |
 | Deployment | Vercel (frontend), Render (backend) |
@@ -42,19 +42,21 @@ Open `http://localhost:3000`. The `/` route is a neutral application shell only;
 
 ## Backend setup
 
-From the repository root, use Node.js `24.21.0` and run:
+For local development with Docker Compose, use Node.js `24.21.0` and run from the repository root:
 
 ```bash
+docker compose up -d mongodb
+cp backend/.env.example backend/.env
 cd backend
 npm ci
 npm run dev
 ```
 
-The API listens on `http://localhost:3001` by default. `GET /health` reports process liveness only; it does not indicate a database connection. See the [backend guide](backend/README.md) for quality commands and current scope.
+The API listens on `http://localhost:3001` by default. `GET /health` reports process liveness only; it does not indicate a database connection. The local MongoDB service is bound to loopback; do not expose it to a network. See the [backend guide](backend/README.md) for quality commands and current scope.
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds the app. Backend checks are gated until `backend/package.json` is present; the backend now has a process-liveness test, while frontend feature tests remain pending. This adds CI only—deployment/CD is not configured.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds the app. Backend checks are gated until `backend/package.json` is present; the backend currently has liveness and MongoDB-configuration tests, while frontend feature tests remain pending. This adds CI only—deployment/CD is not configured.
 
 ## Documentation
 
@@ -102,7 +104,7 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 
 ## Development status
 
-The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation and S1-04 Express backend shell are locally validated and **Ready to Push** on their task branches. The S1-04 branch is stacked on S1-07 so CI can verify both packages; S1-07 remains **In Progress** pending GitHub-run confirmation and deployment/CD scope. No remote push has been made. The backend has only an infrastructure liveness endpoint and test; database integration, authentication, and product workflows remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
+The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation and S1-04 Express backend shell are locally validated and **Ready to Push** on their task branches. S1-05 local-first MongoDB configuration is **In Progress** on `feature/S1-05-mongodb-atlas`; the workspace has no Docker daemon, so a live database connection could not be verified here. The S1-04 branch is stacked on S1-07 so CI can verify both packages; S1-07 remains **In Progress** pending GitHub-run confirmation and deployment/CD scope. No remote push has been made. The backend has a liveness route and native-driver connection setup, but no product collections/workflows or Atlas credentials. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
 
 ## Repository structure
 
@@ -110,6 +112,7 @@ The MVP scope, architecture, API endpoint inventory, delivery plan, and test cri
 .
 |-- .gitignore
 |-- .nvmrc
+|-- compose.yaml            # local-only MongoDB development service
 |-- .github/
 |   `-- workflows/          # pull-request CI
 |-- Docs/

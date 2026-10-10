@@ -42,7 +42,7 @@
 
 - **Branch:** `feature/S1-07-ci-cd`, stacked on `feature/S1-03-nextjs-setup` because the frontend and Node pin are required inputs; integrate S1-03 first.
 - Added GitHub Actions checks for the frontend on pull requests, pushes to `main`, and manual runs: clean install, dependency audit, Biome, optional test script, TypeScript typecheck, and production build. Backend checks activate when the backend package is added.
-- No deploy job or secrets were added. After S1-04, the gated backend CI checks run against its package and liveness test; frontend feature tests are still pending. S1-07 remains **In Progress** because deployment/CD and a GitHub-run confirmation are outstanding.
+- No deploy job or secrets were added. After S1-04/S1-05, the gated backend CI checks run against its package and liveness/MongoDB-configuration tests; frontend feature tests are still pending. S1-07 remains **In Progress** because deployment/CD and a GitHub-run confirmation are outstanding.
 - **Delivery:** local task branch only; no remote push was made.
 
 ### S1-04 — Setup documentation and CI integration
@@ -51,3 +51,10 @@
 - Marked S1-04 **Ready to Push** after the owner-authored implementation and work log passed local checks. S1-07 remains **In Progress**; no GitHub run or deployment has occurred.
 - **Validation:** local documentation links resolve and `git diff --check` passes; the S1-04 work log records the runtime/test/build/audit results.
 - **Delivery:** documentation/status update committed locally; no remote push was made.
+
+### S1-05 — Local-first MongoDB decision and documentation
+
+- Recorded the owner-approved native MongoDB Node.js driver and local-Docker-first approach, with Atlas provisioning deferred; no ODM/schema decisions were invented.
+- Updated the implementation decisions, backend and team setup guides, root README, and backlog. S1-05 remains **In Progress** because this workspace has no Docker daemon and the live database/Atlas connection is not verified.
+- **Validation:** documentation links and YAML parse checks pass; no database credentials were added to the repository.
+- **Delivery:** documentation/status update is local only; no remote push was made.

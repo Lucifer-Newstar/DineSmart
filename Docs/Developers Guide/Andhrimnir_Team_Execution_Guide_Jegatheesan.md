@@ -103,7 +103,7 @@ Phase Deliverables:
 
 Things Jegatheesan Must Know:
 
-- Express routing, Mongoose ODM, validation, error handling.
+- Express routing, the official MongoDB Node.js driver, collection operations, validation, and error handling.
 
 Phase Completion Checklist:
 

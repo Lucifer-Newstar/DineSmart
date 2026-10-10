@@ -1,23 +1,28 @@
 # Andhrímnir Backend
 
-This package is the initial Express API foundation. It currently provides a process-liveness endpoint only; product routes, database integration, authentication, and restaurant workflows are not implemented yet.
+This package is the initial Express API foundation. It currently provides a process-liveness endpoint and native MongoDB connection setup; product routes, schemas, authentication, and restaurant workflows are not implemented yet.
 
 ## Requirements
 
 - Node.js `24.21.0` (pinned in the repository root `.nvmrc`)
 - npm
+- Docker Compose for the local MongoDB service, or a MongoDB instance of your own
 
-## Run locally
+## Run locally with Docker Compose
 
-From the repository root, select the pinned Node version and run:
+From the repository root:
 
 ```bash
+docker compose up -d mongodb
+cp backend/.env.example backend/.env
 cd backend
 npm ci
 npm run dev
 ```
 
-The server listens on port `3001` by default (or the value of `PORT`) and binds to `0.0.0.0`. Check `GET http://localhost:3001/health`; this endpoint reports process liveness, not database readiness.
+The API listens on port `3001` by default (or the value of `PORT`) and binds to `0.0.0.0`. `GET /health` reports process liveness only; it does not indicate database readiness. The Compose service binds MongoDB to loopback on port `27017` and stores local data in a named volume. Do not expose this unauthenticated development service to a network.
+
+To stop MongoDB while preserving data, run `docker compose down` from the repository root. Use `docker compose down --volumes` only when you intend to delete the local database volume.
 
 ## Quality commands
 
@@ -31,4 +36,4 @@ npm run typecheck
 npm run build
 ```
 
-The test suite uses Node's built-in test runner. No database URI or other secrets are required by the scaffold.
+The tests use Node's built-in test runner. Connection configuration is read from `MONGODB_URI`; no Atlas credentials are committed. Atlas connectivity can be configured later by supplying a URI through a secret-safe local environment.

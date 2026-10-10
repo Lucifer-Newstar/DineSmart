@@ -15,17 +15,17 @@ Primary Responsibilities: Backend development, database design, REST APIs, reser
 ## Phase 2 – Backend Foundation & Database
 
 - Setup Express.js backend project.
-- Configure MongoDB Atlas connection.
-- Design database schema and collections.
+- Configure native MongoDB driver access with local MongoDB for development; connect to Atlas after the cluster and URI are supplied.
+- Finalize database schemas and collections only after the pending field/index decisions are approved.
 - Implement project folder structure, middleware and configuration.
-- Deliverables: Express backend, MongoDB connection, schema models, environment configuration.
+- Deliverables: Express backend, local MongoDB connection setup, approved schemas when available, and environment placeholders.
 ## Phase 3 – Core Backend Development
 
 - Develop Reservation Management APIs.
 - Develop Kitchen Queue module.
 - Develop Inventory Management APIs.
 - Implement business logic, validation and controllers.
-- Deliverables: Functional REST APIs, Mongoose models, validations and middleware.
+- Deliverables: Functional REST APIs, typed MongoDB collection access, validations and middleware.
 ## Phase 4 – Dashboard & Analytics
 
 - Develop dashboard aggregation APIs.

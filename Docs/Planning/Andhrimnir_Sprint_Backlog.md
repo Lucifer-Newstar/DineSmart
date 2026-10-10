@@ -43,7 +43,7 @@ Goal: Establish backend foundation and project setup.
 | S1-02 | Branch Strategy | Navin | High | 1 | Ready to Push |
 | S1-03 | Setup Next.js | Dhanush | High | 2 | Ready to Push |
 | S1-04 | Setup Express Backend | Jegatheesan | High | 2 | Ready to Push |
-| S1-05 | Configure MongoDB Atlas | Jegatheesan | High | 2 | To Do |
+| S1-05 | Configure MongoDB Atlas | Jegatheesan | High | 2 | In Progress |
 | S1-06 | Environment Variables | Gokul | High | 1 | To Do |
 | S1-07 | CI/CD Pipeline | Navin & Gokul | Medium | 2 | In Progress |
 | S1-08 | Database Schema | Jegatheesan | High | 3 | To Do |

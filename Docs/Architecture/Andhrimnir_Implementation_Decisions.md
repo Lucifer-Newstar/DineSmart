@@ -163,6 +163,8 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 - TypeScript for both apps, npm and committed lockfiles.
 - Initial frontend scaffold versions: Next.js `16.4.0`, React `19.3.0`, Tailwind CSS `4.3.3`; the lockfile is authoritative for the resolved dependency tree.
 - Pin Node.js `24.21.0` in the repository `.nvmrc`; use Node 24 LTS for both apps. Re-check the official [Node.js release schedule](https://github.com/nodejs/release) before future major upgrades.
+- Production data target: MongoDB Atlas. Local development uses MongoDB `8.0` via root `compose.yaml`, bound to loopback with a named data volume; do not expose the unauthenticated dev container to a network.
+- Use the official MongoDB Node.js driver `mongodb` `7.7.0`; Mongoose is not selected. Atlas provisioning/credentials are deferred. No connection string or other secret is committed.
 - Use `.env.example` names/placeholders only, including `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`, `GEMINI_MODEL`, Google OAuth variables, email-provider variables, and frontend API base URL.
 - Build responsive customer flows and role-specific restaurant views with loading, empty, error, and degraded states.
 - Draft a visual design proposal for owner review before committing to brand-specific colors/assets.
@@ -170,7 +172,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 ## 11. CI, testing, performance, and deployment — approved baseline
 
 - Use Biome `2.5.15` for linting/formatting and run typecheck, unit/integration tests, and production builds for both apps in pull-request CI. Do not deploy from pull requests.
-- The initial CI workflow runs install/audit/Biome/typecheck/build checks for each app package present; it runs tests when a test script is configured. The backend now has a process-liveness test; frontend feature tests and deployment are not implemented. Backend CI is gated on `backend/package.json` so the workflow also works before that package is merged.
+- The initial CI workflow runs install/audit/Biome/typecheck/build checks for each app package present; it runs tests when a test script is configured. The backend currently has process-liveness and MongoDB-configuration tests; frontend feature tests and deployment are not implemented. Backend CI is gated on `backend/package.json` so the workflow also works before that package is merged.
 - Biome replaces the generated Next ESLint configuration: its dependency tree contained five high-severity development-only audit findings with no compatible automatic fix; `npm audit --omit=dev` reported zero production dependency findings. Do not force-downgrade `eslint-config-next` to an incompatible Next 14 version.
 - Interpret existing performance targets as p95: dashboard under 2 seconds, REST API under 500 ms, incident detection under 5 seconds, and AI response under 10 seconds. Test workload/concurrency and dataset size are still pending.
 - Keep Vercel (frontend), Render (backend), and MongoDB Atlas as the planned deployment platforms. Do not deploy without owner-provided accounts, domains, and secrets.
@@ -187,14 +189,15 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 
-- Final API response/error/pagination contract and Mongoose schema/indexes.
+- Final API response/error/pagination contract and MongoDB collection schemas, indexes, and exact validation rules.
 - Remaining order and reservation transition permissions and opening-hour rules.
 - Incident deduplication/status lifecycle and queue-wait estimate formula.
 - Health-score component normalization and analytics/reporting definitions.
+- MongoDB Atlas cluster provisioning, credential delivery, and network allow-listing.
 - Exact email provider and Google OAuth configuration.
 - WebSocket reconnect/replay/auth detail and notification retention.
 - Visual design approval and accessibility conformance level.
