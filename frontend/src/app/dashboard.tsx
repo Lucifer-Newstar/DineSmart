@@ -742,11 +742,16 @@ function InventoryRows({
   canManage = true,
 }: {
   inventory: InventoryItem[];
-  onRestock: (item: InventoryItem) => void;
+  onRestock: (item: InventoryItem, quantity: number) => Promise<boolean>;
   compact?: boolean;
   canManage?: boolean;
 }) {
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [quantityDraft, setQuantityDraft] = useState("");
+  const [adjustmentError, setAdjustmentError] = useState("");
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const rows = compact ? inventory.slice(0, 3) : inventory;
+
   return (
     <div className="inventory-list">
       {rows.length === 0 ? (
@@ -757,6 +762,9 @@ function InventoryRows({
         </p>
       ) : null}
       {rows.map((item) => {
+        const rowKey = item.id ?? item.name;
+        const isEditing = editingKey === rowKey;
+        const isSaving = savingKey === rowKey;
         const low = item.onHand <= item.minimum;
         const percent = canManage
           ? item.target > 0
@@ -768,8 +776,8 @@ function InventoryRows({
         const progressStyle = { "--progress": `${percent}%` } as CSSProperties;
         return (
           <div
-            className={`inventory-row ${canManage ? "" : "inventory-row-readonly"}`}
-            key={item.id ?? item.name}
+            className={`inventory-row ${canManage ? "" : "inventory-row-readonly"} ${isEditing ? "inventory-row-editing" : ""}`}
+            key={rowKey}
           >
             <span className={`inventory-food-icon ${low ? "inventory-food-low" : ""}`}>
               <Icon name="box" size={16} />
@@ -805,15 +813,74 @@ function InventoryRows({
               ) : null}
             </div>
             {canManage ? (
-              <button
-                className="icon-button restock-button"
-                type="button"
-                onClick={() => onRestock(item)}
-                aria-label={`Add stock for ${item.name}`}
-                title="Add stock"
-              >
-                <Icon name="plus" size={16} />
-              </button>
+              isEditing ? (
+                <form
+                  className="inventory-adjust-form"
+                  aria-label={`Adjust stock count for ${item.name}`}
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    const quantity = Number(quantityDraft);
+                    if (quantityDraft.trim() === "" || !Number.isFinite(quantity) || quantity < 0) {
+                      setAdjustmentError("Enter a finite, non-negative stock count.");
+                      return;
+                    }
+                    setSavingKey(rowKey);
+                    setAdjustmentError("");
+                    const saved = await onRestock(item, quantity);
+                    setSavingKey(null);
+                    if (saved) setEditingKey(null);
+                    else
+                      setAdjustmentError(
+                        "The count was not saved. Check the connection and retry.",
+                      );
+                  }}
+                >
+                  <input
+                    aria-label={`New on-hand count for ${item.name}${item.unit ? ` in ${item.unit}` : ""}`}
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={quantityDraft}
+                    onChange={(event) => setQuantityDraft(event.currentTarget.value)}
+                    aria-invalid={Boolean(adjustmentError)}
+                    disabled={isSaving}
+                  />
+                  {item.unit ? <span className="inventory-adjust-unit">{item.unit}</span> : null}
+                  <button className="button button-dark" type="submit" disabled={isSaving}>
+                    {isSaving ? "Saving…" : "Save count"}
+                  </button>
+                  <button
+                    className="button button-soft"
+                    type="button"
+                    onClick={() => {
+                      setEditingKey(null);
+                      setAdjustmentError("");
+                    }}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  {adjustmentError ? (
+                    <span className="inventory-adjust-error" role="alert">
+                      {adjustmentError}
+                    </span>
+                  ) : null}
+                </form>
+              ) : (
+                <button
+                  className="icon-button restock-button"
+                  type="button"
+                  onClick={() => {
+                    setEditingKey(rowKey);
+                    setQuantityDraft(String(item.onHand));
+                    setAdjustmentError("");
+                  }}
+                  aria-label={`Set stock count for ${item.name}`}
+                  title="Set stock count"
+                >
+                  <Icon name="plus" size={16} />
+                </button>
+              )
             ) : null}
           </div>
         );
@@ -1085,12 +1152,14 @@ export function Dashboard() {
         const payload: unknown = await response.json();
         const parsed = parseInventoryResponse(payload);
         if (!parsed) throw new Error("The inventory response was invalid.");
+        if (controller.signal.aborted) return;
         setInventory(parsed.items);
         setInventoryTruncated(parsed.truncated);
         setInventoryStatus("live");
       })
       .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") return;
+        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
+          return;
         setInventory(INITIAL_INVENTORY);
         setInventoryTruncated(false);
         setInventoryStatus("unavailable");
@@ -1168,49 +1237,53 @@ export function Dashboard() {
     notify(`${id} moved to ${nextStatus.toLowerCase()}.`);
   };
 
-  const addStock = (item: InventoryItem) => {
-    if (
-      accessToken &&
-      inventoryStatus === "live" &&
-      (role === "Manager" || role === "Administrator") &&
-      item.id
-    ) {
-      void fetch(`${API_BASE}/inventory/${item.id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          authorization: `Bearer ${accessToken}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          quantity: item.onHand + 6,
-          lowStockThreshold: item.minimum,
-        }),
-      })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("The stock adjustment was not saved.");
-          const updated = parseInventoryUpdate(await response.json());
-          if (!updated) throw new Error("The inventory response was invalid.");
-          setInventory((current) =>
-            current.map((currentItem) => (currentItem.id === updated.id ? updated : currentItem)),
-          );
-          notify(`${item.name} stock count saved.`);
-        })
-        .catch((error: unknown) => {
-          notify(error instanceof Error ? error.message : "The stock adjustment was not saved.");
+  const addStock = async (item: InventoryItem, quantity: number): Promise<boolean> => {
+    const liveManager =
+      accessToken && inventoryStatus === "live" && (role === "Manager" || role === "Administrator");
+
+    if (liveManager) {
+      if (!item.id) {
+        notify("This inventory item cannot be identified; the count was not saved.");
+        return false;
+      }
+      try {
+        const response = await fetch(`${API_BASE}/inventory/${item.id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ quantity, lowStockThreshold: item.minimum }),
         });
-      return;
+        if (!response.ok) {
+          notify("The stock count was not saved. Check your permissions and connection.");
+          return false;
+        }
+        const updated = parseInventoryUpdate(await response.json());
+        if (!updated) {
+          notify("The inventory response was invalid; the count was not saved.");
+          return false;
+        }
+        setInventory((current) =>
+          current.map((currentItem) => (currentItem.id === updated.id ? updated : currentItem)),
+        );
+        notify(`${item.name} stock count saved.`);
+        return true;
+      } catch {
+        notify("Inventory is unavailable; the stock count was not saved.");
+        return false;
+      }
     }
 
     setInventory((current) =>
       current.map((currentItem) => {
         const matches = item.id ? currentItem.id === item.id : currentItem.name === item.name;
-        return matches
-          ? { ...currentItem, onHand: Math.min(currentItem.onHand + 6, currentItem.target) }
-          : currentItem;
+        return matches ? { ...currentItem, onHand: quantity } : currentItem;
       }),
     );
-    notify(`${item.name} stock adjusted in this preview; it was not saved.`);
+    notify(`${item.name} count changed in this preview; it was not saved.`);
+    return true;
   };
 
   const updateReservation = (id: string) => {
@@ -1899,7 +1972,7 @@ function OverviewPage({
   onRefreshHealthScore: () => void;
   canManageInventory: boolean;
   onAdvance: (id: string) => void;
-  onRestock: (item: InventoryItem) => void;
+  onRestock: (item: InventoryItem, quantity: number) => Promise<boolean>;
   onOpen: () => void;
   onOrders: () => void;
   onReservations: () => void;
@@ -2130,11 +2203,6 @@ function OverviewPage({
               </div>
               <h2>{canManageInventory ? "Stock to watch" : "Stock availability"}</h2>
             </div>
-            {canManageInventory && inventory.length > 0 ? (
-              <button className="text-link" type="button" onClick={() => onRestock(inventory[0])}>
-                Quick restock <Icon name="plus" size={15} />
-              </button>
-            ) : null}
           </div>
           <InventoryRows
             inventory={inventory}
@@ -2550,7 +2618,7 @@ function InventoryPage({
   onRefresh,
 }: {
   inventory: InventoryItem[];
-  onRestock: (item: InventoryItem) => void;
+  onRestock: (item: InventoryItem, quantity: number) => Promise<boolean>;
   canManageInventory: boolean;
   inventoryStatus: InventoryViewStatus;
   inventoryTruncated: boolean;
@@ -2620,23 +2688,12 @@ function InventoryPage({
               <Icon name="refresh" size={16} />
             </button>
           ) : null}
-          {canManageInventory ? (
-            <button
-              className="button button-outline"
-              type="button"
-              onClick={() => {
-                inventory
-                  .filter((item) => item.onHand <= item.minimum)
-                  .forEach((item) => {
-                    onRestock(item);
-                  });
-              }}
-            >
-              <Icon name="refresh" size={16} />
-              Restock low items
-            </button>
-          ) : null}
         </div>
+        {canManageInventory ? (
+          <p className="health-data-note inventory-adjustment-hint">
+            Set the exact on-hand count for each item. Stock is not deducted automatically.
+          </p>
+        ) : null}
         <InventoryRows inventory={inventory} onRestock={onRestock} canManage={canManageInventory} />
         {inventoryTruncated ? (
           <p className="health-data-note">Showing the first 2,000 inventory items.</p>

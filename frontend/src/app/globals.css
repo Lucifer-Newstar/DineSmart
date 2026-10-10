@@ -1659,6 +1659,50 @@ a {
   color: #466449;
   background: #eaf2e4;
 }
+.inventory-row-editing {
+  padding-top: 5px;
+}
+.inventory-adjust-form {
+  display: flex;
+  grid-column: 2 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 9px;
+}
+.inventory-adjust-form input {
+  width: 96px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #dfe6dc;
+  border-radius: 8px;
+  color: #4c5d52;
+  background: #fff;
+  font-size: 10px;
+}
+.inventory-adjust-form input:focus {
+  outline: 2px solid rgb(120 151 110 / 26%);
+  border-color: #95aa8a;
+}
+.inventory-adjust-form .button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 9px;
+}
+.inventory-adjust-unit {
+  color: #849087;
+  font-size: 9px;
+}
+.inventory-adjust-error {
+  flex: 1 0 100%;
+  color: #b65f4a;
+  font-size: 9px;
+  line-height: 1.4;
+}
+.inventory-adjustment-hint {
+  margin: -4px 0 8px;
+}
 .reservation-preview {
   display: flex;
   align-items: flex-start;
