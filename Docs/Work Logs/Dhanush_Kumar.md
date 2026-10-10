@@ -62,8 +62,8 @@
 
 ### S2-06 — Inventory UI integration
 
-- **Branch:** `feature/frontend`, based on local `feature/ai`. For combined validation, `integration/ci-validation` locally merged `feature/backend` → `feature/ai` → `feature/frontend`; the original area branches remain unchanged.
+- **Integration:** the frontend work originated on `feature/frontend`; local `integration/ci-validation` merged `feature/backend` → `feature/ai` → `feature/frontend` and was fast-forwarded to `main` at `70f5fb4`. All other local branch refs were deleted at the owner's direction; their commits are preserved in `main`.
 - Added authenticated `GET /api/v1/inventory`, defensive response parsing, loading/live/unavailable/preview labels, retry, empty-list and truncation states, and sample-data disclosures. Reception and Kitchen Staff see availability without quantities or write controls. Managers and Administrators can submit an exact finite, non-negative on-hand count through `PUT /api/v1/inventory/{id}`. Preview edits remain local and are not persisted; supplier integration and automatic order deductions remain out of scope.
 - **Frontend implementation commits:** `f2afac0` and `8d7f15a` (Dhanush). **Frontend README commit:** `7fdee3f` (Navin). **Integration merge commits:** `92604f7` and `b324460` (Navin).
 - **CI-equivalent local validation on Node `24.21.0`:** frontend and backend `npm ci`, `npm audit`, Biome lint, typechecks, and production builds passed; backend suite passed all 45 tests. The frontend has no configured test script. `git diff --check` passed. GitHub Actions was not triggered because no push or pull request was made. Live MongoDB verification remains unavailable because Docker and `mongod` are absent.
-- **Status:** S2-06 remains **In Progress** pending live MongoDB/API verification and final review. Merges are local to the CI-validation branch; no push or merge into `main` was made.
+- **Status:** S2-06 remains **In Progress** pending live MongoDB/API verification and final review. The integrated code is on local `main`; no remote push or GitHub Actions run was made.
