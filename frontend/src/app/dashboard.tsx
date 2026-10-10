@@ -65,6 +65,7 @@ interface Order {
 }
 
 interface InventoryItem {
+  id?: string;
   name: string;
   category: string;
   onHand: number;
@@ -115,6 +116,12 @@ interface HealthScoreData {
 }
 
 type HealthScoreViewStatus = "demo" | "loading" | "live" | "unavailable" | "restricted";
+type InventoryViewStatus = "preview" | "loading" | "live" | "unavailable";
+
+interface ParsedInventoryResponse {
+  items: InventoryItem[];
+  truncated: boolean;
+}
 
 const INCIDENT_INVENTORY_ID = "71000000000000000000001d";
 const API_BASE = "/api/v1";
@@ -579,7 +586,15 @@ function PageHeading({
   );
 }
 
-function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
+function DemoBanner({
+  onDismiss,
+  inventoryStatus,
+  canManageInventory,
+}: {
+  onDismiss: () => void;
+  inventoryStatus: InventoryViewStatus;
+  canManageInventory: boolean;
+}) {
   return (
     <div className="demo-banner" role="status">
       <span className="demo-banner-icon">
@@ -588,7 +603,13 @@ function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
       <p>
         <strong>Preview workspace</strong>
         <span>
-          Dashboard metrics, orders, reservations, and stock controls are sample-only and not saved.
+          {inventoryStatus === "live"
+            ? `Inventory is live${canManageInventory ? " and manager adjustments save" : " in read-only mode"}; other metrics, orders, and reservations remain sample-only.`
+            : inventoryStatus === "loading"
+              ? "Loading live inventory; sample rows are shown until it arrives. Other operational data remains sample-only."
+              : inventoryStatus === "unavailable"
+                ? "The inventory API is unavailable; sample rows are shown and adjustments are not saved. Other operational data remains sample-only."
+                : "Dashboard metrics, orders, reservations, and inventory are sample-only and not saved."}{" "}
           Health score or recommendations use the API only when connected.
         </span>
       </p>
@@ -721,17 +742,26 @@ function InventoryRows({
   canManage = true,
 }: {
   inventory: InventoryItem[];
-  onRestock: (name: string) => void;
+  onRestock: (item: InventoryItem) => void;
   compact?: boolean;
   canManage?: boolean;
 }) {
   const rows = compact ? inventory.slice(0, 3) : inventory;
   return (
     <div className="inventory-list">
+      {rows.length === 0 ? (
+        <p className="health-empty-note">
+          {canManage
+            ? "No inventory items are configured for this restaurant yet."
+            : "No stock availability is configured for this restaurant yet."}
+        </p>
+      ) : null}
       {rows.map((item) => {
         const low = item.onHand <= item.minimum;
         const percent = canManage
-          ? Math.min((item.onHand / item.target) * 100, 100)
+          ? item.target > 0
+            ? Math.min((item.onHand / item.target) * 100, 100)
+            : 0
           : low
             ? 25
             : 75;
@@ -739,7 +769,7 @@ function InventoryRows({
         return (
           <div
             className={`inventory-row ${canManage ? "" : "inventory-row-readonly"}`}
-            key={item.name}
+            key={item.id ?? item.name}
           >
             <span className={`inventory-food-icon ${low ? "inventory-food-low" : ""}`}>
               <Icon name="box" size={16} />
@@ -765,15 +795,20 @@ function InventoryRows({
                   {low ? "Reorder" : "In stock"}
                 </span>
               </div>
-              <div className={`stock-track ${low ? "stock-track-low" : ""}`} style={progressStyle}>
-                <span />
-              </div>
+              {!canManage || item.target > 0 ? (
+                <div
+                  className={`stock-track ${low ? "stock-track-low" : ""}`}
+                  style={progressStyle}
+                >
+                  <span />
+                </div>
+              ) : null}
             </div>
             {canManage ? (
               <button
                 className="icon-button restock-button"
                 type="button"
-                onClick={() => onRestock(item.name)}
+                onClick={() => onRestock(item)}
                 aria-label={`Add stock for ${item.name}`}
                 title="Add stock"
               >
@@ -916,6 +951,94 @@ function isHealthScoreData(value: unknown): value is HealthScoreData {
   });
 }
 
+function parseInventoryResponse(value: unknown): ParsedInventoryResponse | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const response = value as Record<string, unknown>;
+  if (!Array.isArray(response.items) || typeof response.truncated !== "boolean") return null;
+
+  const items: InventoryItem[] = [];
+  for (const candidate of response.items) {
+    if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate))
+      return null;
+    const item = candidate as Record<string, unknown>;
+    if (
+      typeof item.id !== "string" ||
+      !/^[a-f\d]{24}$/i.test(item.id) ||
+      typeof item.name !== "string"
+    ) {
+      return null;
+    }
+
+    if (
+      typeof item.quantity === "number" &&
+      Number.isFinite(item.quantity) &&
+      item.quantity >= 0 &&
+      typeof item.unit === "string" &&
+      typeof item.lowStockThreshold === "number" &&
+      Number.isFinite(item.lowStockThreshold) &&
+      item.lowStockThreshold >= 0
+    ) {
+      items.push({
+        id: item.id,
+        name: item.name,
+        category: "Live inventory",
+        onHand: item.quantity,
+        minimum: item.lowStockThreshold,
+        target: 0,
+        unit: item.unit,
+      });
+      continue;
+    }
+
+    if (item.availability === "low" || item.availability === "available") {
+      items.push({
+        id: item.id,
+        name: item.name,
+        category: "Live inventory",
+        onHand: item.availability === "low" ? 0 : 1,
+        minimum: 0,
+        target: 1,
+        unit: "",
+      });
+      continue;
+    }
+    return null;
+  }
+
+  return { items, truncated: response.truncated };
+}
+
+function parseInventoryUpdate(value: unknown): InventoryItem | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const response = value as Record<string, unknown>;
+  if (typeof response.item !== "object" || response.item === null || Array.isArray(response.item))
+    return null;
+  const item = response.item as Record<string, unknown>;
+  if (
+    typeof item.id !== "string" ||
+    !/^[a-f\d]{24}$/i.test(item.id) ||
+    typeof item.name !== "string" ||
+    typeof item.quantity !== "number" ||
+    !Number.isFinite(item.quantity) ||
+    item.quantity < 0 ||
+    typeof item.unit !== "string" ||
+    typeof item.lowStockThreshold !== "number" ||
+    !Number.isFinite(item.lowStockThreshold) ||
+    item.lowStockThreshold < 0
+  ) {
+    return null;
+  }
+  return {
+    id: item.id,
+    name: item.name,
+    category: "Live inventory",
+    onHand: item.quantity,
+    minimum: item.lowStockThreshold,
+    target: 0,
+    unit: item.unit,
+  };
+}
+
 export function Dashboard() {
   const { user, accessToken, signOut } = useAuth();
   const [section, setSection] = useState<Section>("Overview");
@@ -926,6 +1049,9 @@ export function Dashboard() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [inventory, setInventory] = useState(INITIAL_INVENTORY);
+  const [inventoryStatus, setInventoryStatus] = useState<InventoryViewStatus>("preview");
+  const [inventoryTruncated, setInventoryTruncated] = useState(false);
+  const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
   const [recommendation, setRecommendation] = useState(DEMO_RECOMMENDATION);
   const [recommendationReviewed, setRecommendationReviewed] = useState(false);
@@ -937,6 +1063,41 @@ export function Dashboard() {
   const [healthScoreLoading, setHealthScoreLoading] = useState(false);
   const [healthScoreRefreshKey, setHealthScoreRefreshKey] = useState(0);
   const role = user?.role;
+
+  useEffect(() => {
+    if (!accessToken || !role || role === "Customer") {
+      setInventory(INITIAL_INVENTORY);
+      setInventoryStatus("preview");
+      setInventoryTruncated(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setInventoryStatus("loading");
+    void fetch(`${API_BASE}/inventory`, {
+      cache: inventoryRefreshKey > 0 ? "reload" : "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Inventory is not available from the API.");
+        const payload: unknown = await response.json();
+        const parsed = parseInventoryResponse(payload);
+        if (!parsed) throw new Error("The inventory response was invalid.");
+        setInventory(parsed.items);
+        setInventoryTruncated(parsed.truncated);
+        setInventoryStatus("live");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setInventory(INITIAL_INVENTORY);
+        setInventoryTruncated(false);
+        setInventoryStatus("unavailable");
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, inventoryRefreshKey]);
 
   useEffect(() => {
     if (!accessToken || !canViewHealthScore(role)) {
@@ -1007,13 +1168,49 @@ export function Dashboard() {
     notify(`${id} moved to ${nextStatus.toLowerCase()}.`);
   };
 
-  const addStock = (name: string) => {
+  const addStock = (item: InventoryItem) => {
+    if (
+      accessToken &&
+      inventoryStatus === "live" &&
+      (role === "Manager" || role === "Administrator") &&
+      item.id
+    ) {
+      void fetch(`${API_BASE}/inventory/${item.id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          quantity: item.onHand + 6,
+          lowStockThreshold: item.minimum,
+        }),
+      })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("The stock adjustment was not saved.");
+          const updated = parseInventoryUpdate(await response.json());
+          if (!updated) throw new Error("The inventory response was invalid.");
+          setInventory((current) =>
+            current.map((currentItem) => (currentItem.id === updated.id ? updated : currentItem)),
+          );
+          notify(`${item.name} stock count saved.`);
+        })
+        .catch((error: unknown) => {
+          notify(error instanceof Error ? error.message : "The stock adjustment was not saved.");
+        });
+      return;
+    }
+
     setInventory((current) =>
-      current.map((item) =>
-        item.name === name ? { ...item, onHand: Math.min(item.onHand + 6, item.target) } : item,
-      ),
+      current.map((currentItem) => {
+        const matches = item.id ? currentItem.id === item.id : currentItem.name === item.name;
+        return matches
+          ? { ...currentItem, onHand: Math.min(currentItem.onHand + 6, currentItem.target) }
+          : currentItem;
+      }),
     );
-    notify(`${name} stock adjusted in this preview.`);
+    notify(`${item.name} stock adjusted in this preview; it was not saved.`);
   };
 
   const updateReservation = (id: string) => {
@@ -1417,12 +1614,20 @@ export function Dashboard() {
             ) : null}
           </PageHeading>
 
-          {demoBannerVisible ? <DemoBanner onDismiss={() => setDemoBannerVisible(false)} /> : null}
+          {demoBannerVisible ? (
+            <DemoBanner
+              onDismiss={() => setDemoBannerVisible(false)}
+              inventoryStatus={inventoryStatus}
+              canManageInventory={canManageInventory}
+            />
+          ) : null}
 
           {section === "Overview" ? (
             <OverviewPage
               orders={orders}
               inventory={inventory}
+              inventoryStatus={inventoryStatus}
+              inventoryTruncated={inventoryTruncated}
               recommendation={recommendation}
               showAi={canUseInsights}
               role={role}
@@ -1459,6 +1664,9 @@ export function Dashboard() {
               inventory={inventory}
               onRestock={addStock}
               canManageInventory={canManageInventory}
+              inventoryStatus={inventoryStatus}
+              inventoryTruncated={inventoryTruncated}
+              onRefresh={() => setInventoryRefreshKey((current) => current + 1)}
             />
           ) : section === "Incidents" ? (
             <IncidentsPage recommendation={recommendation} onInsights={() => goTo("Insights")} />
@@ -1662,6 +1870,8 @@ function HealthScoreCard({
 function OverviewPage({
   orders,
   inventory,
+  inventoryStatus,
+  inventoryTruncated,
   recommendation,
   showAi,
   role,
@@ -1678,6 +1888,8 @@ function OverviewPage({
 }: {
   orders: Order[];
   inventory: InventoryItem[];
+  inventoryStatus: InventoryViewStatus;
+  inventoryTruncated: boolean;
   recommendation: Recommendation;
   showAi: boolean;
   role: AuthUser["role"] | undefined;
@@ -1687,7 +1899,7 @@ function OverviewPage({
   onRefreshHealthScore: () => void;
   canManageInventory: boolean;
   onAdvance: (id: string) => void;
-  onRestock: (name: string) => void;
+  onRestock: (item: InventoryItem) => void;
   onOpen: () => void;
   onOrders: () => void;
   onReservations: () => void;
@@ -1907,16 +2119,19 @@ function OverviewPage({
           <div className="card-heading-row">
             <div>
               <div className="card-overline">
-                {canManageInventory ? "KEEP THE PASS READY" : "STOCK AVAILABILITY"}
+                {canManageInventory ? "KEEP THE PASS READY" : "STOCK AVAILABILITY"} ·{" "}
+                {inventoryStatus === "live"
+                  ? "LIVE"
+                  : inventoryStatus === "loading"
+                    ? "LOADING"
+                    : inventoryStatus === "unavailable"
+                      ? "PREVIEW · API OFFLINE"
+                      : "PREVIEW"}
               </div>
               <h2>{canManageInventory ? "Stock to watch" : "Stock availability"}</h2>
             </div>
-            {canManageInventory ? (
-              <button
-                className="text-link"
-                type="button"
-                onClick={onRestock.bind(null, inventory[0]?.name ?? "Fresh paneer")}
-              >
+            {canManageInventory && inventory.length > 0 ? (
+              <button className="text-link" type="button" onClick={() => onRestock(inventory[0])}>
                 Quick restock <Icon name="plus" size={15} />
               </button>
             ) : null}
@@ -1927,6 +2142,9 @@ function OverviewPage({
             compact
             canManage={canManageInventory}
           />
+          {inventoryTruncated ? (
+            <p className="health-data-note">Showing the first 2,000 inventory items.</p>
+          ) : null}
         </article>
         {role === "Kitchen Staff" ? null : (
           <article className="card reservations-overview-card">
@@ -1977,9 +2195,11 @@ function OverviewPage({
           <Icon name="sun" size={15} /> All times in IST
         </span>
         <span>
-          {healthScoreStatus === "live"
-            ? "Health score calculated on request"
-            : "Operational metrics are sample-only"}
+          {inventoryStatus === "live"
+            ? "Inventory is live; most other operational data is a preview"
+            : healthScoreStatus === "live"
+              ? "Health score calculated on request; other data is a preview"
+              : "Operational metrics are sample-only"}
         </span>
       </div>
     </>
@@ -2325,10 +2545,16 @@ function InventoryPage({
   inventory,
   onRestock,
   canManageInventory,
+  inventoryStatus,
+  inventoryTruncated,
+  onRefresh,
 }: {
   inventory: InventoryItem[];
-  onRestock: (name: string) => void;
+  onRestock: (item: InventoryItem) => void;
   canManageInventory: boolean;
+  inventoryStatus: InventoryViewStatus;
+  inventoryTruncated: boolean;
+  onRefresh: () => void;
 }) {
   const lowCount = inventory.filter((item) => item.onHand <= item.minimum).length;
   return (
@@ -2358,9 +2584,9 @@ function InventoryPage({
         </div>
         <div className="inventory-summary-box inventory-supplier">
           <div>
-            <span>Next delivery window</span>
-            <strong>Tomorrow · 7:30 am</strong>
-            <small>South Chennai Produce Co.</small>
+            <span>Supplier connection</span>
+            <strong>Preview only</strong>
+            <small>No live supplier integration</small>
           </div>
           <span className="supplier-icon">
             <Icon name="arrow-right" size={16} />
@@ -2371,10 +2597,29 @@ function InventoryPage({
         <div className="orders-toolbar">
           <div>
             <div className="card-overline">
-              {canManageInventory ? "STOCK CONTROL" : "STOCK AVAILABILITY"}
+              {canManageInventory ? "STOCK CONTROL" : "STOCK AVAILABILITY"} ·{" "}
+              {inventoryStatus === "live"
+                ? "LIVE"
+                : inventoryStatus === "loading"
+                  ? "LOADING"
+                  : inventoryStatus === "unavailable"
+                    ? "PREVIEW · API OFFLINE"
+                    : "PREVIEW"}
             </div>
             <h2>Inventory snapshot</h2>
           </div>
+          {inventoryStatus !== "preview" ? (
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Refresh inventory"
+              title="Refresh inventory"
+              onClick={onRefresh}
+              disabled={inventoryStatus === "loading"}
+            >
+              <Icon name="refresh" size={16} />
+            </button>
+          ) : null}
           {canManageInventory ? (
             <button
               className="button button-outline"
@@ -2383,7 +2628,7 @@ function InventoryPage({
                 inventory
                   .filter((item) => item.onHand <= item.minimum)
                   .forEach((item) => {
-                    onRestock(item.name);
+                    onRestock(item);
                   });
               }}
             >
@@ -2393,23 +2638,36 @@ function InventoryPage({
           ) : null}
         </div>
         <InventoryRows inventory={inventory} onRestock={onRestock} canManage={canManageInventory} />
+        {inventoryTruncated ? (
+          <p className="health-data-note">Showing the first 2,000 inventory items.</p>
+        ) : null}
       </article>
-      <article className="stock-guidance">
-        <span className="stock-guidance-icon">
-          <Icon name="spark" size={18} />
-        </span>
-        <div>
-          <strong>Heads up for the dinner rush</strong>
-          <p>
-            Fresh paneer and baby spinach are under their reorder points. Review the incident
-            insight for suggested next steps.
-          </p>
-        </div>
-        <span className="guidance-pill">2 items to review</span>
-      </article>
-      <p className="preview-note">
-        <Icon name="alert" size={15} /> Stock adjustments in this preview are not persisted to a
-        live inventory system.
+      {inventoryStatus !== "live" ? (
+        <article className="stock-guidance">
+          <span className="stock-guidance-icon">
+            <Icon name="spark" size={18} />
+          </span>
+          <div>
+            <strong>Preview guidance for the dinner rush</strong>
+            <p>
+              Sample paneer and spinach are below their reorder points. Live recommendations require
+              connected incident data.
+            </p>
+          </div>
+          <span className="guidance-pill">Sample only</span>
+        </article>
+      ) : null}
+      <p className="preview-note" role={inventoryStatus === "unavailable" ? "alert" : "status"}>
+        <Icon name="alert" size={15} />
+        {inventoryStatus === "live"
+          ? canManageInventory
+            ? "Inventory counts are loaded from the API; manager stock adjustments save to the restaurant record."
+            : "Inventory availability is live and read-only for this role."
+          : inventoryStatus === "loading"
+            ? "Loading live inventory. Sample rows are shown until it arrives; preview adjustments are not saved."
+            : inventoryStatus === "unavailable"
+              ? "Live inventory could not be loaded. Showing sample data; preview adjustments are not saved. Refresh to retry."
+              : "Showing sample inventory. Adjustments in this preview are not persisted."}
       </p>
     </>
   );
