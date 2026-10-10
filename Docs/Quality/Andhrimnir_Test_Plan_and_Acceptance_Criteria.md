@@ -50,6 +50,8 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-11 | Notifications | Critical incident | Manager notified | Medium |
 | TC-12 | Analytics | View reports | Charts load correctly | Medium |
 | TC-13 | Database fallback | Disable database after cache is warmed | Menu/dashboard show stale-data banner; writes fail clearly and are not queued | High |
+| TC-14 | JWT sessions | Login, refresh, replay a rotated token, then logout | Access token is short-lived; refresh cookie is HttpOnly; replay revokes the session family; logout revokes | High |
+| TC-15 | Access middleware | Call a protected test route with missing, invalid, and valid bearer tokens | Missing/invalid tokens are rejected; a valid token attaches the authenticated principal | High |
 
 ## 5. Non-Functional Testing
 
@@ -91,3 +93,10 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - These tests validate the declared plan using a fake MongoDB `Db`; they do not prove MongoDB accepted or built the indexes.
 - Before moving S1-08 to **Ready to Push**, run the configured local MongoDB Compose service and verify startup index creation against a live instance. Docker/`mongod` are not available in the current workspace, so that check remains outstanding.
 - Workflow-level validation (for example, cross-restaurant access, reference ownership, amount/quantity ranges, and reservation conflicts) must also be exercised by the corresponding service/API tests. TypeScript document interfaces alone do not enforce persisted data.
+
+## 9. S1-09 Authentication Verification
+
+- Unit tests cover Argon2id hashing/verification, generic invalid-credential handling, normalized email lookup, access-token claims/expiry, opaque refresh-token hashing, rotation, replay revocation, and logout.
+- HTTP tests cover the versioned login/refresh/logout routes, HttpOnly cookie delivery, absence of refresh tokens from JSON, exact-origin rejection, and bearer middleware behavior.
+- Current route tests use a fake repository. Run the login/refresh/logout flow with a live MongoDB instance before treating persistence behavior as integration-tested; this workspace has no Docker/`mongod`.
+- The access token is returned to the client for memory-only storage. Frontend credential inclusion and protected-route/RBAC coverage remain pending their corresponding stories.

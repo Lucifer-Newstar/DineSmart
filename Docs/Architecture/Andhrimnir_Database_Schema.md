@@ -1,6 +1,6 @@
 # Andhrímnir Database Schema — S1-08 Baseline
 
-**Status:** Initial native MongoDB driver schema and index baseline, implemented on `feature/S1-08-database-schema` (2026-10-10). This is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
+**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with the authentication `refresh_sessions` extension added on `feature/S1-09-jwt-auth`. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
 
 ## Design recommendations applied
 
@@ -10,7 +10,7 @@
 - Treat a Customer as a global identity/profile. A customer user may have `restaurantId: null`; orders, reservations, and all other operational records remain scoped to one `restaurantId`. The owner explicitly approved this scope on 2026-10-10.
 - Store the entered email separately from `normalizedEmail`, which is trimmed and lowercased for global uniqueness and login lookup. Do not remove plus-tags or apply provider-specific dot rules.
 - Prefix operational query indexes with `restaurantId` where applicable. Database indexes are a performance aid, not an authorization boundary: every API query must also enforce the caller's restaurant access.
-- Use named, idempotent `createIndexes` calls at backend startup. Do not add TTL deletion, incident-deduplication uniqueness, or payment fields before retention/lifecycle requirements are defined.
+- Use named, idempotent `createIndexes` calls at backend startup. S1-09 adds TTL deletion only for refresh sessions with an explicit seven-day expiry; do not add TTL to operational history or incident-deduplication uniqueness before those retention/lifecycle rules are defined.
 
 ## Collections and document fields
 
@@ -19,6 +19,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 | Collection | Initial fields | Scope |
 | --- | --- | --- |
 | `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `passwordHash` | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
+| `refresh_sessions` | `userId`, current `tokenHash`, `usedTokenHashes`, absolute `expiresAt`, `revokedAt`, `lastUsedAt` | Authentication session family; token values are hashes, and the session is not restaurant-scoped. |
 | `restaurants` | `name`, optional `contact`/`address`, `timezone`, `currency`, optional `operatingHours`/`thresholds`, `status` | Root tenant record. |
 | `customers` | optional `userId`, `displayName`, optional guest `email`/`phone`, optional `contactPreferences` | Global profile; not tenant-scoped. |
 | `staff` | `restaurantId`, `userId`, `role`, `isActive` | Restaurant membership; no shift/schedule fields in MVP. |
@@ -37,7 +38,7 @@ The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Gene
 
 ## Relationships and constraints
 
-- A `User` may have zero or one linked `Customer` profile. A guest `Customer` may have no `userId`.
+- A `User` may have zero or one linked `Customer` profile and multiple refresh-session families. A guest `Customer` may have no `userId`.
 - A `Customer` may have multiple reservations and orders across restaurants. Each such operational document still contains its own `restaurantId`.
 - A `Restaurant` owns its staff memberships, menu items, tables, reservations, orders, order items, inventory items, incidents, recommendations, notifications, and bills.
 - An `Order` has one or more `OrderItem` documents; each item snapshots the menu name and unit price. An `Order` has at most one `Bill` in this baseline.
@@ -52,6 +53,7 @@ The named index specifications live alongside the document types in `backend/src
 | Collection | Indexes |
 | --- | --- |
 | `users` | Unique `normalizedEmail`; `(restaurantId, role, status)`. |
+| `refresh_sessions` | Unique current `tokenHash`; `usedTokenHashes` for replay lookup; `(userId, revokedAt, expiresAt)`; TTL on `expiresAt`. |
 | `restaurants` | `(status, name)`. |
 | `customers` | Unique `userId` only when it is an `ObjectId`; permits multiple guest profiles without a linked user. |
 | `staff` | Unique `(restaurantId, userId)`; `(restaurantId, isActive, role)`. |

@@ -55,6 +55,7 @@ This Software Design Document defines the technical design of the Andhrímnir pl
 ## 6. Database Collections
 
 - Users
+- RefreshSessions
 - Restaurants
 - Customers
 - Staff

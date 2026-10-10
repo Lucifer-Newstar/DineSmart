@@ -42,6 +42,17 @@ Apply least privilege and restaurant scoping. Administrator access is restaurant
 - Use environment variables and local secret storage. Commit placeholder names in `.env.example`, never secret values.
 - Until an email provider is configured, use a local/mock email adapter for development. Provider credentials are not part of this repository.
 
+### S1-09 JWT implementation recommendations
+
+These are the assistant-selected implementation defaults on the owner's direction to choose recommendations; the owner has not separately selected each detail:
+
+- Sign 15-minute access JWTs with `HS256`, a minimum 32-byte `JWT_SECRET`, issuer/audience validation, and subject/role/restaurant claims. Keep authorization rules in middleware/services, not solely in unverified client data.
+- Issue 256-bit opaque refresh tokens in an HttpOnly cookie; persist only SHA-256 hashes. Rotate each use, detect reuse and revoke the token family, with a fixed seven-day absolute session lifetime (rotation does not extend the lifetime).
+- Cookie policy: HttpOnly always; `Secure` in production; `SameSite=Lax` for local development and `SameSite=None` in production for the separate frontend/API origins. In production, allow credentialed CORS and unsafe auth requests only from the configured exact `WEB_ORIGIN`.
+- Use Argon2id with explicit memory/time parameters. Apply a modest process-local IP limiter to login and refresh as an MVP safeguard; configure a shared store before horizontally scaling.
+- Return only the access token and safe user identity in JSON; never expose the refresh token or log token/password values. Registration/OTP remains owned by S1-11; S1-09 login accepts only active users that already have a password hash.
+- Include secure logout in S1-09 because revocation belongs with refresh-session handling; keep S2-15 focused on password reset to avoid duplicate ownership.
+
 ### Authentication test alignment
 
 The test plan now reflects the SRS: register with Email/OTP, then log in with Email/Password; Google OAuth is an additional supported login path.
@@ -82,7 +93,7 @@ On the owner's instruction to choose the best recommendation, this field list is
 - Keep a global `customers` identity/profile separate from restaurant-scoped orders and reservations. Customer users may have `restaurantId: null`; staff/administrative users are restaurant-scoped. The owner explicitly approved this cross-restaurant customer identity scope on 2026-10-10.
 - Store both the entered email and its trimmed, lowercase `normalizedEmail`; enforce a global unique index on the normalized value. Do not remove plus tags or provider-specific dots.
 - Give operational collections compound indexes led by `restaurantId`. Use named, idempotent index creation at backend startup. Reservation overlap remains an application-level check; indexes alone do not enforce time-range conflicts.
-- Do not add TTL deletion or incident-deduplication constraints before retention and incident-lifecycle rules are specified. S1-08 adds indexes, not MongoDB JSON Schema validators; exact validation remains pending.
+- S1-08 adds indexes, not MongoDB JSON Schema validators; exact validation remains pending. S1-09 adds a TTL only for refresh-session records with the documented seven-day expiry; do not add TTL or incident-deduplication constraints to operational data until its retention/lifecycle rules are specified.
 
 See the [S1-08 Database Schema](Andhrimnir_Database_Schema.md) for collections, fields, relationships, and index definitions.
 
@@ -176,7 +187,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 - Pin Node.js `24.21.0` in the repository `.nvmrc`; use Node 24 LTS for both apps. Re-check the official [Node.js release schedule](https://github.com/nodejs/release) before future major upgrades.
 - Production data target: MongoDB Atlas. Local development uses MongoDB `8.0` via root `compose.yaml`, bound to loopback with a named data volume; do not expose the unauthenticated dev container to a network.
 - Use the official MongoDB Node.js driver `mongodb` `7.7.0`; Mongoose is not selected. Atlas provisioning/credentials are deferred. No connection string or other secret is committed.
-- Commit placeholder names only in app-specific `.env.example` files; never commit real `.env`/`.env.local` values. Current names are `NODE_ENV`, `MONGODB_URI`, `PORT`, `JWT_SECRET`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `EMAIL_PROVIDER`, `EMAIL_API_KEY`, and frontend `NEXT_PUBLIC_API_BASE_URL`. Keep `EMAIL_PROVIDER=mock` for local development; provider credentials and the exact Gemini model remain unset until approved/configured.
+- Commit placeholder names only in app-specific `.env.example` files; never commit real `.env`/`.env.local` values. Current names are `NODE_ENV`, `MONGODB_URI`, `PORT`, `JWT_SECRET`, `WEB_ORIGIN`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `EMAIL_PROVIDER`, `EMAIL_API_KEY`, and frontend `NEXT_PUBLIC_API_BASE_URL`. Keep `EMAIL_PROVIDER=mock` for local development; provider credentials and the exact Gemini model remain unset until approved/configured.
 - Build responsive customer flows and role-specific restaurant views with loading, empty, error, and degraded states.
 - Draft a visual design proposal for owner review before committing to brand-specific colors/assets.
 
@@ -200,7 +211,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is being built on the local S1-08 branch. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 
@@ -209,6 +220,7 @@ The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-
 - Incident deduplication/status lifecycle and queue-wait estimate formula.
 - Health-score component normalization and analytics/reporting definitions.
 - MongoDB Atlas cluster provisioning, credential delivery, and network allow-listing.
+- Production `JWT_SECRET` delivery and the deployment-specific `WEB_ORIGIN` value.
 - Exact email provider and Google OAuth configuration.
 - WebSocket reconnect/replay/auth detail and notification retention.
 - Visual design approval and accessibility conformance level.

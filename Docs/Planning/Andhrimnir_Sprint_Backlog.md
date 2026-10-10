@@ -47,7 +47,7 @@ Goal: Establish backend foundation and project setup.
 | S1-06 | Environment Variables | Gokul | High | 1 | Ready to Push |
 | S1-07 | CI/CD Pipeline | Navin & Gokul | Medium | 2 | In Progress |
 | S1-08 | Database Schema | Jegatheesan | High | 3 | In Progress |
-| S1-09 | JWT Authentication | Dhanush | High | 3 | To Do |
+| S1-09 | JWT Authentication | Dhanush | High | 3 | In Progress |
 | S1-10 | Google OAuth | Dhanush | Medium | 2 | To Do |
 | S1-11 | Email OTP | Dhanush | Medium | 2 | To Do |
 | S1-12 | RBAC | Navin | High | 2 | To Do |
@@ -73,7 +73,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-12 | Incident Detection Rules | Navin | High | 12 | To Do |
 | S2-13 | WebSocket Implementation | Navin | High | 3 | To Do |
 | S2-14 | Billing APIs | Jegatheesan | High | 3 | To Do |
-| S2-15 | Password Reset & Logout APIs | Dhanush | High | 2 | To Do |
+| S2-15 | Password Reset API | Dhanush | High | 2 | To Do |
 | S2-16 | Staff Management APIs | Jegatheesan | Medium | 3 | To Do |
 | S2-17 | Waitlist Management APIs | Jegatheesan | Medium | 2 | To Do |
 | S2-18 | Table Status APIs | Jegatheesan | Medium | 2 | To Do |

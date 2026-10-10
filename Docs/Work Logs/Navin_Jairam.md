@@ -73,3 +73,11 @@
 - Kept S1-08 **In Progress** because no live MongoDB instance is available to verify the index bootstrap. No credentials or remote pushes were added.
 - **Validation:** reviewed Markdown links and status alignment; `git diff --check` passes. Code-level tests/build results are recorded in Jegatheesan's work log.
 - **Delivery:** architecture and shared-document changes remain local; no remote push was made.
+
+### S1-09 — Authentication architecture and status integration
+
+- Recorded assistant-selected JWT/session/security defaults in the implementation decisions without attributing them as separate owner approvals. Added the refresh-session collection and TTL/index details to the schema reference.
+- Added `/auth/refresh` to the canonical endpoint inventory and updated the SDD, backend setup, test plan, environment variable list, README, and backlog status.
+- S1-09 remains **In Progress** pending a live MongoDB persistence check; no secrets or remote pushes were added.
+- **Validation:** documentation links and status alignment reviewed; `git diff --check` passes. Backend code/test/build results are recorded in Dhanush's work log.
+- **Delivery:** shared documentation updates remain local; no remote push was made.
