@@ -27,5 +27,6 @@
 ### S1-03 — Frontend setup standards and dependency review
 
 - Approved Node.js `24.21.0` and Biome `2.5.15` in the implementation decisions.
-- Replaced the generated Next ESLint plan after the audit found five high-severity development-only findings; production dependencies audited clean. No force downgrade was applied.
-- **Delivery:** standards recorded on the local S1-03 branch; no remote push was made.
+- Removed the generated Next ESLint configuration and its five high-severity development-only advisories; installed Biome as the formatter/linter. No force downgrade was applied.
+- Validated with Node `24.21.0`: Biome check, TypeScript typecheck, and production build passed; full `npm audit` and `npm audit --omit=dev` both report zero vulnerabilities.
+- **Delivery:** security remediation is a separate Navin-authored commit on the local S1-03 branch; no remote push was made.
