@@ -3869,6 +3869,21 @@ a {
   background: #edf0ec;
   content: "";
 }
+.google-sign-in-wrap {
+  min-height: 40px;
+}
+.google-button-host {
+  display: flex;
+  min-height: 40px;
+  justify-content: center;
+  overflow: hidden;
+}
+.google-sign-in-fallback {
+  margin: 6px 0;
+  color: #9a927f;
+  font-size: 8px;
+  text-align: center;
+}
 .auth-switch {
   margin: 0;
   color: #89948c;

@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
+import { GoogleSignInButton } from "../google-sign-in";
 
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
+  const goHome = useCallback(() => router.push("/"), [router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +23,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
-      router.push("/");
+      goHome();
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : "Sign-in failed. Please try again.",
@@ -106,7 +108,14 @@ export default function LoginPage() {
               {submitting ? "Signing in…" : "Sign in securely"}
             </button>
           </form>
-          <div className="auth-divider">YOUR RESTAURANT, YOUR SHIFT</div>
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+            <>
+              <div className="auth-divider">OR CONTINUE WITH</div>
+              <GoogleSignInButton onSuccess={goHome} />
+            </>
+          ) : (
+            <div className="auth-divider">YOUR RESTAURANT, YOUR SHIFT</div>
+          )}
           <p className="auth-switch">
             New to DineSmart? <Link href="/register">Create an account</Link>
           </p>

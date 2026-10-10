@@ -30,6 +30,7 @@ interface AuthContextValue {
   accessToken: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: (idToken: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<CodeResponse>;
   requestOtp: (email: string) => Promise<CodeResponse>;
   verifyOtp: (email: string, code: string) => Promise<void>;
@@ -93,6 +94,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setSession(authenticated);
   }, []);
 
+  const signInWithGoogle = useCallback(async (idToken: string) => {
+    const response = await fetch(`${API_BASE}/auth/google`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    const authenticated = await parseResponse<SessionResponse>(response);
+    setSession(authenticated);
+  }, []);
+
   const register = useCallback(async (name: string, email: string, password: string) => {
     const response = await fetch(`${API_BASE}/auth/register`, {
       method: "POST",
@@ -144,12 +156,13 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       accessToken: session?.accessToken ?? null,
       isLoading,
       signIn,
+      signInWithGoogle,
       register,
       requestOtp,
       verifyOtp,
       signOut,
     }),
-    [session, isLoading, signIn, register, requestOtp, verifyOtp, signOut],
+    [session, isLoading, signIn, signInWithGoogle, register, requestOtp, verifyOtp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
