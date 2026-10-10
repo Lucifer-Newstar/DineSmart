@@ -17,12 +17,17 @@ docker compose up -d mongodb
 cp backend/.env.example backend/.env
 cd backend
 npm ci
+npm run seed  # optional: create the local demo restaurant and sample records
 npm run dev
 ```
 
 The API listens on port `3001` by default (or the value of `PORT`) and binds to `0.0.0.0`. `GET /health` reports process liveness only; it does not indicate database readiness. The Compose service binds MongoDB to loopback on port `27017` and stores local data in a named volume. Do not expose this unauthenticated development service to a network.
 
 To stop MongoDB while preserving data, run `docker compose down` from the repository root. Use `docker compose down --volumes` only when you intend to delete the local database volume.
+
+### Local demo data (optional)
+
+Run `npm run seed` from `backend/` after copying `.env.example` to `.env` and starting Compose. The script creates repeatable Saffron & Co. demo records for the operations UI. It refuses to run unless `NODE_ENV=development` and `MONGODB_URI` targets a local host. It upserts its fixed fixture IDs, so re-running refreshes only those demo records. The `.env.example` override is `Andhrimnir-Demo-Only-Change-Me`; if `SEED_DEMO_PASSWORD` is unset, the script falls back to `Andhrimnir Demo 2026`. Set a private local-only value if desired. The seeded users are `manager@saffronandco.demo`, `reception@saffronandco.demo`, `kitchen.staff@saffronandco.demo`, `administrator@saffronandco.demo`, and `ananya@saffronandco.demo`. These are public local demo credentials only—never seed them into production or a shared database.
 
 ## Authentication API (S1-09–S1-11)
 

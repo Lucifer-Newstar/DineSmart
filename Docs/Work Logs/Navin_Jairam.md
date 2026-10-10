@@ -104,3 +104,9 @@
 - **Implementation commit:** `a24c9d9` (Navin). **Validation on Node `24.21.0`:** Biome, 25 backend tests, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities.
 - On the owner's revised instruction, updated the branch policy to area branches (e.g. `feature/backend`, `feature/ai`, `feature/frontend`) while keeping task IDs in commits/logs. Renamed the uncommitted S1-12 branch to `feature/backend`; existing historical task branches remain unchanged.
 - **Delivery:** local only; no push or merge. `feature/backend` is stacked on the local S1-11 branch pending end-of-project integration.
+
+### S1-13 — Seed data documentation and status
+
+- Documented the local-only seed target guard, deterministic fixture scope, demo accounts/password override, and repeatable upsert behavior. Updated the database schema reference, backend/root READMEs, test plan, implementation decisions, and backlog; added Jegatheesan's implementation results to his work log.
+- **Validation:** documentation/status consistency reviewed; `git diff --check` passes. The seed implementation is commit `548f3aa`; lint, 27 tests, typecheck, build, and audit passed. Live MongoDB seed/re-run verification is unavailable without Docker/`mongod`.
+- **Status:** In Progress pending live local MongoDB verification. No remote push or merge was made.

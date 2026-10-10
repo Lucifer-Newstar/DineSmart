@@ -34,7 +34,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 | `notifications` | `restaurantId`, `recipientUserId`, `type`, `title`, `body`, optional `relatedEntity`, `deliveredAt`, `readAt` | Restaurant-scoped. |
 | `bills` | `restaurantId`, `orderId`, `lineItems`, `subtotalMinor`, `taxMinor`, `adjustmentsMinor`, `totalMinor`, `currency`, `status` | Restaurant-scoped; no payment capture or provider fields. |
 
-The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Registration OTP state is embedded on the pending User document so code consumption and status activation can be a single atomic update; only a domain-separated HMAC is stored, never the raw code. These fields are unset when the account becomes active. Generic objects such as address, operating hours, contact, and thresholds are intentionally not given strict runtime shapes yet; those belong with the corresponding API/workflow contract.
+The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Registration OTP state is embedded on the pending User document so code consumption and status activation can be a single atomic update; only a domain-separated HMAC is stored, never the raw code. These fields are unset when the account becomes active. `backend/src/database/seed-data.ts` holds deterministic development fixtures; `npm run seed` is restricted to `NODE_ENV=development` and a local MongoDB hostname. Generic objects such as address, operating hours, contact, and thresholds are intentionally not given strict runtime shapes yet; those belong with the corresponding API/workflow contract.
 
 ## Relationships and constraints
 

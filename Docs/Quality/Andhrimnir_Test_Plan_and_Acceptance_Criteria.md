@@ -118,3 +118,8 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - Unit/HTTP tests verify unauthenticated rejection, allow/deny behavior for the approved MVP role matrix, manager-only incident resolution, kitchen queue access, and customer-owner checks.
 - Operational middleware rejects a client-supplied `restaurantId` from path, query, or body when it differs from the signed principal; Customer principals cannot use restaurant-scoped routes. Repository methods must still filter every operational read/write by `restaurantId`, and customer services must apply owner conditions.
 - Product routes do not yet exist in this backend. As each operations route is added, confirm it applies both permission and tenant/owner checks; RBAC is not considered integrated based only on the middleware tests.
+
+## 13. S1-13 Seed Data Verification
+
+- Unit tests validate stable fixture IDs, required sample roles/workflows, restaurant-scoped operational records, seeded local demo recommendation labels, and rejection of production or remote database targets.
+- The seed command upserts known fixture IDs into the canonical collection names after the index bootstrap. A live local MongoDB run and repeat-seed check remain pending because Docker/`mongod` are unavailable.

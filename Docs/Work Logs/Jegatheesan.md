@@ -26,3 +26,12 @@
 - Added schema/index-plan tests and the S1-08 architecture schema document. No MongoDB JSON Schema validators or migrations were added because exact workflow validation remains pending.
 - **Validation on Node `24.21.0`:** 8 backend tests, Biome lint, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. The fake-database test verified startup index initialization. This environment has no Docker daemon or `mongod`, so a live MongoDB bootstrap could not be tested.
 - **Status:** In Progress pending live MongoDB verification. Work remains local; no remote push was made.
+
+### S1-13 — Development Seed Data
+
+- **Branch:** `feature/backend`, the area branch stacked on the local auth/RBAC work.
+- Added deterministic, fixed-ID sample records for Saffron & Co. across users, restaurant, customers, staff, menu, tables, inventory, reservations, orders/items, incidents, recommendations, notifications, and a bill. Demo Customer identity is global; operational records are restaurant-scoped.
+- Added an idempotent native-driver seed command, initialized indexes before seeding, and restricted execution to `NODE_ENV=development` plus localhost/loopback or the local Compose service hostname. The fixture login password is explicitly local demo-only.
+- **Implementation commit:** `548f3aa` (Jegatheesan).
+- **Validation on Node `24.21.0`:** Biome, 27 backend tests, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Unit tests validate fixture references, canonical collection names, deterministic IDs, and production/remote-target refusal. Docker/`mongod` are unavailable, so a live Mongo seed/re-run was not verified.
+- **Status:** In Progress pending live local MongoDB seed and repeat-run verification. No remote push or merge was made.
