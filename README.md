@@ -41,7 +41,9 @@ The planned MVP includes:
 
 - [Project planning document](Docs/Andhrimnir_Project_Planning_Document.md)
 - [Development workflow](Docs/Development-Workflow.md)
+- [Branch strategy](Docs/Branch-Strategy.md)
 - [Sprint backlog](Docs/Andhrimnir_Sprint_Backlog.md) and [updates](Docs/Andhrimnir_Updated_Sprint_Backlog.md)
+- [Navin Jairam work log](Docs/Work%20Logs/Navin_Jairam.md)
 - [Integrated phase-completion roadmap](Docs/Developers%20Guide/Andhrimnir_Integrated_Phase_Completion_Roadmap.md)
 - [Test plan and acceptance criteria](Docs/Andhrimnir_Test_Plan_and_Acceptance_Criteria.md)
 - [Demo strategy and mock-data structure](Docs/Andhrimnir_Demo_Strategy_and_Mock_Data_Structure.md)

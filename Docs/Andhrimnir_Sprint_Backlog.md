@@ -40,7 +40,7 @@ Goal: Establish backend foundation and project setup.
 | Task ID | Task | Owner | Priority | Story Points | Status |
 | --- | --- | --- | --- | --- | --- |
 | S1-01 | Create GitHub Repository | Navin | High | 1 | To Do |
-| S1-02 | Branch Strategy | Navin | High | 1 | To Do |
+| S1-02 | Branch Strategy | Navin | High | 1 | Complete |
 | S1-03 | Setup Next.js | Dhanush | High | 2 | To Do |
 | S1-04 | Setup Express Backend | Jegatheesan | High | 2 | To Do |
 | S1-05 | Configure MongoDB Atlas | Jegatheesan | High | 2 | To Do |
