@@ -30,3 +30,10 @@
 - Removed the generated Next ESLint configuration and its five high-severity development-only advisories; installed Biome as the formatter/linter. No force downgrade was applied.
 - Validated with Node `24.21.0`: Biome check, TypeScript typecheck, and production build passed; full `npm audit` and `npm audit --omit=dev` both report zero vulnerabilities.
 - **Delivery:** security remediation is a separate Navin-authored commit on the local S1-03 branch; no remote push was made.
+
+### S1-03 — README and status integration
+
+- Updated the root README and frontend guide with the Node pin, scaffold scope, and local quality commands; added Dhanush's work-log link.
+- Marked S1-03 **Ready to Push** after its implementation and work log were committed and local checks passed. Other product workflows remain pending.
+- **Validation:** local documentation links resolve and `git diff --check` passes.
+- **Delivery:** documentation/status update committed locally; no remote push was made.

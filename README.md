@@ -2,7 +2,7 @@
 
 **Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository currently contains project planning and technical documentation, plus a documentation-conversion utility. Application source code has not yet been started.
+> This repository contains the product and technical documentation, a documentation-conversion utility, and the initial Next.js frontend shell. Product workflows and the backend have not yet been implemented.
 
 ## Product vision
 
@@ -17,14 +17,28 @@ The documented MVP scope includes:
 
 ## Planned architecture
 
-| Layer | Proposed technology |
+| Layer | Technology |
 | --- | --- |
-| Frontend | Next.js App Router, React, Tailwind CSS, TypeScript |
-| Backend | Node.js LTS, Express.js REST APIs, TypeScript |
+| Frontend | Next.js `16.4.0` App Router, React `19.3.0`, Tailwind CSS `4.3.3`, TypeScript, Biome `2.5.15` |
+| Backend | Node.js `24.21.0` LTS, Express.js REST APIs, TypeScript |
 | Data | MongoDB Atlas |
 | Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC |
 | AI | Gemini API |
 | Deployment | Vercel (frontend), Render (backend) |
+
+Node.js `24.21.0` is pinned in the repository-root `.nvmrc`. The frontend dependency lockfile is authoritative for resolved package versions.
+
+## Frontend setup
+
+From the repository root, use Node.js `24.21.0` and run:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows or call a backend. See the [frontend guide](frontend/README.md) for the lint, format, typecheck, and build commands.
 
 ## Documentation
 
@@ -62,23 +76,27 @@ The documented MVP scope includes:
 - [Jegatheesan execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Jegatheesan.md)
 - [Gokul execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Gokul.md)
 - [Navin Jairam work log](Docs/Work%20Logs/Navin_Jairam.md)
+- [Dhanush Kumar work log](Docs/Work%20Logs/Dhanush_Kumar.md)
 
 ## Development status
 
-The project has a documented MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria. The **S1-02 branch strategy** is documented. Frontend/backend implementation, environment setup, automated tests, and deployment configuration remain pending; track task status in the canonical sprint backlog. The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
+The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation has been implemented and locally validated on `feature/S1-03-nextjs-setup`; its current status is **Ready to Push**. No remote push has been made. The shell is not a product workflow: the Express backend, integrations, automated feature tests, and deployment configuration remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
 
 ## Repository structure
 
 ```text
 .
+|-- .gitignore
+|-- .nvmrc
 |-- Docs/
-|   |-- Architecture/       # SDD, diagrams, API contract, fallback, decision drafts
+|   |-- Architecture/       # SDD, diagrams, API contract, fallback, decisions
 |   |-- Developers Guide/   # Role-specific execution guides and deliverables
 |   |-- Planning/           # Roadmap, backlog, workflow and branch strategy
 |   |   `-- History/        # Historical backlog additions
 |   |-- Product/            # Product vision and SRS
 |   |-- Quality/            # Test plan and demo strategy
 |   `-- Work Logs/          # Member work logs
+|-- frontend/               # Next.js App Router shell and frontend guide
 |-- tools/                  # Documentation conversion utility
 `-- README.md               # Project overview and documentation index
 ```
