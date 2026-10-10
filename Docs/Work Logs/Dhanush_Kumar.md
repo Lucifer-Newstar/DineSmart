@@ -59,3 +59,12 @@
 - **Frontend implementation commit:** `5d83355` (Dhanush). The companion backend route is `77ccd7c` on local `feature/backend`; the area branches have not yet been restacked after that backend commit.
 - **Validation on Node `24.21.0`:** frontend Biome, TypeScript typecheck, production build (all six app routes prerendered), and `npm audit --audit-level=high` passed; zero vulnerabilities. Live API/MongoDB testing is unavailable without Docker/MongoDB credentials.
 - **Status:** S2-08 remains **In Progress** pending MongoDB validation and the event/hourly recalculation cadence. S2-11 remains **In Progress** pending full role-by-role workflow review. No remote push or merge was made.
+
+### S2-06 — Inventory UI integration
+
+- **Branch:** `feature/frontend`, stacked on local `feature/ai`. The frontend calls the tenant-scoped API committed separately on local `feature/backend`; the area branches remain unmerged and were not restacked for live integration testing.
+- Added authenticated `GET /api/v1/inventory`, defensive response parsing, loading/live/unavailable/preview labels, retry, empty-list and truncation states, and explicit sample-data disclosures. Inventory availability is shown to Reception and Kitchen Staff without quantities or write controls.
+- Manager and Administrator users can open a per-item form and submit an exact finite, non-negative on-hand count through `PUT /api/v1/inventory/{id}`. Preview changes remain local and are clearly marked as not persisted. Supplier integration and automatic order deductions remain out of scope.
+- **Frontend implementation commits:** `f2afac0` and `8d7f15a` (Dhanush). **Frontend README commit:** `7fdee3f` (Navin).
+- **Validation on Node `24.21.0`:** Biome, TypeScript typecheck, Next production build (all six app routes generated), `npm audit --audit-level=high` (zero vulnerabilities), and `git diff --check` passed. Live API/MongoDB verification was not available; the backend area branch is separate and no live MongoDB service was verified.
+- **Status:** S2-06 remains **In Progress** pending area-branch integration and live MongoDB/API verification. No remote push or merge was made.
