@@ -45,6 +45,13 @@ test("operational collections lead at least one compound index with restaurantId
   }
 });
 
+test("orders have an index for tenant-scoped rolling health-score snapshots", () => {
+  assert.deepEqual(indexFor("orders", "orders_restaurant_created")?.key, {
+    restaurantId: 1,
+    createdAt: -1,
+  });
+});
+
 test("identity and one-to-one domain constraints have unique indexes", () => {
   assert.equal(indexFor("users", "users_normalized_email_unique")?.unique, true);
   const googleSubjectIndex = indexFor("users", "users_google_subject_unique");

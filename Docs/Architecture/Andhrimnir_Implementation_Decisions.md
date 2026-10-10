@@ -179,7 +179,18 @@ Use a score from 0 to 100 with these weights:
 | Incident frequency | 10% |
 | **Total** | **100%** |
 
-Recalculate after relevant operational events and at least hourly. The approved weight distribution does not yet define each component's normalization formula or the final behavior when data is missing; those are pending before health-score implementation.
+The owner-approved cadence is recalculation after relevant operational events and at least hourly. The current endpoint recalculates from current records on each GET; event-triggered recalculation and a scheduled hourly refresh are not implemented yet, so this cadence remains outstanding. The weights are owner-approved; the following score normalization and missing-data behavior are **assistant recommendations dated 2026-10-10**, not separate owner approvals:
+
+| Component | Recommended normalization |
+| --- | --- |
+| Kitchen efficiency | Average completed prep duration in a rolling 24-hour window. Score 100 at/below `kitchenDelayWarningMinutes`; fall linearly to 0 at `kitchenDelayCriticalMinutes`; clamp to `[0,100]`. |
+| Inventory health | `100 × healthy items / observed items`; healthy means quantity is strictly above its item low-stock threshold. |
+| Order completion rate | In the rolling 24-hour window, measure served/completed orders among non-cancelled orders that are terminal or older than the configured order-delay warning. Newly placed orders are not immediately penalized. |
+| Reservation efficiency | For ended, non-cancelled reservations with a recorded outcome, measure seated/completed over seated/completed plus no-shows. Do not infer a no-show from a missing status. |
+| Table utilization | `100 × occupied active tables / active tables` at calculation time; exclude only explicitly disabled/out-of-service tables. |
+| Incident frequency | Start at 100 and deduct 35 per open critical, 15 per open warning, and 5 per open info incident in the rolling 24-hour window; clamp to `[0,100]`. |
+
+If a component has no eligible observations, use a neutral 50, expose `observations: 0` and an `insufficient_data` marker, and keep the approved weight rather than reweighting the other components. A successfully queried incident window with zero open incidents is observed as a score of 100. Include per-component score, weight, observation count, and formula details in the response so the aggregate remains explainable. Threshold defaults (15/25 minutes for kitchen, 20 minutes for order delay) are recommendations only when a restaurant has no configured value; do not store a precomputed score or let it mutate operations. The MongoDB snapshot is capped at 2,000 documents per collection; the response exposes any capped collection names so a score based on a partial sample is visible. `GET /api/v1/healthscore` uses the approved `dashboard:operations:read` permission and the signed principal's restaurant ID (Manager, Administrator, Reception); clients cannot select another tenant.
 
 ## 8. AI, real-time events, and notifications — approved baseline
 

@@ -110,3 +110,11 @@
 - Documented the local-only seed target guard, deterministic fixture scope, demo accounts/password override, and repeatable upsert behavior. Updated the database schema reference, backend/root READMEs, test plan, implementation decisions, and backlog; added Jegatheesan's implementation results to his work log.
 - **Validation:** documentation/status consistency reviewed; `git diff --check` passes. The seed implementation is commit `548f3aa`; lint, 27 tests, typecheck, build, and audit passed. Live MongoDB seed/re-run verification is unavailable without Docker/`mongod`.
 - **Status:** In Progress pending live local MongoDB verification. No remote push or merge was made.
+
+### S2-08 — Restaurant health score
+
+- Added `GET /api/v1/healthscore` with tenant-scoped MongoDB snapshot queries, access-token verification, and the approved `dashboard:operations:read` permission (Reception/Manager/Administrator); customer and kitchen-only roles are denied. Added a `(restaurantId, createdAt desc)` orders index for the rolling score query.
+- Implemented the approved six-component weighting and assistant-recommended, explainable rolling-24-hour formulas. Missing components use a neutral 50 without reweighting; the empty incident window is treated as observed. The response exposes component scores, weights, observation counts/status, and the 2,000-record cap/truncated collections.
+- Updated the architecture decision record, API inventory, backend guide, and backlog. Formula details remain recommendations, not separate owner approvals. The endpoint recalculates on each GET, but event-triggered and scheduled hourly refresh are still outstanding. S2-08 is **In Progress** until those cadence requirements are addressed and the endpoint is exercised against live MongoDB with representative operational data.
+- **Validation:** on the repository-pinned Node `24.21.0`, Biome, TypeScript typecheck, all 34 backend tests, and production build passed. An initial install under the shell's Node `20.20.2` emitted engine warnings; the full verification was rerun under Node 24. No Docker/MongoDB service is available for integration verification.
+- **Delivery:** implementation and docs are committed locally under Navin's identity; no push or merge was made.

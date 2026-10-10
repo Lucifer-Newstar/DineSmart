@@ -58,7 +58,7 @@ The named index specifications live alongside the document types in `backend/src
 | `customers` | Unique `userId` only when it is an `ObjectId`; permits multiple guest profiles without a linked user. |
 | `staff` | Unique `(restaurantId, userId)`; `(restaurantId, isActive, role)`. |
 | `menu_items` | `(restaurantId, isAvailable, category, name)`. |
-| `orders` | `(restaurantId, status, createdAt desc)`; `(customerId, createdAt desc)`. |
+| `orders` | `(restaurantId, status, createdAt desc)`; `(restaurantId, createdAt desc)` for rolling health-score snapshots; `(customerId, createdAt desc)`. |
 | `order_items` | `(restaurantId, orderId)`. |
 | `reservations` | `(restaurantId, startAt, status)`; `(restaurantId, tableId, startAt)`. These are non-unique. |
 | `tables` | Unique `(restaurantId, tableNumber)`. |

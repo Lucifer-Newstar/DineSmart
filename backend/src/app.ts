@@ -8,6 +8,9 @@ import { EmailOtpService } from "./auth/email-otp.service.js";
 import { GoogleIdTokenVerifier, GoogleOAuthService } from "./auth/google-oauth.service.js";
 import { MongoRegistrationOtpRepository } from "./auth/registration.repository.js";
 import { connectToDatabase } from "./database.js";
+import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
+import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
+import { HealthScoreService } from "./healthscore/health-score.service.js";
 
 export interface AppOptions {
   getDatabase?: () => Promise<Db>;
@@ -93,6 +96,19 @@ export function createApp(options: AppOptions = {}) {
 
         const { repository, service } = await createAuthRuntime();
         return new GoogleOAuthService(repository, service, googleVerifier).login(idToken);
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/healthscore",
+    createHealthScoreRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new HealthScoreService(new MongoHealthScoreRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
       },
     }),
   );
