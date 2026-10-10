@@ -186,7 +186,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02 is Ready to Push. S3-11 remains In Progress until the application exists and final local setup/run instructions can be added. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02 and S1-03 are Ready to Push. S3-11 is Ready to Push now that the application foundation and local setup/run instructions are committed. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 
@@ -197,7 +197,7 @@ The existing GitHub repository means S1-01 is marked Complete. S1-02 is Ready to
 - Exact email provider and Google OAuth configuration.
 - WebSocket reconnect/replay/auth detail and notification retention.
 - Visual design approval and accessibility conformance level.
-- Node.js version pin, deployment domains, CI branch protection/reviewer/merge policy.
+- Deployment domains, CI branch protection/reviewer/merge policy.
 - Performance-test concurrency and dataset size.
 
 These open points should be clarified in the owning canonical documents before work reaches the affected APIs or features.

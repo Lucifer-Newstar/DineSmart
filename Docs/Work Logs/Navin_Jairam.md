@@ -34,6 +34,6 @@
 ### S1-03 — README and status integration
 
 - Updated the root README and frontend guide with the Node pin, scaffold scope, and local quality commands; added Dhanush's work-log link.
-- Marked S1-03 **Ready to Push** after its implementation and work log were committed and local checks passed. Other product workflows remain pending.
+- This closes S3-11's pending setup/run instructions, so S3-11 is now **Ready to Push**. Marked S1-03 **Ready to Push** after its implementation and work log were committed and local checks passed. Other product workflows remain pending.
 - **Validation:** local documentation links resolve and `git diff --check` passes.
 - **Delivery:** documentation/status update committed locally; no remote push was made.
