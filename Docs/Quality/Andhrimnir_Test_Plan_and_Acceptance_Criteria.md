@@ -37,7 +37,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 
 | ID | Feature | Test Scenario | Expected Result | Priority |
 | --- | --- | --- | --- | --- |
-| TC-01 | Authentication | Register with Email/OTP; log in with Email/Password | Registration is verified and login succeeds | High |
+| TC-01 | Authentication | Register with Email/OTP; verify; log in with Email/Password | Pending Customer becomes active only with a valid unexpired code; resend cooldown and five-attempt limit are enforced; login succeeds after verification | High |
 | TC-02 | Google OAuth | Submit a signed Google ID token for a verified email linked to an active user | Backend verifies token audience/signature, links the stable subject, and starts the standard session | High |
 | TC-03 | Digital Menu | View menu and availability | Available items displayed | High |
 | TC-04 | Reservations | Create reservation | Reservation saved and visible | High |
@@ -106,3 +106,9 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - Unit tests use an injected verifier to cover verified-email linking to an existing active account, rejection of unverified/unregistered identities, and standard session issuance.
 - The production adapter uses `google-auth-library` to verify Google ID-token signature, issuer, audience, and expiry against `GOOGLE_CLIENT_ID`.
 - No Google project/client ID or live signed credential is available in this workspace. Before marking S1-10 **Ready to Push**, validate the configured frontend client ID and backend audience against a real Google Identity Services credential. Do not commit a client secret.
+
+## 11. S1-11 Email OTP Verification
+
+- Unit tests cover six-digit code generation, keyed/domain-separated OTP hashing (no raw code stored), 10-minute expiry policy, 60-second resend cooldown, five invalid-attempt lockout, pending-to-active transition, session issuance, and 12-character/1024-byte password bounds.
+- HTTP tests cover registration and verification, HttpOnly session cookie delivery, and development-only `developmentCode` exposure through the mock provider.
+- The mock mailer is intentionally unavailable in production. No real email provider or live MongoDB is configured; verify provider delivery, atomic update semantics, indexes, and complete registration-to-login flow before closing S1-11.

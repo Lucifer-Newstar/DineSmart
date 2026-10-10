@@ -27,3 +27,12 @@
 - Reuses the S1-09 access/refresh session, cookie, origin, and rate-limit flow. Added matching public frontend/backend client-ID placeholders; no Google client secret is used or committed.
 - **Validation on Node `24.21.0`:** 17 backend tests, Biome, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Unit/HTTP tests use an injected fake verifier; no live Google credentials or MongoDB instance are available for end-to-end verification.
 - **Status:** In Progress pending a real Google ID-token and live MongoDB check. Work remains local; no remote push was made.
+
+### S1-11 — Email OTP registration
+
+- **Branch:** `feature/S1-11-email-otp`, stacked on local `feature/S1-10-google-oauth`; prior task branches remain unmerged.
+- Added pending Customer registration, resend and verify endpoints; OTP values are six digits, held only as domain-separated HMAC-SHA-256 values in MongoDB, with ten-minute expiry, 60-second cooldown, and five-attempt lockout. Verification activates the user and issues the standard S1-09 session. Server assigns role/tenant fields; the new-password minimum is 12 characters and maximum is 1024 UTF-8 bytes.
+- The local mock email adapter never logs codes; `developmentCode` is returned only in development. Production rejects the mock provider. Real provider integration is not configured.
+- **Implementation commit:** `cdf1ed8` (Dhanush).
+- **Validation on Node `24.21.0`:** Biome, 21 backend tests, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. OTP tests use fake repositories; live MongoDB and real email delivery remain unverified because Docker/`mongod` and provider credentials are unavailable.
+- **Status:** In Progress pending live MongoDB atomic-operation verification and real provider delivery. No remote push or merge was made.

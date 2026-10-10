@@ -1,6 +1,6 @@
 # Andhrímnir Database Schema — S1-08 Baseline
 
-**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with the authentication `refresh_sessions` and Google `googleSubject` extensions added on the S1-09/S1-10 task branches. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
+**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with the authentication `refresh_sessions`, Google `googleSubject`, and pending-user OTP-field extensions added on the S1-09/S1-10/S1-11 task branches. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
 
 ## Design recommendations applied
 
@@ -18,7 +18,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 
 | Collection | Initial fields | Scope |
 | --- | --- | --- |
-| `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `googleSubject`, optional `passwordHash` | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
+| `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `googleSubject`, optional `passwordHash`, optional `emailOtpCodeHash`/`emailOtpExpiresAt`/`emailOtpResendAt`/`emailOtpAttempts` for pending Email/OTP registration | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
 | `refresh_sessions` | `userId`, current `tokenHash`, `usedTokenHashes`, absolute `expiresAt`, `revokedAt`, `lastUsedAt` | Authentication session family; token values are hashes, and the session is not restaurant-scoped. |
 | `restaurants` | `name`, optional `contact`/`address`, `timezone`, `currency`, optional `operatingHours`/`thresholds`, `status` | Root tenant record. |
 | `customers` | optional `userId`, `displayName`, optional guest `email`/`phone`, optional `contactPreferences` | Global profile; not tenant-scoped. |
@@ -34,7 +34,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 | `notifications` | `restaurantId`, `recipientUserId`, `type`, `title`, `body`, optional `relatedEntity`, `deliveredAt`, `readAt` | Restaurant-scoped. |
 | `bills` | `restaurantId`, `orderId`, `lineItems`, `subtotalMinor`, `taxMinor`, `adjustmentsMinor`, `totalMinor`, `currency`, `status` | Restaurant-scoped; no payment capture or provider fields. |
 
-The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Generic objects such as address, operating hours, contact, and thresholds are intentionally not given strict runtime shapes yet; those belong with the corresponding API/workflow contract.
+The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Registration OTP state is embedded on the pending User document so code consumption and status activation can be a single atomic update; only a domain-separated HMAC is stored, never the raw code. These fields are unset when the account becomes active. Generic objects such as address, operating hours, contact, and thresholds are intentionally not given strict runtime shapes yet; those belong with the corresponding API/workflow contract.
 
 ## Relationships and constraints
 

@@ -49,7 +49,7 @@ Goal: Establish backend foundation and project setup.
 | S1-08 | Database Schema | Jegatheesan | High | 3 | In Progress |
 | S1-09 | JWT Authentication | Dhanush | High | 3 | In Progress |
 | S1-10 | Google OAuth | Dhanush | Medium | 2 | In Progress |
-| S1-11 | Email OTP | Dhanush | Medium | 2 | To Do |
+| S1-11 | Email OTP | Dhanush | Medium | 2 | In Progress |
 | S1-12 | RBAC | Navin | High | 2 | To Do |
 | S1-13 | Create Seed Data | Jegatheesan | Medium | 2 | To Do |
 

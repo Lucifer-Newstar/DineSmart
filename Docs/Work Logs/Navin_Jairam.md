@@ -89,3 +89,10 @@
 - S1-10 remains **In Progress** until a real Google credential and live MongoDB integration are verified. No secrets or remote pushes were added.
 - **Validation:** documentation links/statuses reviewed; `git diff --check` passes. Backend results are in Dhanush's work log.
 - **Delivery:** shared documentation updates remain local; no remote push was made.
+
+### S1-11 — Email OTP documentation and status integration
+
+- Recorded the assistant-selected registration contract, pending Customer activation, HMAC-only OTP storage, password bounds, development-only mock code behavior, and process-local IP limits as recommendations; owner-approved OTP limits remain separately identified.
+- Updated the API inventory, database schema reference, test plan, backend/root setup/status documentation, and S1-11 backlog status. Added Dhanush's implementation and validation results to the assigned work log.
+- **Validation:** documentation/status consistency reviewed and `git diff --check` passes. The implementation is commit `cdf1ed8`; backend lint, tests, typecheck, build, and audit results are in Dhanush's log.
+- **Status:** In Progress pending real email-provider and live MongoDB verification. No remote push or merge was made.

@@ -61,6 +61,16 @@ These are assistant-selected implementation defaults on the owner's direction to
 - Require a verified Google email and link it only to an existing active user whose `normalizedEmail` matches. Store the stable Google `sub` as a unique `googleSubject`. Do not create a new user or grant a role from Google sign-in; verified Email/OTP registration remains the account-creation path.
 - Issue the same access/refresh session as email/password login. This ID-token verification flow needs a public client ID in the frontend and backend, but no Google client secret.
 
+### S1-11 Email OTP recommendations
+
+The six-digit/10-minute/60-second/five-attempt policy is owner-approved. The following implementation choices are assistant recommendations on the owner's direction:
+
+- `POST /auth/register` creates a pending Customer account from name/email/password; roles and tenant ids are server-assigned. `POST /auth/otp/request` resends only for a pending account; `POST /auth/otp/verify` atomically activates it and issues the standard session. Existing accounts receive a generic response; registration never overwrites them.
+- Require a 12-character minimum password for new registrations, with no composition rules and a 1024-byte maximum. Store only an Argon2id hash.
+- Store a domain-separated HMAC-SHA-256 of the OTP on the pending user document (not the OTP itself), so attempt/expiry/activation checks can be atomic on one MongoDB document. Derive the OTP key from `JWT_SECRET` with a distinct purpose prefix.
+- Keep the mock mailer local-only. In development with `EMAIL_PROVIDER=mock`, return the one-time code as `developmentCode` in the response for manual testing; never log it, never return it in production, and reject mock email in production. A real mail provider remains unconfigured.
+- Apply process-local IP rate limits in addition to the per-account cooldown and attempt ceiling; use a shared store before horizontal scaling.
+
 ### Authentication test alignment
 
 The test plan now reflects the SRS: register with Email/OTP, then log in with Email/Password; Google OAuth is an additional supported login path.
@@ -219,7 +229,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. S1-11 is In Progress while pending-user Email/OTP registration is implemented on S1-10. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 

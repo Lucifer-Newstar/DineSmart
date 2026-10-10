@@ -2,11 +2,13 @@
 
 ## Canonical API Endpoint Inventory
 
-This is the canonical endpoint inventory for the MVP. Paths below are relative to the approved `/api/v1` base path. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions](Andhrimnir_Implementation_Decisions.md). S1-09 implements the login, refresh, and logout session flows; registration remains part of S1-11 and password reset remains S2-15.
+This is the canonical endpoint inventory for the MVP. Paths below are relative to the approved `/api/v1` base path. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions](Andhrimnir_Implementation_Decisions.md). S1-09 implements login/refresh/logout; S1-10 adds Google ID-token login; S1-11 implements pending registration and OTP verification locally, pending real email-provider and live MongoDB validation. Password reset remains S2-15.
 
 | Method | Endpoint | Description | Owner |
 | --- | --- | --- | --- |
-| POST | /auth/register | Register user | Dhanush |
+| POST | /auth/register | Create a pending Customer account and request Email/OTP verification | Dhanush |
+| POST | /auth/otp/request | Resend a registration verification code when eligible | Dhanush |
+| POST | /auth/otp/verify | Verify registration code and activate the account | Dhanush |
 | POST | /auth/login | Login user | Dhanush |
 | POST | /auth/refresh | Rotate refresh session and renew access token | Dhanush |
 | POST | /auth/logout | Secure logout | Dhanush |

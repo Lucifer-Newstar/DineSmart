@@ -2,7 +2,7 @@
 
 **Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository contains the product and technical documentation, a documentation-conversion utility, and initial Next.js and Express application shells. Restaurant workflows, authentication, and database-backed product features have not yet been implemented.
+> This repository contains the product and technical documentation, a documentation-conversion utility, and Next.js and Express applications. The backend now has a native-driver MongoDB schema baseline and local implementations of Email/OTP registration, email/password and Google login, and rotating JWT sessions. Restaurant workflows, production email/AI provider credentials, live database verification, and deployment remain outstanding.
 
 ## Product vision
 
@@ -56,7 +56,7 @@ The API listens on `http://localhost:3001` by default. `GET /health` reports pro
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds the app. Backend checks are gated until `backend/package.json` is present; the backend currently has liveness and MongoDB-configuration tests, while frontend feature tests remain pending. This adds CI only—deployment/CD is not configured.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds the app. Backend coverage includes liveness, MongoDB configuration/schema, and fake-repository auth unit/HTTP flows; frontend product tests remain pending. This adds CI only—deployment/CD is not configured.
 
 ## Documentation
 
@@ -105,7 +105,7 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 
 ## Development status
 
-The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation and S1-04 Express backend shell are locally validated and **Ready to Push** on their task branches. S1-05 local-first MongoDB configuration is **In Progress** on `feature/S1-05-mongodb-atlas`; the workspace has no Docker daemon, so a live database connection could not be verified here. S1-06 secret-free environment examples are **Ready to Push** on `feature/S1-06-environment-variables`. S1-08's initial typed MongoDB collections and index bootstrap are **In Progress** on `feature/S1-08-database-schema`; live MongoDB verification is still unavailable in this workspace. S1-09 JWT login/refresh/logout is **In Progress** on `feature/S1-09-jwt-auth`, stacked on S1-08; its auth tests use a fake repository pending live MongoDB verification. S1-10 Google ID-token verification/account linking is **In Progress** on `feature/S1-10-google-oauth`, stacked on S1-09; live Google credentials and MongoDB verification are still needed. The S1-04 branch is stacked on S1-07 so CI can verify both packages; S1-07 remains **In Progress** pending GitHub-run confirmation and deployment/CD scope. No remote push has been made. The backend exposes process liveness, applies baseline indexes, and contains initial auth endpoints; OTP registration, password reset, RBAC enforcement, strict runtime validation, Atlas credentials, and restaurant workflows remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) and [Database Schema](Docs/Architecture/Andhrimnir_Database_Schema.md) documents record recommendations and open module-specific decisions.
+The MVP scope, architecture, API endpoint inventory, delivery plan, and acceptance criteria are documented. S1-03/S1-04/S1-06 and S3-11 have local commits marked **Ready to Push** on task branches. S1-05 local-first MongoDB, S1-07 CI/deployment confirmation, S1-08 schema/live-index validation, S1-09 JWT/live persistence, S1-10 Google/live credentials, and S1-11 OTP/real email-provider/live persistence remain **In Progress**. S1-11 is implemented and tested with fake repositories on `feature/S1-11-email-otp`, stacked on S1-10; Docker/`mongod`, a real email provider, and live Google credentials are not configured in this workspace. No remote push or merge has been made. The backend currently exposes health and auth endpoints; RBAC, password reset, restaurant operations, AI integration, production provider setup, and deployment remain outstanding. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) and [Database Schema](Docs/Architecture/Andhrimnir_Database_Schema.md) documents record recommendations and open module-specific decisions.
 
 ## Repository structure
 
