@@ -30,6 +30,10 @@ The SRS role list is canonical for the MVP: **Customer, Reception, Kitchen Staff
 
 Apply least privilege and restaurant scoping. Administrator access is restaurant-scoped for the MVP; no platform-wide or cross-restaurant superuser access is defined. The matrix is approved as the starting policy; any finer-grained exception must be documented before the affected endpoint is built.
 
+### S1-12 authorization implementation recommendations
+
+The middleware implementation follows the matrix through named permissions. Each operational route should apply both the required permission and restaurant scope, and repository queries/mutations must independently include the authenticated restaurant ID. Any client-supplied `restaurantId` in path, query, or body is rejected unless it matches the signed principal; creation handlers should derive the tenant ID from that principal rather than trust the body. Customer-owned resources require a service-level owner comparison after a tenant/ownership-filtered lookup. The Customer identity remains cross-restaurant, but Customer authorization never grants restaurant operations. Manager and Administrator share the approved operational permission set in the MVP; neither receives platform-wide privileges. These are implementation recommendations, not separate owner selections.
+
 ## 3. Authentication and security — approved baseline
 
 - Registration: email OTP verification.
@@ -229,7 +233,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. S1-11 is In Progress while pending-user Email/OTP registration is implemented on S1-10. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. S1-11 is In Progress while pending-user Email/OTP registration is implemented on S1-10. S1-12 is In Progress while the approved MVP role middleware is implemented on local area branch `feature/backend`; operation-route enforcement remains pending. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 

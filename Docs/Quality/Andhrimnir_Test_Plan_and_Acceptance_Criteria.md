@@ -112,3 +112,9 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - Unit tests cover six-digit code generation, keyed/domain-separated OTP hashing (no raw code stored), 10-minute expiry policy, 60-second resend cooldown, five invalid-attempt lockout, pending-to-active transition, session issuance, and 12-character/1024-byte password bounds.
 - HTTP tests cover registration and verification, HttpOnly session cookie delivery, and development-only `developmentCode` exposure through the mock provider.
 - The mock mailer is intentionally unavailable in production. No real email provider or live MongoDB is configured; verify provider delivery, atomic update semantics, indexes, and complete registration-to-login flow before closing S1-11.
+
+## 12. S1-12 Role-Based Access Control Verification
+
+- Unit/HTTP tests verify unauthenticated rejection, allow/deny behavior for the approved MVP role matrix, manager-only incident resolution, kitchen queue access, and customer-owner checks.
+- Operational middleware rejects a client-supplied `restaurantId` from path, query, or body when it differs from the signed principal; Customer principals cannot use restaurant-scoped routes. Repository methods must still filter every operational read/write by `restaurantId`, and customer services must apply owner conditions.
+- Product routes do not yet exist in this backend. As each operations route is added, confirm it applies both permission and tenant/owner checks; RBAC is not considered integrated based only on the middleware tests.

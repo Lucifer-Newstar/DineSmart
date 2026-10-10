@@ -96,3 +96,11 @@
 - Updated the API inventory, database schema reference, test plan, backend/root setup/status documentation, and S1-11 backlog status. Added Dhanush's implementation and validation results to the assigned work log.
 - **Validation:** documentation/status consistency reviewed and `git diff --check` passes. The implementation is commit `cdf1ed8`; backend lint, tests, typecheck, build, and audit results are in Dhanush's log.
 - **Status:** In Progress pending real email-provider and live MongoDB verification. No remote push or merge was made.
+
+### S1-12 — RBAC implementation and area-branch policy
+
+- Implemented `requirePermissions`, restaurant-scope enforcement, and customer resource-owner middleware from the approved role matrix. The recommendation is to derive tenant IDs from the signed principal, reject conflicting client IDs in path/query/body, and retain restaurant/owner filters in repository queries.
+- Added role-matrix, allow/deny, customer ownership, and tenant-boundary tests. Product operations routes are not implemented yet, so S1-12 remains **In Progress** pending route-level integration.
+- **Implementation commit:** `a24c9d9` (Navin). **Validation on Node `24.21.0`:** Biome, 25 backend tests, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities.
+- On the owner's revised instruction, updated the branch policy to area branches (e.g. `feature/backend`, `feature/ai`, `feature/frontend`) while keeping task IDs in commits/logs. Renamed the uncommitted S1-12 branch to `feature/backend`; existing historical task branches remain unchanged.
+- **Delivery:** local only; no push or merge. `feature/backend` is stacked on the local S1-11 branch pending end-of-project integration.
