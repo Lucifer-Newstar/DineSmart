@@ -861,6 +861,9 @@ a {
   gap: 14px;
   margin-bottom: 14px;
 }
+.overview-top-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
 .card {
   border: 1px solid #e8ece6;
   border-radius: 14px;
@@ -1079,6 +1082,13 @@ a {
   height: 100%;
   border-radius: inherit;
   background: #819a70;
+}
+.health-empty-note,
+.health-data-note {
+  margin: 10px 0 0;
+  color: #849087;
+  font-size: 9px;
+  line-height: 1.5;
 }
 .health-bar-warm b {
   background: #d2a05e;
@@ -1535,6 +1545,9 @@ a {
   grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
   gap: 14px;
 }
+.overview-bottom-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
 .inventory-overview-card,
 .reservations-overview-card {
   min-height: 224px;
@@ -1554,6 +1567,9 @@ a {
 }
 .inventory-row:last-child {
   border-bottom: 0;
+}
+.inventory-row.inventory-row-readonly {
+  grid-template-columns: 31px minmax(112px, 1fr) minmax(120px, 1.2fr);
 }
 .inventory-food-icon {
   display: grid;

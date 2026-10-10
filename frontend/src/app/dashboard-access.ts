@@ -27,3 +27,7 @@ export function navigationForRole<T extends DashboardNavigationItem>(
 export function canViewRecommendations(role: DashboardRole | null | undefined): boolean {
   return role === undefined || role === null || role === "Manager" || role === "Administrator";
 }
+
+export function canViewHealthScore(role: DashboardRole | null | undefined): boolean {
+  return role === "Reception" || role === "Manager" || role === "Administrator";
+}

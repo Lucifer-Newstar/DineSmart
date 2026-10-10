@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { useRef, useState } from "react";
-import { useAuth } from "./auth-provider";
+import { useEffect, useRef, useState } from "react";
+import { type AuthUser, useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
-import { canViewRecommendations, navigationForRole } from "./dashboard-access";
+import { canViewHealthScore, canViewRecommendations, navigationForRole } from "./dashboard-access";
 
 type Section =
   | "Overview"
@@ -91,6 +91,30 @@ interface Recommendation {
   confidence: number;
   actions: Array<{ description: string; rationale: string; expectedImpact: string }>;
 }
+
+interface HealthScoreMetric {
+  score: number;
+  weight: number;
+  observations: number;
+  status: "observed" | "insufficient_data";
+  detail: string;
+}
+
+interface HealthScoreData {
+  score: number;
+  calculatedAt: string;
+  components: {
+    kitchenEfficiency: HealthScoreMetric;
+    inventoryHealth: HealthScoreMetric;
+    orderCompletionRate: HealthScoreMetric;
+    reservationEfficiency: HealthScoreMetric;
+    tableUtilization: HealthScoreMetric;
+    incidentFrequency: HealthScoreMetric;
+  };
+  sampling: { perCollectionLimit: number; truncatedCollections: string[] };
+}
+
+type HealthScoreViewStatus = "demo" | "loading" | "live" | "unavailable" | "restricted";
 
 const INCIDENT_INVENTORY_ID = "71000000000000000000001d";
 const API_BASE = "/api/v1";
@@ -519,8 +543,10 @@ function MetricCard({
           <Icon name={icon} size={19} />
         </span>
         <span className={`metric-delta ${delta.startsWith("↓") ? "delta-good" : ""}`}>
-          <Icon name={delta.startsWith("↓") ? "arrow-down" : "arrow-up"} size={13} />{" "}
-          {delta.replace(/[↑↓]\s?/, "")}
+          {delta.startsWith("↑") || delta.startsWith("↓") ? (
+            <Icon name={delta.startsWith("↓") ? "arrow-down" : "arrow-up"} size={13} />
+          ) : null}
+          {delta.replace(/^[↑↓]\s?/, "")}
         </span>
       </div>
       <div className="metric-label">{label}</div>
@@ -561,7 +587,10 @@ function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
       </span>
       <p>
         <strong>Preview workspace</strong>
-        <span> Sample service data is shown. Connect your restaurant database to go live.</span>
+        <span>
+          Dashboard metrics, orders, reservations, and stock controls are sample-only and not saved.
+          Health score or recommendations use the API only when connected.
+        </span>
       </p>
       <button type="button" className="demo-banner-link" onClick={onDismiss}>
         Got it
@@ -689,20 +718,29 @@ function InventoryRows({
   inventory,
   onRestock,
   compact = false,
+  canManage = true,
 }: {
   inventory: InventoryItem[];
   onRestock: (name: string) => void;
   compact?: boolean;
+  canManage?: boolean;
 }) {
   const rows = compact ? inventory.slice(0, 3) : inventory;
   return (
     <div className="inventory-list">
       {rows.map((item) => {
         const low = item.onHand <= item.minimum;
-        const percent = Math.min((item.onHand / item.target) * 100, 100);
+        const percent = canManage
+          ? Math.min((item.onHand / item.target) * 100, 100)
+          : low
+            ? 25
+            : 75;
         const progressStyle = { "--progress": `${percent}%` } as CSSProperties;
         return (
-          <div className="inventory-row" key={item.name}>
+          <div
+            className={`inventory-row ${canManage ? "" : "inventory-row-readonly"}`}
+            key={item.name}
+          >
             <span className={`inventory-food-icon ${low ? "inventory-food-low" : ""}`}>
               <Icon name="box" size={16} />
             </span>
@@ -713,7 +751,15 @@ function InventoryRows({
             <div className="inventory-stock">
               <div className="inventory-stock-top">
                 <strong>
-                  {item.onHand} <small>{item.unit}</small>
+                  {canManage ? (
+                    <>
+                      {item.onHand} <small>{item.unit}</small>
+                    </>
+                  ) : low ? (
+                    "Low"
+                  ) : (
+                    "Available"
+                  )}
                 </strong>
                 <span className={low ? "stock-low-label" : "stock-ok-label"}>
                   {low ? "Reorder" : "In stock"}
@@ -723,15 +769,17 @@ function InventoryRows({
                 <span />
               </div>
             </div>
-            <button
-              className="icon-button restock-button"
-              type="button"
-              onClick={() => onRestock(item.name)}
-              aria-label={`Add stock for ${item.name}`}
-              title="Add stock"
-            >
-              <Icon name="plus" size={16} />
-            </button>
+            {canManage ? (
+              <button
+                className="icon-button restock-button"
+                type="button"
+                onClick={() => onRestock(item.name)}
+                aria-label={`Add stock for ${item.name}`}
+                title="Add stock"
+              >
+                <Icon name="plus" size={16} />
+              </button>
+            ) : null}
           </div>
         );
       })}
@@ -817,6 +865,57 @@ function RecommendationCard({
   );
 }
 
+function isHealthScoreData(value: unknown): value is HealthScoreData {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  if (
+    typeof candidate.score !== "number" ||
+    !Number.isFinite(candidate.score) ||
+    candidate.score < 0 ||
+    candidate.score > 100 ||
+    typeof candidate.calculatedAt !== "string" ||
+    !Number.isFinite(Date.parse(candidate.calculatedAt)) ||
+    typeof candidate.components !== "object" ||
+    candidate.components === null ||
+    typeof candidate.sampling !== "object" ||
+    candidate.sampling === null
+  ) {
+    return false;
+  }
+
+  const components = candidate.components as Record<string, unknown>;
+  const sampling = candidate.sampling as Record<string, unknown>;
+  if (
+    typeof sampling.perCollectionLimit !== "number" ||
+    !Array.isArray(sampling.truncatedCollections) ||
+    !sampling.truncatedCollections.every((name) => typeof name === "string")
+  ) {
+    return false;
+  }
+
+  return [
+    "kitchenEfficiency",
+    "inventoryHealth",
+    "orderCompletionRate",
+    "reservationEfficiency",
+    "tableUtilization",
+    "incidentFrequency",
+  ].every((name) => {
+    const metric = components[name];
+    if (typeof metric !== "object" || metric === null) return false;
+    const record = metric as Record<string, unknown>;
+    return (
+      typeof record.score === "number" &&
+      record.score >= 0 &&
+      record.score <= 100 &&
+      typeof record.weight === "number" &&
+      typeof record.observations === "number" &&
+      typeof record.detail === "string" &&
+      (record.status === "observed" || record.status === "insufficient_data")
+    );
+  });
+}
+
 export function Dashboard() {
   const { user, accessToken, signOut } = useAuth();
   const [section, setSection] = useState<Section>("Overview");
@@ -833,8 +932,57 @@ export function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All orders");
+  const [healthScore, setHealthScore] = useState<HealthScoreData | null>(null);
+  const [healthScoreError, setHealthScoreError] = useState("");
+  const [healthScoreLoading, setHealthScoreLoading] = useState(false);
+  const [healthScoreRefreshKey, setHealthScoreRefreshKey] = useState(0);
+  const role = user?.role;
 
-  const availableNav = navigationForRole(NAVIGATION, user?.role);
+  useEffect(() => {
+    if (!accessToken || !canViewHealthScore(role)) {
+      setHealthScore(null);
+      setHealthScoreError("");
+      setHealthScoreLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setHealthScoreLoading(true);
+    setHealthScoreError("");
+
+    void fetch(`${API_BASE}/healthscore`, {
+      cache: healthScoreRefreshKey > 0 ? "reload" : "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(
+            response.status === 403
+              ? "Your role cannot view the health score."
+              : "The health-score service is unavailable.",
+          );
+        }
+        const payload: unknown = await response.json();
+        if (!isHealthScoreData(payload)) throw new Error("The health-score response was invalid.");
+        setHealthScore(payload);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setHealthScore(null);
+        setHealthScoreError(
+          error instanceof Error ? error.message : "The health-score service is unavailable.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setHealthScoreLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, healthScoreRefreshKey]);
+
+  const availableNav = navigationForRole(NAVIGATION, role);
 
   const notify = (message: string) => {
     setToast(message);
@@ -939,7 +1087,20 @@ export function Dashboard() {
 
   const greetingName = user?.name.split(" ")[0] ?? "Maya";
   const isDemo = !user;
-  const canUseInsights = canViewRecommendations(user?.role);
+  const canManageInventory = !role || role === "Manager" || role === "Administrator";
+  const canViewCommercialData = !role || role === "Manager" || role === "Administrator";
+  const canUseInsights = canViewRecommendations(role);
+  const healthScoreStatus: HealthScoreViewStatus = !user
+    ? "demo"
+    : !canViewHealthScore(role)
+      ? "restricted"
+      : healthScoreLoading
+        ? "loading"
+        : healthScore
+          ? "live"
+          : healthScoreError
+            ? "unavailable"
+            : "loading";
   const headingBySection: Record<Section, { eyebrow: string; title: string; description: string }> =
     {
       Overview: {
@@ -1125,7 +1286,7 @@ export function Dashboard() {
               className={`connection-pill ${isDemo ? "connection-demo" : "connection-preview"}`}
             >
               <span />
-              {isDemo ? "Preview mode" : "Workspace"}
+              {isDemo ? "Preview mode" : "Signed-in preview"}
             </span>
             <div className="notification-wrap">
               <button
@@ -1196,25 +1357,29 @@ export function Dashboard() {
           >
             {section === "Overview" ? (
               <>
-                <button
-                  type="button"
-                  className="button button-outline"
-                  onClick={() => notify("A preview service report has been prepared.")}
-                >
-                  <Icon name="download" size={16} />
-                  <span>Export</span>
-                </button>
-                <button
-                  type="button"
-                  className="button button-dark"
-                  onClick={() => {
-                    goTo("Orders");
-                    notify("You’re viewing the sample order queue.");
-                  }}
-                >
-                  <Icon name="plus" size={16} />
-                  <span>New order</span>
-                </button>
+                {canViewCommercialData ? (
+                  <button
+                    type="button"
+                    className="button button-outline"
+                    onClick={() => notify("A preview service report has been prepared.")}
+                  >
+                    <Icon name="download" size={16} />
+                    <span>Export</span>
+                  </button>
+                ) : null}
+                {role !== "Kitchen Staff" ? (
+                  <button
+                    type="button"
+                    className="button button-dark"
+                    onClick={() => {
+                      goTo("Orders");
+                      notify("You’re viewing the sample order queue.");
+                    }}
+                  >
+                    <Icon name="plus" size={16} />
+                    <span>New order</span>
+                  </button>
+                ) : null}
               </>
             ) : section === "Orders" ? (
               <>
@@ -1226,16 +1391,18 @@ export function Dashboard() {
                   <Icon name="filter" size={16} />
                   Filters
                 </button>
-                <button
-                  type="button"
-                  className="button button-dark"
-                  onClick={() =>
-                    notify("Order creation is available when your live POS is connected.")
-                  }
-                >
-                  <Icon name="plus" size={16} />
-                  New order
-                </button>
+                {role !== "Kitchen Staff" ? (
+                  <button
+                    type="button"
+                    className="button button-dark"
+                    onClick={() =>
+                      notify("Order creation is available when your live POS is connected.")
+                    }
+                  >
+                    <Icon name="plus" size={16} />
+                    New order
+                  </button>
+                ) : null}
               </>
             ) : section === "Insights" ? (
               <button
@@ -1250,9 +1417,7 @@ export function Dashboard() {
             ) : null}
           </PageHeading>
 
-          {isDemo && demoBannerVisible ? (
-            <DemoBanner onDismiss={() => setDemoBannerVisible(false)} />
-          ) : null}
+          {demoBannerVisible ? <DemoBanner onDismiss={() => setDemoBannerVisible(false)} /> : null}
 
           {section === "Overview" ? (
             <OverviewPage
@@ -1260,6 +1425,12 @@ export function Dashboard() {
               inventory={inventory}
               recommendation={recommendation}
               showAi={canUseInsights}
+              role={role}
+              healthScore={healthScore}
+              healthScoreStatus={healthScoreStatus}
+              healthScoreError={healthScoreError}
+              onRefreshHealthScore={() => setHealthScoreRefreshKey((current) => current + 1)}
+              canManageInventory={canManageInventory}
               onAdvance={advanceOrder}
               onRestock={addStock}
               onOpen={() => goTo("Insights")}
@@ -1284,7 +1455,11 @@ export function Dashboard() {
               onToast={notify}
             />
           ) : section === "Inventory" ? (
-            <InventoryPage inventory={inventory} onRestock={addStock} />
+            <InventoryPage
+              inventory={inventory}
+              onRestock={addStock}
+              canManageInventory={canManageInventory}
+            />
           ) : section === "Incidents" ? (
             <IncidentsPage recommendation={recommendation} onInsights={() => goTo("Insights")} />
           ) : section === "Insights" ? (
@@ -1329,11 +1504,172 @@ export function Dashboard() {
   );
 }
 
+function HealthScoreCard({
+  data,
+  status,
+  error,
+  onRefresh,
+}: {
+  data: HealthScoreData | null;
+  status: HealthScoreViewStatus;
+  error: string;
+  onRefresh: () => void;
+}) {
+  const score = status === "demo" ? 88 : (data?.score ?? null);
+  const circumference = 251.3;
+  const ringStyle = {
+    strokeDasharray: `${((score ?? 0) / 100) * circumference} ${circumference}`,
+  } as CSSProperties;
+  const title =
+    status === "demo"
+      ? "Sample service pulse"
+      : status === "loading"
+        ? "Calculating service health"
+        : status === "unavailable"
+          ? "Health score unavailable"
+          : score !== null && score >= 75
+            ? "Service is steady"
+            : "Service needs attention";
+  const summary =
+    status === "demo"
+      ? "Sample score · preview only"
+      : status === "live" && data
+        ? "Calculated on request from current restaurant records."
+        : status === "loading"
+          ? "Reading current restaurant records…"
+          : status === "unavailable"
+            ? "Connect the API and MongoDB, then try again."
+            : "This role has no access to the restaurant-wide score.";
+  const breakdown: Array<
+    [string, { score: number; detail: string; status?: "observed" | "insufficient_data" }]
+  > = data
+    ? [
+        ["Kitchen efficiency", data.components.kitchenEfficiency],
+        ["Inventory health", data.components.inventoryHealth],
+        ["Order completion", data.components.orderCompletionRate],
+        ["Reservation efficiency", data.components.reservationEfficiency],
+        ["Table utilization", data.components.tableUtilization],
+        ["Incident frequency", data.components.incidentFrequency],
+      ]
+    : status === "demo"
+      ? [
+          ["Order flow · sample", { score: 92, detail: "Preview metric" }],
+          ["Guest wait · sample", { score: 84, detail: "Preview metric" }],
+          ["Stock cover · sample", { score: 71, detail: "Preview metric" }],
+        ]
+      : [];
+
+  return (
+    <article className="card health-card">
+      <div className="card-heading-row">
+        <div>
+          <div className="card-overline">
+            {status === "live"
+              ? "LIVE HEALTH SCORE"
+              : status === "demo"
+                ? "PREVIEW SAMPLE"
+                : "SERVICE PULSE"}
+          </div>
+          <h2>{title}</h2>
+        </div>
+        <button
+          className="more-button icon-button"
+          type="button"
+          aria-label="Refresh health score"
+          title="Refresh health score"
+          onClick={onRefresh}
+          disabled={status === "loading" || status === "demo" || status === "restricted"}
+        >
+          <Icon name="refresh" size={17} />
+        </button>
+      </div>
+      <div className="health-score-wrap">
+        <div
+          className="health-ring"
+          role="img"
+          aria-label={
+            score === null
+              ? "Service health score unavailable"
+              : `Service health score ${score} out of 100`
+          }
+        >
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="40" className="ring-track" />
+            <circle cx="50" cy="50" r="40" className="ring-value" style={ringStyle} />
+          </svg>
+          <div className="health-score-number">
+            <strong>{score ?? (status === "loading" ? "…" : "—")}</strong>
+            {score !== null ? <span>/ 100</span> : null}
+          </div>
+        </div>
+        <div className="health-score-copy">
+          <span className="health-trend">
+            {status === "live"
+              ? "Live"
+              : status === "demo"
+                ? "Sample"
+                : status === "loading"
+                  ? "Updating"
+                  : "Offline"}
+          </span>
+          <p>{summary}</p>
+          <span className="health-caption">
+            {status === "unavailable" && error
+              ? "The live score could not be loaded."
+              : "Weighted across six operational signals."}
+          </span>
+        </div>
+      </div>
+      {breakdown.length ? (
+        <div className="health-breakdown">
+          {breakdown.map(([label, metric]) => {
+            const insufficient = metric.status === "insufficient_data";
+            return (
+              <div key={label} title={metric.detail}>
+                <span>{label}</span>
+                <strong>
+                  {metric.score}
+                  {insufficient ? "*" : ""}
+                </strong>
+                <i className="health-bar">
+                  <b style={{ width: `${metric.score}%` }} />
+                </i>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="health-empty-note">
+          {status === "loading"
+            ? "Fetching the health-score breakdown…"
+            : "No live breakdown is available."}
+        </p>
+      )}
+      {data &&
+      Object.values(data.components).some((metric) => metric.status === "insufficient_data") ? (
+        <p className="health-data-note">* Neutral score where no eligible data was recorded.</p>
+      ) : null}
+      {data?.sampling.truncatedCollections.length ? (
+        <p className="health-data-note">
+          Partial sample: {data.sampling.truncatedCollections.join(", ")} reached the 2,000-record
+          cap.
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 function OverviewPage({
   orders,
   inventory,
   recommendation,
   showAi,
+  role,
+  healthScore,
+  healthScoreStatus,
+  healthScoreError,
+  onRefreshHealthScore,
+  canManageInventory,
   onAdvance,
   onRestock,
   onOpen,
@@ -1344,6 +1680,12 @@ function OverviewPage({
   inventory: InventoryItem[];
   recommendation: Recommendation;
   showAi: boolean;
+  role: AuthUser["role"] | undefined;
+  healthScore: HealthScoreData | null;
+  healthScoreStatus: HealthScoreViewStatus;
+  healthScoreError: string;
+  onRefreshHealthScore: () => void;
+  canManageInventory: boolean;
   onAdvance: (id: string) => void;
   onRestock: (name: string) => void;
   onOpen: () => void;
@@ -1353,136 +1695,151 @@ function OverviewPage({
   return (
     <>
       <section className="metrics-grid" aria-label="Today's service metrics">
-        <MetricCard
-          icon="receipt"
-          label="Gross revenue"
-          value="₹84,260"
-          delta="↑ 12.8%"
-          detail="vs. last Saturday"
-          tone="green"
-        />
-        <MetricCard
-          icon="orders"
-          label="Orders today"
-          value="126"
-          delta="↑ 8.4%"
-          detail="18 currently in service"
-          tone="coral"
-        />
-        <MetricCard
-          icon="clock"
-          label="Avg. ticket time"
-          value="16 min"
-          delta="↓ 2 min"
-          detail="faster than your weekly avg."
-          tone="blue"
-        />
-        <MetricCard
-          icon="spark"
-          label="Service health"
-          value={
-            <>
-              <span>88</span>
-              <span>/100</span>
-            </>
-          }
-          delta="↑ 4 pts"
-          detail="Steady · last updated 2 min ago"
-          tone="gold"
-        />
+        {role === "Kitchen Staff" ? (
+          <>
+            <MetricCard
+              icon="orders"
+              label="Active tickets · sample"
+              value={orders.filter((order) => order.status !== "Served").length}
+              delta="Sample"
+              detail="Preview queue only"
+              tone="coral"
+            />
+            <MetricCard
+              icon="check"
+              label="Ready at pass · sample"
+              value={orders.filter((order) => order.status === "Ready").length}
+              delta="Sample"
+              detail="Not connected to live orders"
+              tone="green"
+            />
+            <MetricCard
+              icon="clock"
+              label="Avg. prep time · sample"
+              value="16 min"
+              delta="Preview"
+              detail="Illustrative service metric"
+              tone="blue"
+            />
+          </>
+        ) : (
+          <>
+            {role !== "Reception" ? (
+              <MetricCard
+                icon="receipt"
+                label="Gross revenue · sample"
+                value="₹84,260"
+                delta="Sample"
+                detail="Not live financial data"
+                tone="green"
+              />
+            ) : null}
+            <MetricCard
+              icon="orders"
+              label="Orders today · sample"
+              value="126"
+              delta="Sample"
+              detail="18 currently in sample service"
+              tone="coral"
+            />
+            <MetricCard
+              icon="clock"
+              label="Avg. ticket time · sample"
+              value="16 min"
+              delta="Preview"
+              detail="Illustrative service metric"
+              tone="blue"
+            />
+            <MetricCard
+              icon="spark"
+              label={healthScoreStatus === "demo" ? "Service health · sample" : "Service health"}
+              value={
+                healthScoreStatus === "demo" ? (
+                  <>
+                    <span>88</span>
+                    <span>/100</span>
+                  </>
+                ) : healthScore ? (
+                  <>
+                    <span>{healthScore.score}</span>
+                    <span>/100</span>
+                  </>
+                ) : healthScoreStatus === "loading" ? (
+                  "…"
+                ) : (
+                  "—"
+                )
+              }
+              delta={
+                healthScoreStatus === "live"
+                  ? "Live"
+                  : healthScoreStatus === "demo"
+                    ? "Sample"
+                    : healthScoreStatus === "loading"
+                      ? "Loading"
+                      : "Unavailable"
+              }
+              detail={
+                healthScoreStatus === "live"
+                  ? "Current API calculation"
+                  : healthScoreStatus === "demo"
+                    ? "Preview only · not operational data"
+                    : healthScoreStatus === "loading"
+                      ? "Connecting to the score API"
+                      : "No live score available"
+              }
+              tone="gold"
+            />
+          </>
+        )}
       </section>
 
-      <section className="overview-top-grid">
-        <article className="card revenue-card">
-          <div className="card-heading-row">
-            <div>
-              <div className="card-overline">YOUR WEEK AT A GLANCE</div>
-              <h2>Revenue overview</h2>
-            </div>
-            <button
-              className="select-button"
-              type="button"
-              aria-label="Selected range, last 7 days"
-              onClick={() => {}}
-            >
-              <span>Last 7 days</span>
-              <Icon name="chevron" size={15} />
-            </button>
-          </div>
-          <div className="revenue-summary">
-            <strong>₹4,28,590</strong>
-            <span className="revenue-trend">
-              <Icon name="arrow-up" size={13} />
-              12.8%
-            </span>
-            <small>compared to previous week</small>
-          </div>
-          <RevenueChart />
-        </article>
-        <article className="card health-card">
-          <div className="card-heading-row">
-            <div>
-              <div className="card-overline">SERVICE PULSE</div>
-              <h2>Looking good</h2>
-            </div>
-            <button
-              className="more-button icon-button"
-              type="button"
-              aria-label="More service pulse options"
-            >
-              <Icon name="more" size={20} />
-            </button>
-          </div>
-          <div className="health-score-wrap">
-            <div className="health-ring" role="img" aria-label="Service health score 88 out of 100">
-              <svg viewBox="0 0 100 100" aria-hidden="true">
-                <circle cx="50" cy="50" r="40" className="ring-track" />
-                <circle cx="50" cy="50" r="40" className="ring-value" />
-              </svg>
-              <div className="health-score-number">
-                <strong>88</strong>
-                <span>/ 100</span>
+      {role === "Kitchen Staff" ? null : (
+        <section
+          className={`overview-top-grid ${role === "Reception" ? "overview-top-grid-single" : ""}`}
+        >
+          {role !== "Reception" ? (
+            <article className="card revenue-card">
+              <div className="card-heading-row">
+                <div>
+                  <div className="card-overline">YOUR WEEK AT A GLANCE · SAMPLE</div>
+                  <h2>Revenue overview · preview</h2>
+                </div>
+                <button
+                  className="select-button"
+                  type="button"
+                  aria-label="Selected range, last 7 days"
+                  onClick={() => {}}
+                >
+                  <span>Last 7 days</span>
+                  <Icon name="chevron" size={15} />
+                </button>
               </div>
-            </div>
-            <div className="health-score-copy">
-              <span className="health-trend">
-                <Icon name="arrow-up" size={13} /> 4 pts
-              </span>
-              <p>up from last week</p>
-              <span className="health-caption">Your team is finding a good pace.</span>
-            </div>
-          </div>
-          <div className="health-breakdown">
-            <div>
-              <span>Order flow</span>
-              <strong>92</strong>
-              <i className="health-bar">
-                <b style={{ width: "92%" }} />
-              </i>
-            </div>
-            <div>
-              <span>Guest wait</span>
-              <strong>84</strong>
-              <i className="health-bar health-bar-warm">
-                <b style={{ width: "84%" }} />
-              </i>
-            </div>
-            <div>
-              <span>Stock cover</span>
-              <strong>71</strong>
-              <i className="health-bar health-bar-soft">
-                <b style={{ width: "71%" }} />
-              </i>
-            </div>
-          </div>
-        </article>
-      </section>
+              <div className="revenue-summary">
+                <strong>₹4,28,590</strong>
+                <span className="revenue-trend">
+                  <Icon name="arrow-up" size={13} />
+                  12.8%
+                </span>
+                <small>compared to previous week</small>
+              </div>
+              <RevenueChart />
+            </article>
+          ) : null}
+          <HealthScoreCard
+            data={healthScore}
+            status={healthScoreStatus}
+            error={healthScoreError}
+            onRefresh={onRefreshHealthScore}
+          />
+        </section>
+      )}
 
       <section className="overview-middle-grid">
         <article className="card order-overview-card">
           <div className="card-heading-row card-heading-bottom">
             <div>
-              <div className="card-overline">LIVE SERVICE</div>
+              <div className="card-overline">SAMPLE SERVICE</div>
               <h2>
                 Orders in motion <span className="heading-count">18</span>
               </h2>
@@ -1543,70 +1900,87 @@ function OverviewPage({
         )}
       </section>
 
-      <section className="overview-bottom-grid">
+      <section
+        className={`overview-bottom-grid ${role === "Kitchen Staff" ? "overview-bottom-grid-single" : ""}`}
+      >
         <article className="card inventory-overview-card">
           <div className="card-heading-row">
             <div>
-              <div className="card-overline">KEEP THE PASS READY</div>
-              <h2>Stock to watch</h2>
+              <div className="card-overline">
+                {canManageInventory ? "KEEP THE PASS READY" : "STOCK AVAILABILITY"}
+              </div>
+              <h2>{canManageInventory ? "Stock to watch" : "Stock availability"}</h2>
             </div>
-            <button
-              className="text-link"
-              type="button"
-              onClick={onRestock.bind(null, inventory[0]?.name ?? "Fresh paneer")}
-            >
-              Quick restock <Icon name="plus" size={15} />
-            </button>
+            {canManageInventory ? (
+              <button
+                className="text-link"
+                type="button"
+                onClick={onRestock.bind(null, inventory[0]?.name ?? "Fresh paneer")}
+              >
+                Quick restock <Icon name="plus" size={15} />
+              </button>
+            ) : null}
           </div>
-          <InventoryRows inventory={inventory} onRestock={onRestock} compact />
+          <InventoryRows
+            inventory={inventory}
+            onRestock={onRestock}
+            compact
+            canManage={canManageInventory}
+          />
         </article>
-        <article className="card reservations-overview-card">
-          <div className="card-heading-row">
-            <div>
-              <div className="card-overline">THE NEXT ARRIVALS</div>
-              <h2>Tonight’s tables</h2>
-            </div>
-            <button className="text-link" type="button" onClick={onReservations}>
-              View floor <Icon name="arrow-right" size={15} />
-            </button>
-          </div>
-          <div className="reservation-preview">
-            <div className="reservation-count">
-              <strong>12</strong>
-              <span>reservations</span>
-            </div>
-            <div className="reservation-timeline">
-              <div className="timeline-time">
-                7:00<span>pm</span>
+        {role === "Kitchen Staff" ? null : (
+          <article className="card reservations-overview-card">
+            <div className="card-heading-row">
+              <div>
+                <div className="card-overline">THE NEXT ARRIVALS</div>
+                <h2>Tonight’s tables</h2>
               </div>
-              <div className="timeline-stem">
-                <i />
-                <b />
-                <i />
+              <button className="text-link" type="button" onClick={onReservations}>
+                View floor <Icon name="arrow-right" size={15} />
+              </button>
+            </div>
+            <div className="reservation-preview">
+              <div className="reservation-count">
+                <strong>12</strong>
+                <span>reservations</span>
               </div>
-              <div className="timeline-list">
-                <div>
-                  <strong>Priya Shah</strong>
-                  <span>4 guests · Table 02</span>
+              <div className="reservation-timeline">
+                <div className="timeline-time">
+                  7:00<span>pm</span>
                 </div>
-                <div>
-                  <strong>Nikhil Iyer</strong>
-                  <span>2 guests · Table 06</span>
+                <div className="timeline-stem">
+                  <i />
+                  <b />
+                  <i />
                 </div>
-                <div>
-                  <strong>Ananya Rao</strong>
-                  <span>6 guests · Table 09</span>
+                <div className="timeline-list">
+                  <div>
+                    <strong>Priya Shah</strong>
+                    <span>4 guests · Table 02</span>
+                  </div>
+                  <div>
+                    <strong>Nikhil Iyer</strong>
+                    <span>2 guests · Table 06</span>
+                  </div>
+                  <div>
+                    <strong>Ananya Rao</strong>
+                    <span>6 guests · Table 09</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </article>
+          </article>
+        )}
       </section>
       <div className="overview-footnote">
         <span>
           <Icon name="sun" size={15} /> All times in IST
         </span>
-        <span>Last refresh · just now</span>
+        <span>
+          {healthScoreStatus === "live"
+            ? "Health score calculated on request"
+            : "Operational metrics are sample-only"}
+        </span>
       </div>
     </>
   );
@@ -1950,9 +2324,11 @@ function ReservationsPage({
 function InventoryPage({
   inventory,
   onRestock,
+  canManageInventory,
 }: {
   inventory: InventoryItem[];
   onRestock: (name: string) => void;
+  canManageInventory: boolean;
 }) {
   const lowCount = inventory.filter((item) => item.onHand <= item.minimum).length;
   return (
@@ -1994,25 +2370,29 @@ function InventoryPage({
       <article className="card inventory-page-card">
         <div className="orders-toolbar">
           <div>
-            <div className="card-overline">STOCK CONTROL</div>
+            <div className="card-overline">
+              {canManageInventory ? "STOCK CONTROL" : "STOCK AVAILABILITY"}
+            </div>
             <h2>Inventory snapshot</h2>
           </div>
-          <button
-            className="button button-outline"
-            type="button"
-            onClick={() => {
-              inventory
-                .filter((item) => item.onHand <= item.minimum)
-                .forEach((item) => {
-                  onRestock(item.name);
-                });
-            }}
-          >
-            <Icon name="refresh" size={16} />
-            Restock low items
-          </button>
+          {canManageInventory ? (
+            <button
+              className="button button-outline"
+              type="button"
+              onClick={() => {
+                inventory
+                  .filter((item) => item.onHand <= item.minimum)
+                  .forEach((item) => {
+                    onRestock(item.name);
+                  });
+              }}
+            >
+              <Icon name="refresh" size={16} />
+              Restock low items
+            </button>
+          ) : null}
         </div>
-        <InventoryRows inventory={inventory} onRestock={onRestock} />
+        <InventoryRows inventory={inventory} onRestock={onRestock} canManage={canManageInventory} />
       </article>
       <article className="stock-guidance">
         <span className="stock-guidance-icon">
