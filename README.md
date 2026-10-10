@@ -2,7 +2,7 @@
 
 **Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository contains the product and technical documentation, a documentation-conversion utility, and Next.js and Express applications. The backend now has a native-driver MongoDB schema baseline and local implementations of Email/OTP registration, email/password and Google login, and rotating JWT sessions. Restaurant workflows, production email/AI provider credentials, live database verification, and deployment remain outstanding.
+> This repository contains product and technical documentation, a documentation-conversion utility, and Next.js and Express applications. The backend includes native-driver MongoDB schema/index setup, Email/OTP and OAuth authentication, tenant-scoped inventory and health-score APIs, and advisory AI recommendations. These features have local automated checks; live MongoDB, email/Google/Gemini credentials, the remaining restaurant workflows, and deployment are not verified or configured here.
 
 ## Product vision
 
@@ -38,7 +38,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows. The optional `frontend/.env.example` contains only a local API URL placeholder; never put secrets in `NEXT_PUBLIC_` variables. See the [frontend guide](frontend/README.md) for quality commands.
+Open `http://localhost:3000`. The `/` route is a responsive restaurant workspace; inventory and health-score reads use the backend API when a signed-in role and backend are available. Other operational workflows and customer menu/cart and booking actions remain clearly labeled previews. The optional `frontend/.env.example` contains only a local API URL placeholder; never put secrets in `NEXT_PUBLIC_` variables. See the [frontend guide](frontend/README.md) for role-specific behavior and quality commands.
 
 ## Backend setup
 
@@ -56,7 +56,7 @@ The API listens on `http://localhost:3001` by default. `GET /health` reports pro
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds the app. Backend coverage includes liveness, MongoDB configuration/schema, and fake-repository auth unit/HTTP flows; frontend product tests remain pending. This adds CI only—deployment/CD is not configured.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds both apps. The integrated local tree passed the same checks on Node `24.21.0`: backend tests passed (45), both audits reported zero vulnerabilities, and both builds passed; the frontend has no configured test script. This was a local CI-equivalent run, not a GitHub Actions result. No remote is configured and nothing was pushed. Deployment/CD is not configured.
 
 ## Documentation
 
@@ -105,7 +105,7 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 
 ## Development status
 
-The MVP scope, architecture, API endpoint inventory, delivery plan, and acceptance criteria are documented. S1-03/S1-04/S1-06 and S3-11 have local commits marked **Ready to Push** on task branches. S1-05 local-first MongoDB, S1-07 CI/deployment confirmation, S1-08 live-index validation, S1-09/10/11 live auth/provider verification, S1-12 operations-route RBAC integration, and S1-13 live seed/re-run verification remain **In Progress**; Docker/`mongod`, a real email provider, and live Google credentials are not configured here. The S1-12 middleware is implemented and the AI routes apply it. S3-01/02/04/13 add the Gemini-backed recommendation flow, bounded PII-minimized context, structured-output validation, and deterministic fallback on `feature/ai`; fake-provider tests pass, but live Gemini credentials and MongoDB are unavailable. On `feature/frontend`, a responsive restaurant workspace, role-filtered navigation, auth forms, guest menu/cart preview, table-booking preview, and AI insight UI have been built. Dashboard/menu/booking operations use explicitly labeled sample data; restaurant operations APIs and persistence are still pending. S2-01/02/07/11 and S3-03/05 remain **In Progress**. No remote push or merge has been made. Core restaurant APIs, password reset, live provider setup, end-to-end integration, performance validation, and deployment remain outstanding. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) and [Database Schema](Docs/Architecture/Andhrimnir_Database_Schema.md) documents record recommendations and open module-specific decisions.
+The MVP scope, architecture, API inventory, delivery plan, and acceptance criteria are documented. Former local feature branches were integrated into `main` at `70f5fb4`; all other local branch references were deleted at the owner's direction. No remote is configured and nothing was pushed. S1-03/S1-04/S1-06 and S3-11 remain **Ready to Push**; S1-05, S1-07, S1-08, S1-09/10/11, S1-12, and S1-13 remain **In Progress** pending their documented local MongoDB, provider, or remote-CI checks. S2-06 inventory API/UI and S2-08 health-score API/UI are integrated on `main` and pass local checks, but remain **In Progress** pending live MongoDB verification; S2-08's recalculation cadence is also outstanding. S3-01/02/04/13 add bounded, PII-minimized Gemini recommendations with structured-output validation and deterministic fallback; fake-provider tests pass, but live Gemini credentials and MongoDB persistence are unavailable. The responsive workspace, role-filtered navigation, auth forms, guest menu/cart and booking previews, and AI insights are integrated. Most order, reservation, kitchen, and other restaurant operations remain preview-only or pending APIs. S2-01/02/07/11 and S3-03/05 remain **In Progress**. Local CI-equivalent checks passed on Node `24.21.0`, including all 45 backend tests; no GitHub Actions run occurred. Live MongoDB/`mongod`, email and Google credentials, live Gemini credentials, performance verification, and deployment remain outstanding. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) and [Database Schema](Docs/Architecture/Andhrimnir_Database_Schema.md) documents record recommendations and open module-specific decisions.
 
 ## Repository structure
 

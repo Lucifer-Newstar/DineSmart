@@ -1,43 +1,21 @@
 # Branch Strategy
 
-This document records the current owner-directed workflow. The original setup used one branch per backlog item; going forward, implementation is grouped by durable work area so dependent work can be reviewed together without creating a branch for every feature.
+This document records the current owner-directed workflow. On 2026-10-11, the owner directed that ongoing work use `main` only. The previously used task and area branches were integrated locally into `main` at `70f5fb4`; all other local branch references were deleted. No remote is configured, and no push or GitHub Actions run has been made.
 
-## Integration policy
+## Current workflow
 
-- `main` is the integration baseline; do not commit product work directly to it.
-- Keep all implementation branches local and unmerged while the project is being built. The owner pushes and merges the completed area branches at the end, in dependency order.
-- Do not mark a task **Complete** before its Definition of Done and merge requirements are met.
+- Work directly on `main` unless the owner explicitly changes this instruction.
+- Do not create task or area branches for new work under the current instruction.
+- Keep each implementation/documentation commit traceable to its backlog task ID, for example `feat(S2-06): connect inventory UI to API`.
+- Update the canonical backlog and assigned member work logs for each task. Use the prescribed member identities for implementation and member-specific logs; shared documentation, architecture, security, and integration work uses Navin's identity.
+- Run the checks in `.github/workflows/ci.yml` locally when practical. A local pass is not a GitHub Actions result; do not claim remote CI, deployment, or live-service verification without evidence.
+- Do not mark a task **Complete** until its Definition of Done and required integration/review criteria are met. Use **Ready to Push** for verified local work that has not been pushed.
+- Do not push unless the owner explicitly asks.
 
-## Area branches
+## Recent integration
 
-Create one branch for each major implementation area, using a short area name:
-
-```text
-feature/backend
-feature/ai
-feature/frontend
-feature/release
-```
-
-Keep later tasks from the same area on that area's branch. When an area depends on an unmerged area, stack the new area branch on its latest local head and record the dependency in the work log. Do not create a separate branch for every backlog item. Existing `feature/Sx-yy-slug` branches are historical work and remain intact; new branches follow the area convention.
-
-## Task-level traceability
-
-Branches are area-scoped, but work remains backlog-task-scoped:
-
-- Put the task ID in every implementation/documentation commit subject, e.g. `feat(S1-12): add role authorization middleware`.
-- Update the canonical backlog and assigned work logs for each task.
-- Keep member-specific commits attributed to the prescribed Git identity. Shared docs, architecture, security, integration and release coordination use Navin's identity.
-- Run the relevant checks and record any unavailable live integration before moving the next task forward.
-
-## Workflow
-
-1. Start from the latest local dependency head; do not fetch/push/merge on behalf of the owner.
-2. Create an area branch only when beginning work in a new area. Reuse it for subsequent tasks in that area.
-3. Implement and commit tasks in backlog order where dependencies permit; use task IDs in commit subjects and work logs.
-4. Keep area branches stacked when required by dependencies. At the end, the owner pushes/reviews/merges them in dependency order.
-5. Do not rewrite existing commit history or backdate commits. New work uses the current local date.
+`feature/backend`, `feature/ai`, and `feature/frontend` were combined in dependency order on local `integration/ci-validation`, then fast-forwarded into `main`. All earlier local task-scoped branch tips were already contained in that history. The validation branch and all other non-`main` local branch references were then deleted at the owner's direction. The commits remain in `main`; no remote branch was affected.
 
 ## Repository settings not specified
 
-Branch protection, required CI checks, reviewer counts, merge method, deployment credentials, and branch-deletion policy remain owner/GitHub settings. This workflow does not assume or configure those settings.
+Branch protection, required remote CI checks, reviewer counts, deployment credentials, and remote branch-deletion policy remain owner/GitHub settings. This workflow does not assume or configure those settings.
