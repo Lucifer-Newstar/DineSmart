@@ -127,3 +127,10 @@
 - Documented the current model/SDK selection as an assistant recommendation (not a separate owner approval), alongside the open live-key verification requirement.
 - **Implementation commit:** `ad4b0ed` (Navin). **Validation on Node `24.21.0`:** Biome, 31 backend tests, typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Provider/context tests use fakes and no real Gemini request was made.
 - **Status:** S3-01/02/04/13 remain **In Progress** pending a real Gemini API key/model check and live MongoDB persistence/index verification. No push or merge was made.
+
+### S2-11 — Role-filtered dashboard presentation
+
+- **Branch:** `feature/frontend`, stacked on `feature/ai`.
+- Added a pure frontend navigation/access helper so Kitchen Staff and Reception see their intended workspace sections, Manager/Administrator can reach AI insights, and Customer sessions are routed to the guest home. The server's signed-principal authorization remains authoritative; this is presentation only, not a substitute for API RBAC.
+- **Implementation:** included in Dhanush's area-branch commit `7e69d80`; no separate task branch was created. The shared helper builds and passes Biome/type checks.
+- **Status:** S2-11 remains **In Progress** pending route coverage for the remaining operational APIs, customer ownership views, and role-specific workflow verification. No push or merge was made.

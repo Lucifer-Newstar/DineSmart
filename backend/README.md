@@ -1,6 +1,6 @@
 # Andhrímnir Backend
 
-This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, Email/OTP, email/password, Google sign-in, JWT refresh/logout flows, RBAC permission/tenant middleware, and locally tested tenant-scoped inventory and health-score endpoints. These operations routes have not been verified against live MongoDB. Most other operations routes, password reset, strict document validation, and persisted restaurant workflows remain pending.
+This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, Email/OTP, email/password, Google sign-in, JWT refresh/logout flows, shared RBAC permission/tenant middleware, tenant-scoped inventory and health-score endpoints, and AI recommendation endpoints. Unit/route tests pass locally, but MongoDB-backed workflows have not been verified against a live MongoDB service and AI has not been checked against a live Gemini key. Most other operations routes, password reset, strict document validation, and persisted restaurant workflows remain pending.
 
 ## Requirements
 
