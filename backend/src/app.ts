@@ -1,6 +1,16 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler } from "express";
 import type { Db } from "mongodb";
+import { createAiRouter } from "./ai/ai.router.js";
+import {
+  DEFAULT_GEMINI_MODEL,
+  GeminiRecommendationProvider,
+  GoogleGeminiTextGenerator,
+} from "./ai/gemini.provider.js";
+import { IncidentContextBuilder } from "./ai/incident-context.builder.js";
+import { MongoIncidentContextRepository } from "./ai/incident-context.repository.js";
+import { MongoRecommendationRepository } from "./ai/recommendation.repository.js";
+import { RecommendationService } from "./ai/recommendation.service.js";
 import { MongoAuthRepository } from "./auth/auth.repository.js";
 import { createAuthRouter } from "./auth/auth.router.js";
 import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
@@ -93,6 +103,27 @@ export function createApp(options: AppOptions = {}) {
 
         const { repository, service } = await createAuthRuntime();
         return new GoogleOAuthService(repository, service, googleVerifier).login(idToken);
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1",
+    createAiRouter({
+      createAuthService: async () => (await createAuthRuntime()).service,
+      createRecommendationService: async () => {
+        const db = await (options.getDatabase?.() ?? connectToDatabase());
+        const contextBuilder = new IncidentContextBuilder(new MongoIncidentContextRepository(db));
+        const model = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+        const apiKey = process.env.GEMINI_API_KEY?.trim();
+        const provider = apiKey
+          ? new GeminiRecommendationProvider(new GoogleGeminiTextGenerator(apiKey, model), model)
+          : undefined;
+        return new RecommendationService(
+          contextBuilder,
+          new MongoRecommendationRepository(db),
+          provider,
+        );
       },
     }),
   );
