@@ -1,6 +1,6 @@
 # Andhrímnir Backend
 
-This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, and Email/OTP, email/password, Google sign-in, JWT refresh, and logout flows. RBAC permission/tenant middleware is in progress; operations routes, password reset, strict document validation, and restaurant workflows are still pending.
+This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, and Email/OTP, email/password, Google sign-in, JWT refresh, and logout flows. Shared RBAC permission/tenant middleware is implemented and exercised by the AI routes; applying it across product operations routes remains pending. Restaurant operations APIs, password reset, strict document validation, and live workflows are still outstanding.
 
 ## Requirements
 

@@ -59,17 +59,17 @@ Goal: Complete customer workflows and dashboard.
 
 | Task ID | Task | Owner | Priority | Story Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| S2-01 | Customer Landing Page | Dhanush | Medium | 2 | To Do |
-| S2-02 | Digital Menu | Dhanush | High | 3 | To Do |
+| S2-01 | Customer Landing Page | Dhanush | Medium | 2 | In Progress |
+| S2-02 | Digital Menu | Dhanush | High | 3 | In Progress |
 | S2-03 | Reservation Module | Jegatheesan | High | 3 | To Do |
 | S2-04 | Order Placement | Dhanush | High | 5 | To Do |
 | S2-05 | Kitchen Queue | Jegatheesan | High | 3 | To Do |
 | S2-06 | Inventory Module | Jegatheesan | High | 3 | To Do |
-| S2-07 | Dashboard UI | Dhanush | High | 5 | To Do |
+| S2-07 | Dashboard UI | Dhanush | High | 5 | In Progress |
 | S2-08 | Restaurant Health Score | Navin | High | 3 | To Do |
 | S2-09 | Analytics Charts | Jegatheesan | Medium | 3 | To Do |
 | S2-10 | Notification Module | Gokul | Medium | 2 | To Do |
-| S2-11 | Role-based Dashboards | Navin | Medium | 2 | To Do |
+| S2-11 | Role-based Dashboards | Navin | Medium | 2 | In Progress |
 | S2-12 | Incident Detection Rules | Navin | High | 12 | To Do |
 | S2-13 | WebSocket Implementation | Navin | High | 3 | To Do |
 | S2-14 | Billing APIs | Jegatheesan | High | 3 | To Do |
@@ -86,9 +86,9 @@ Goal: Complete AI features, testing, deployment and presentation.
 | --- | --- | --- | --- | --- | --- |
 | S3-01 | Gemini API Integration | Navin | High | 5 | In Progress |
 | S3-02 | Prompt Engineering | Navin | High | 3 | In Progress |
-| S3-03 | Recommendation UI | Dhanush | High | 3 | To Do |
+| S3-03 | Recommendation UI | Dhanush | High | 3 | In Progress |
 | S3-04 | Incident Context Builder | Navin | High | 4 | In Progress |
-| S3-05 | Dashboard Polish | Dhanush | Medium | 2 | To Do |
+| S3-05 | Dashboard Polish | Dhanush | Medium | 2 | In Progress |
 | S3-06 | Integration Testing | Entire Team | High | 5 | To Do |
 | S3-07 | Bug Fixing | Entire Team | High | 5 | To Do |
 | S3-08 | Frontend Deployment | Gokul | High | 2 | To Do |
