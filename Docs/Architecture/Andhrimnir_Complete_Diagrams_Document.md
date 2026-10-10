@@ -1,6 +1,6 @@
-# Andhrimnir Complete Diagrams Document
+# Andhrímnir Complete Diagrams Document
 
-Andhrimnir - Complete Architecture & Design Diagrams
+Andhrímnir - Complete Architecture & Design Diagrams
 
 Mermaid-compatible diagrams for the project.
 

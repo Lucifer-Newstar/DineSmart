@@ -1,4 +1,4 @@
-# Andhrimnir Sprint Backlog
+# Andhrímnir Sprint Backlog
 
 Sprint Backlog
 
@@ -51,6 +51,7 @@ Goal: Establish backend foundation and project setup.
 | S1-10 | Google OAuth | Dhanush | Medium | 2 | To Do |
 | S1-11 | Email OTP | Dhanush | Medium | 2 | To Do |
 | S1-12 | RBAC | Navin | High | 2 | To Do |
+| S1-13 | Create Seed Data | Jegatheesan | Medium | 2 | To Do |
 
 ## Sprint 2 – Restaurant Operations
 
@@ -70,6 +71,12 @@ Goal: Complete customer workflows and dashboard.
 | S2-10 | Notification Module | Gokul | Medium | 2 | To Do |
 | S2-11 | Role-based Dashboards | Navin | Medium | 2 | To Do |
 | S2-12 | Incident Detection Rules | Navin | High | 12 | To Do |
+| S2-13 | WebSocket Implementation | Navin | High | 3 | To Do |
+| S2-14 | Billing APIs | Jegatheesan | High | 3 | To Do |
+| S2-15 | Password Reset & Logout APIs | Dhanush | High | 2 | To Do |
+| S2-16 | Staff Management APIs | Jegatheesan | Medium | 3 | To Do |
+| S2-17 | Waitlist Management APIs | Jegatheesan | Medium | 2 | To Do |
+| S2-18 | Table Status APIs | Jegatheesan | Medium | 2 | To Do |
 
 ## Sprint 3 – AI Integration & Release
 
@@ -89,6 +96,7 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-10 | Performance Optimization | Navin | Medium | 2 | To Do |
 | S3-11 | README | Navin | Medium | 2 | To Do |
 | S3-12 | Presentation & Demo | Entire Team | High | 3 | To Do |
+| S3-13 | AI Fallback Implementation | Navin | Medium | 2 | To Do |
 
 ## Definition of Done
 
@@ -104,7 +112,13 @@ Goal: Complete AI features, testing, deployment and presentation.
 
 | Sprint | Story Points |
 | --- | --- |
-| Sprint 1 | 23 |
-| Sprint 2 | 34 |
-| Sprint 3 | 39 |
-| Total | 96 |
+| Sprint 1 | 25 |
+| Sprint 2 | 49 |
+| Sprint 3 | 41 |
+| Total | 115 |
+
+
+## Consolidation Note
+
+- On 2026-10-10, the additions from `History/Andhrimnir_Backlog_Additions_History.md` were merged into this canonical backlog.
+- Current task statuses are maintained in this file; the history file is a snapshot of the original additions.

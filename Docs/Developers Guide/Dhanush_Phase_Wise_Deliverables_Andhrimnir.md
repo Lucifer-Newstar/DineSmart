@@ -1,4 +1,4 @@
-# Dhanush Phase Wise Deliverables Andhrimnir
+# Dhanush Phase Wise Deliverables Andhrímnir
 
 ## Dhanush – Phase-wise Deliverables
 Andhrímnir – AI Incident Intelligence Platform for Restaurants

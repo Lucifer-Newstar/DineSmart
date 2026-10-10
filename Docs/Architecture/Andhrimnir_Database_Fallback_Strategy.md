@@ -1,4 +1,4 @@
-# Andhrimnir Database Fallback Strategy
+# Andhrímnir Database Fallback Strategy
 
 ## Andhrímnir – Database Fallback Strategy Document
 

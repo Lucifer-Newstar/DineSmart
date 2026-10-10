@@ -1,4 +1,4 @@
-# Andhrimnir Product Vision Document
+# Andhrímnir Product Vision Document
 
 Product Vision Document
 

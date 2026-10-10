@@ -1,4 +1,4 @@
-# Andhrimnir Software Requirement Analysis SRS
+# Andhrímnir Software Requirement Analysis SRS
 
 ## Software Requirement Analysis (SRS)
 Andhrímnir – AI Incident Intelligence Platform for Restaurants

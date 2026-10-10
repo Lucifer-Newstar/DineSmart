@@ -1,4 +1,4 @@
-# Navin Jairam Phase Wise Deliverables Andhrimnir
+# Navin Jairam Phase Wise Deliverables Andhrímnir
 
 ## Navin Jairam – Phase-wise Deliverables
 Andhrímnir – AI Incident Intelligence Platform for Restaurants

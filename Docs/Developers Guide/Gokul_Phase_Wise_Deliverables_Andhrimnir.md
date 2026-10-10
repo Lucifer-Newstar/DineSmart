@@ -1,4 +1,4 @@
-# Gokul Phase Wise Deliverables Andhrimnir
+# Gokul Phase Wise Deliverables Andhrímnir
 
 ## Gokul – Phase-wise Deliverables
 Andhrímnir – AI Incident Intelligence Platform for Restaurants

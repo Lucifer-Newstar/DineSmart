@@ -1,4 +1,4 @@
-# Andhrimnir Demo Strategy and Mock Data Structure
+# Andhrímnir Demo Strategy and Mock Data Structure
 
 ## Andhrímnir – Demo Strategy & Mock Data Structure
 

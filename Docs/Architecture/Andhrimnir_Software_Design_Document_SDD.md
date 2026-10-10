@@ -1,4 +1,4 @@
-# Andhrimnir Software Design Document SDD
+# Andhrímnir Software Design Document SDD
 
 ## Software Design Document (SDD)
 Andhrímnir – AI Incident Intelligence Platform for Restaurants
@@ -69,16 +69,7 @@ This Software Design Document defines the technical design of the Andhrímnir pl
 - Bills
 ## 7. API Design
 
-- POST /auth/register
-- POST /auth/login
-- POST /auth/google
-- GET /menu
-- POST /reservations
-- POST /orders
-- PATCH /orders/{id}/status
-- GET /dashboard
-- GET /incidents
-- GET /analytics
+The endpoint inventory is maintained in the canonical [API Specification](Andhrimnir_API_Specification.md). This SDD remains the high-level architecture document; detailed request/response schemas and authorization rules are listed as pending decisions in the [Implementation Decisions Draft](Andhrimnir_Implementation_Decisions_Draft.md).
 ## 8. Incident Detection Workflow
 
 - Collect operational events.

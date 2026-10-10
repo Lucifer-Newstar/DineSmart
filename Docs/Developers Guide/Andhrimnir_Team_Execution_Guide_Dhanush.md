@@ -1,4 +1,4 @@
-# Andhrimnir Team Execution Guide Dhanush
+# Andhrímnir Team Execution Guide Dhanush
 
 ## Andhrímnir – Team Execution Guide
 Dhanush (Full-Stack Developer)

@@ -1,4 +1,4 @@
-# Andhrimnir Team Execution Guide Gokul
+# Andhrímnir Team Execution Guide Gokul
 
 ## Andhrímnir – Team Execution Guide
 Gokul (Cloud, DevOps, CI/CD, Deployment & Monitoring Engineer)

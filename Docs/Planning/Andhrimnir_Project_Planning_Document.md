@@ -1,4 +1,4 @@
-# Andhrimnir Project Planning Document
+# Andhrímnir Project Planning Document
 
 ## Andhrímnir – Project Planning Document
 

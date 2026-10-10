@@ -1,4 +1,4 @@
-# Andhrimnir Team Execution Guide Navin Jairam
+# Andhrímnir Team Execution Guide Navin Jairam
 
 ## Andhrímnir – Team Execution Guide
 Navin Jairam (Team Captain, Architecture, DevOps & Integration)

@@ -1,4 +1,4 @@
-# Andhrimnir Integrated Phase Completion Roadmap
+# Andhrímnir Integrated Phase Completion Roadmap
 
 ## Andhrímnir – Integrated Phase Completion & Product Development Roadmap
 
@@ -43,9 +43,11 @@ This document defines how the combined deliverables of all team members (Navin, 
 - Team lead approves phase completion before next phase begins.
 ## Phase Completion Sign-off Template
 
+> This is a blank template, not a record that every phase or team deliverable is complete. Fill it in separately for each phase after the deliverable is reviewed and the exit criteria are met.
+
 | Team Member | Deliverable Completed | Reviewed By | Status |
 | --- | --- | --- | --- |
-| Navin | ✓ | Team Lead | Complete |
-| Dhanush | ✓ | Team Lead | Complete |
-| Jegatheesan | ✓ | Team Lead | Complete |
-| Gokul | ✓ | Team Lead | Complete |
+| Navin | — | — | — |
+| Dhanush | — | — | — |
+| Jegatheesan | — | — | — |
+| Gokul | — | — | — |

@@ -1,4 +1,4 @@
-# Andhrimnir Test Plan and Acceptance Criteria
+# Andhrímnir Test Plan and Acceptance Criteria
 
 ## Andhrímnir – Test Plan & Acceptance Criteria
 

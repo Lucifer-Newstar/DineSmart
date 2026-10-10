@@ -1,14 +1,14 @@
-# Andhrimnir
+# Andhrímnir
 
-**Andhrimnir** is a proposed AI incident-intelligence platform for restaurant operations. It turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
+**Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository currently contains the project’s planning and technical documentation. The implementation is described in the specifications linked below.
+> This repository currently contains project planning and technical documentation, plus a documentation-conversion utility. Application source code has not yet been started.
 
 ## Product vision
 
-Most restaurant systems record transactions but do not proactively identify operational issues. Andhrimnir is designed as an intelligence layer that helps teams detect bottlenecks, shortages, delays, and congestion before they affect customers.
+Most restaurant systems record transactions but do not proactively identify operational issues. Andhrímnir is designed as an intelligence layer that helps teams detect bottlenecks, shortages, delays, and congestion before they affect customers.
 
-The planned MVP includes:
+The documented MVP scope includes:
 
 - Customer authentication, digital menu, reservations, and orders
 - Restaurant operations dashboard, kitchen queue, and inventory monitoring
@@ -28,43 +28,57 @@ The planned MVP includes:
 
 ## Documentation
 
-### Product and technical design
+### Product and requirements
 
-- [Product vision](Docs/Andhrimnir_Product_Vision_Document.md)
-- [Software requirements specification](Docs/Andhrimnir_Software_Requirement_Analysis_SRS.md)
-- [Software design document](Docs/Andhrimnir_Software_Design_Document_SDD.md)
-- [Architecture and design diagrams](Docs/Andhrimnir_Complete_Diagrams_Document.md)
-- [API specification](Docs/Andhrimnir_Updated_API_Specification.md)
-- [Database fallback strategy](Docs/Andhrimnir_Database_Fallback_Strategy.md)
+- [Product vision](Docs/Product/Andhrimnir_Product_Vision_Document.md)
+- [Software requirements specification](Docs/Product/Andhrimnir_Software_Requirement_Analysis_SRS.md)
 
-### Delivery and quality
+### Architecture and technical design
 
-- [Project planning document](Docs/Andhrimnir_Project_Planning_Document.md)
-- [Development workflow](Docs/Development-Workflow.md)
-- [Branch strategy](Docs/Branch-Strategy.md)
-- [Sprint backlog](Docs/Andhrimnir_Sprint_Backlog.md) and [updates](Docs/Andhrimnir_Updated_Sprint_Backlog.md)
+- [Software design document](Docs/Architecture/Andhrimnir_Software_Design_Document_SDD.md)
+- [Architecture and design diagrams](Docs/Architecture/Andhrimnir_Complete_Diagrams_Document.md)
+- [Canonical API specification](Docs/Architecture/Andhrimnir_API_Specification.md)
+- [Database fallback strategy](Docs/Architecture/Andhrimnir_Database_Fallback_Strategy.md)
+- [Implementation decisions draft — requires review](Docs/Architecture/Andhrimnir_Implementation_Decisions_Draft.md)
+
+### Planning and delivery
+
+- [Project planning document](Docs/Planning/Andhrimnir_Project_Planning_Document.md)
+- [Development workflow](Docs/Planning/Development-Workflow.md)
+- [Branch strategy](Docs/Planning/Branch-Strategy.md)
+- [Canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md)
+- [Backlog additions history](Docs/Planning/History/Andhrimnir_Backlog_Additions_History.md)
+- [Integrated phase-completion roadmap](Docs/Planning/Andhrimnir_Integrated_Phase_Completion_Roadmap.md)
+
+### Quality and demonstration
+
+- [Test plan and acceptance criteria](Docs/Quality/Andhrimnir_Test_Plan_and_Acceptance_Criteria.md)
+- [Demo strategy and mock-data structure](Docs/Quality/Andhrimnir_Demo_Strategy_and_Mock_Data_Structure.md)
+
+### Team guides and work logs
+
+- [Navin Jairam execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Navin_Jairam.md)
+- [Dhanush execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Dhanush.md)
+- [Jegatheesan execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Jegatheesan.md)
+- [Gokul execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Gokul.md)
 - [Navin Jairam work log](Docs/Work%20Logs/Navin_Jairam.md)
-- [Integrated phase-completion roadmap](Docs/Developers%20Guide/Andhrimnir_Integrated_Phase_Completion_Roadmap.md)
-- [Test plan and acceptance criteria](Docs/Andhrimnir_Test_Plan_and_Acceptance_Criteria.md)
-- [Demo strategy and mock-data structure](Docs/Andhrimnir_Demo_Strategy_and_Mock_Data_Structure.md)
-
-### Team guides
-
-- [Navin Jairam](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Navin_Jairam.md)
-- [Dhanush](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Dhanush.md)
-- [Jegatheesan](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Jegatheesan.md)
-- [Gokul](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Gokul.md)
 
 ## Development status
 
-The project has a documented MVP scope, architecture, API contract, delivery plan, and test criteria. Application source code, environment setup instructions, and deployment commands will be added when implementation begins.
+The project has a documented MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria. The **S1-02 branch strategy** is documented. Frontend/backend implementation, environment setup, automated tests, and deployment configuration remain pending; track task status in the canonical sprint backlog. The implementation-decisions draft identifies specifications that still require review before coding.
 
 ## Repository structure
 
 ```text
 .
-|-- Docs/                 # Product, engineering, planning, and quality documentation
-|-- Docs/Developers Guide/ # Role-specific execution guides and deliverables
-|-- tools/                # Documentation conversion utility
-`-- README.md             # Project overview and documentation entry point
+|-- Docs/
+|   |-- Architecture/       # SDD, diagrams, API contract, fallback, decision drafts
+|   |-- Developers Guide/   # Role-specific execution guides and deliverables
+|   |-- Planning/           # Roadmap, backlog, workflow and branch strategy
+|   |   `-- History/        # Historical backlog additions
+|   |-- Product/            # Product vision and SRS
+|   |-- Quality/            # Test plan and demo strategy
+|   `-- Work Logs/          # Member work logs
+|-- tools/                  # Documentation conversion utility
+`-- README.md               # Project overview and documentation index
 ```

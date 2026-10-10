@@ -1,4 +1,4 @@
-# Andhrimnir Team Execution Guide Jegatheesan
+# Andhrímnir Team Execution Guide Jegatheesan
 
 ## Andhrímnir – Team Execution Guide
 Jegatheesan (Full-Stack Developer – Backend, Database & Dashboard)

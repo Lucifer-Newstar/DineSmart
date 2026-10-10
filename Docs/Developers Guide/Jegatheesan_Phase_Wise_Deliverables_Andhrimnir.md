@@ -1,4 +1,4 @@
-# Jegatheesan Phase Wise Deliverables Andhrimnir
+# Jegatheesan Phase Wise Deliverables Andhrímnir
 
 ## Jegatheesan – Phase-wise Deliverables
 Andhrímnir – AI Incident Intelligence Platform for Restaurants

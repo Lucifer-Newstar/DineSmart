@@ -1,8 +1,8 @@
-# Andhrimnir Updated API Specification
+# Andhrímnir API Specification
 
-## Andhrímnir – API Specification (Updated)
+## Canonical API Endpoint Inventory
 
-The following APIs include the newly added authentication, reservation, billing, staff, waitlist, table management, and notification endpoints.
+This is the canonical endpoint inventory for the MVP. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, versioning, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions Draft](Andhrimnir_Implementation_Decisions_Draft.md).
 
 | Method | Endpoint | Description | Owner |
 | --- | --- | --- | --- |

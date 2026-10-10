@@ -28,6 +28,10 @@ feature/S1-02-branch-strategy
 3. Run the relevant checks and update related documentation before requesting review.
 4. Integrate task branches through a pull request rather than committing feature work directly to `main`.
 
+## Dependent task branches
+
+When a task explicitly depends on an unmerged task branch, it may be stacked on that branch with approval. Keep each task in its own branch and integrate branches in dependency order (prerequisite first). Record the dependency in the task work log.
+
 ## Repository settings not specified
 
 The project documents do not define branch-protection rules, required CI checks, reviewer counts, merge method, or branch-deletion policy. This strategy does not assume or configure those settings; decide them before enabling them on GitHub.
