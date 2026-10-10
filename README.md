@@ -40,6 +40,10 @@ npm run dev
 
 Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows or call a backend. See the [frontend guide](frontend/README.md) for the lint, format, typecheck, and build commands.
 
+## Continuous integration
+
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from the lockfile, audits dependencies, checks Biome and TypeScript, and builds the frontend. The test step runs when a test script is configured; backend checks activate once the backend package exists. This adds CI only—deployment/CD is not configured.
+
 ## Documentation
 
 ### Product and requirements
@@ -80,7 +84,7 @@ Open `http://localhost:3000`. The `/` route is a neutral application shell only;
 
 ## Development status
 
-The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation has been implemented and locally validated on `feature/S1-03-nextjs-setup`; its current status is **Ready to Push**. No remote push has been made. The shell is not a product workflow: the Express backend, integrations, automated feature tests, and deployment configuration remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
+The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation is locally validated on `feature/S1-03-nextjs-setup` and **Ready to Push**. Initial frontend CI is added on `feature/S1-07-ci-cd`; S1-07 remains **In Progress** pending backend/test coverage and deployment decisions. No remote push has been made. The shell is not a product workflow: the Express backend, integrations, and automated feature tests remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
 
 ## Repository structure
 
@@ -88,6 +92,8 @@ The MVP scope, architecture, API endpoint inventory, delivery plan, and test cri
 .
 |-- .gitignore
 |-- .nvmrc
+|-- .github/
+|   `-- workflows/          # pull-request CI
 |-- Docs/
 |   |-- Architecture/       # SDD, diagrams, API contract, fallback, decisions
 |   |-- Developers Guide/   # Role-specific execution guides and deliverables

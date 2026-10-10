@@ -170,6 +170,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 ## 11. CI, testing, performance, and deployment — approved baseline
 
 - Use Biome `2.5.15` for linting/formatting and run typecheck, unit/integration tests, and production builds for both apps in pull-request CI. Do not deploy from pull requests.
+- The initial CI workflow runs frontend install/audit/Biome/typecheck/build checks; it runs tests if a test script is configured and activates backend checks once `backend/package.json` exists. There is not yet a frontend test script, backend package, or deployment job; extend CI as those are introduced.
 - Biome replaces the generated Next ESLint configuration: its dependency tree contained five high-severity development-only audit findings with no compatible automatic fix; `npm audit --omit=dev` reported zero production dependency findings. Do not force-downgrade `eslint-config-next` to an incompatible Next 14 version.
 - Interpret existing performance targets as p95: dashboard under 2 seconds, REST API under 500 ms, incident detection under 5 seconds, and AI response under 10 seconds. Test workload/concurrency and dataset size are still pending.
 - Keep Vercel (frontend), Render (backend), and MongoDB Atlas as the planned deployment platforms. Do not deploy without owner-provided accounts, domains, and secrets.

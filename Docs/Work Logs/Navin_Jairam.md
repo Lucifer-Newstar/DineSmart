@@ -37,3 +37,10 @@
 - This closes S3-11's pending setup/run instructions, so S3-11 is now **Ready to Push**. Marked S1-03 **Ready to Push** after its implementation and work log were committed and local checks passed. Other product workflows remain pending.
 - **Validation:** local documentation links resolve and `git diff --check` passes.
 - **Delivery:** documentation/status update committed locally; no remote push was made.
+
+### S1-07 — Initial pull-request CI
+
+- **Branch:** `feature/S1-07-ci-cd`, stacked on `feature/S1-03-nextjs-setup` because the frontend and Node pin are required inputs; integrate S1-03 first.
+- Added GitHub Actions checks for the frontend on pull requests, pushes to `main`, and manual runs: clean install, dependency audit, Biome, optional test script, TypeScript typecheck, and production build. Backend checks activate when the backend package is added.
+- No deploy job or secrets were added. The CI/CD backlog item remains **In Progress** because backend/test coverage and deployment are not implemented.
+- **Delivery:** local task branch only; no remote push was made.
