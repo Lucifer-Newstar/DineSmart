@@ -2,7 +2,7 @@
 
 A responsive restaurant workspace built with the Next.js App Router. The `/` route is an interactive, sample-data operations preview with overview, orders, kitchen, reservations, inventory, incidents, AI insights, analytics, and settings views. Customer sessions are routed to a guest home; `/menu` includes category/search filters and a local preview cart, and `/book` contains a reservation-request preview.
 
-Login, registration, OTP verification, refresh, and logout call the versioned backend auth routes. Access tokens stay in React memory; the refresh token is handled as an HttpOnly cookie. The operations dashboard, menu checkout, and table-booking form are explicitly preview-only until the corresponding live operations APIs and persistence are implemented. Do not treat sample metrics or local button actions as restaurant records.
+Login, registration, OTP verification, refresh, and logout call the versioned backend auth routes. Access tokens stay in React memory; the refresh token is handled as an HttpOnly cookie. Most dashboard metrics, order/reservation/inventory lists and local controls, menu checkout, and table-booking remain preview-only; do not treat sample metrics or local button actions as restaurant records. When signed in, Overview requests `GET /api/v1/healthscore` for Reception, Manager, and Administrator and shows the live component breakdown, loading/unavailable states, and a retry action. Kitchen Staff do not receive the restaurant-wide score. Other operational records still lack live persistence.
 
 ## Requirements
 
