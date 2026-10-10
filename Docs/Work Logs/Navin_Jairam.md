@@ -110,3 +110,12 @@
 - Documented the local-only seed target guard, deterministic fixture scope, demo accounts/password override, and repeatable upsert behavior. Updated the database schema reference, backend/root READMEs, test plan, implementation decisions, and backlog; added Jegatheesan's implementation results to his work log.
 - **Validation:** documentation/status consistency reviewed; `git diff --check` passes. The seed implementation is commit `548f3aa`; lint, 27 tests, typecheck, build, and audit passed. Live MongoDB seed/re-run verification is unavailable without Docker/`mongod`.
 - **Status:** In Progress pending live local MongoDB verification. No remote push or merge was made.
+
+### S3-01 / S3-02 / S3-04 / S3-13 — AI recommendation flow
+
+- **Branch:** `feature/ai`, created as an area branch on top of local `feature/backend`; no task-specific branch was created.
+- Integrated Google's official `@google/genai` SDK `2.28.0` with the configurable, assistant-recommended `gemini-3.5-flash-lite` default. Added constrained JSON prompts/validation, tenant-filtered bounded incident context, strict priority/action/confidence validation, PII/identifier minimization, and deterministic incident-specific fallbacks for missing key, timeout/quota, and invalid provider output.
+- Added Manager/Administrator-only `POST /api/v1/incidents/{incidentId}/recommendations`, tenant-scoped `GET /api/v1/recommendations`, per-IP generation rate limiting, and an upsert/unique index to keep one current advisory recommendation per incident. AI never mutates operational records.
+- Documented the current model/SDK selection as an assistant recommendation (not a separate owner approval), alongside the open live-key verification requirement.
+- **Implementation commit:** `ad4b0ed` (Navin). **Validation on Node `24.21.0`:** Biome, 31 backend tests, typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Provider/context tests use fakes and no real Gemini request was made.
+- **Status:** S3-01/02/04/13 remain **In Progress** pending a real Gemini API key/model check and live MongoDB persistence/index verification. No push or merge was made.

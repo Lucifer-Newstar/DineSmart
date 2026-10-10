@@ -47,6 +47,14 @@ Set `JWT_SECRET` in `backend/.env` to at least 32 bytes of cryptographically ran
 
 Registration assigns the Customer role and a null restaurant scope on the server. New passwords must be at least 12 characters (maximum 1024 UTF-8 bytes). The OTP is stored only as a purpose-separated HMAC on the pending user document; successful verification removes challenge state. MongoDB is required for auth/session persistence; without it, auth routes fail closed while `/health` remains process-liveness-only.
 
+## AI recommendations (S3-01/02/04/13)
+
+- `POST /api/v1/incidents/{incidentId}/recommendations` — Manager/Administrator only; build a tenant-filtered incident context, request a structured Gemini recommendation when configured, and persist one current recommendation for the incident.
+- `GET /api/v1/recommendations?incidentId={id}` — retrieve current tenant-scoped recommendations (the filter is optional).
+- The backend defaults to `GEMINI_MODEL=gemini-3.5-flash-lite`; the model ID is configurable. Set `GEMINI_API_KEY` only in backend `.env` or a deployment secret. It is never sent to the browser.
+- With no API key, or on timeout/quota/invalid output, the backend persists a deterministic `source=fallback` recommendation. All recommendations are advisory; no operational record is changed automatically.
+- Context construction omits customer names/contact details and direct customer/database identifiers. Live Gemini and MongoDB integration still need credentials/service availability for end-to-end verification.
+
 ## Quality commands
 
 Run these from `backend/`:

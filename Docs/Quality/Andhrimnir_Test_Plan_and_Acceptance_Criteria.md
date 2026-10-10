@@ -123,3 +123,10 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 
 - Unit tests validate stable fixture IDs, required sample roles/workflows, restaurant-scoped operational records, seeded local demo recommendation labels, and rejection of production or remote database targets.
 - The seed command upserts known fixture IDs into the canonical collection names after the index bootstrap. A live local MongoDB run and repeat-seed check remain pending because Docker/`mongod` are unavailable.
+
+## 14. S3 AI Recommendation Verification
+
+- Unit tests verify tenant-scoped incident lookup, whitelisted/bounded operational context, removal of customer IDs/email/phone-like values, and omission of direct customer identity from the prompt.
+- Prompt/provider tests validate the structured JSON schema, locally validate output fields/ranges, require priority to match incident severity, and reject malformed/escalated output.
+- Failure-path tests verify deterministic incident-specific recommendations when the API key is absent or provider errors/timeouts/invalid output occur. Fallback responses are persisted with `source=fallback` and remain advisory.
+- HTTP tests verify Manager-only generation, tenant-scoped retrieval, and no direct browser-to-Gemini integration. The production SDK call is not live-tested because no Gemini API key is configured; MongoDB persistence/index and live route verification remain pending.
