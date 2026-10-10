@@ -7,6 +7,7 @@ import {
   type AuthService,
   type AuthSession,
 } from "./auth.service.js";
+import type { EmailOtpService } from "./email-otp.service.js";
 
 export const REFRESH_COOKIE_NAME = "andhrimnir_refresh";
 const AUTH_COOKIE_PATH = "/api/v1/auth";
@@ -14,6 +15,7 @@ const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1_000;
 
 export interface AuthRouterOptions {
   createService: () => Promise<AuthService>;
+  createEmailOtpService?: () => Promise<EmailOtpService>;
   googleSession?: (idToken: string) => Promise<AuthSession>;
   webOrigin: string;
   nodeEnvironment: string;
@@ -102,6 +104,24 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       error: { code: "rate_limited", message: "Too many login attempts. Try again later." },
     },
   });
+  const registrationRateLimit = rateLimit({
+    windowMs: LOGIN_RATE_WINDOW_MS,
+    limit: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: { code: "rate_limited", message: "Too many registration attempts. Try again later." },
+    },
+  });
+  const otpVerifyRateLimit = rateLimit({
+    windowMs: LOGIN_RATE_WINDOW_MS,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: { code: "rate_limited", message: "Too many verification attempts. Try again later." },
+    },
+  });
   const refreshRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
     limit: 30,
@@ -110,6 +130,81 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
     message: {
       error: { code: "rate_limited", message: "Too many refresh attempts. Try again later." },
     },
+  });
+
+  router.post("/register", registrationRateLimit, async (request: Request, response: Response) => {
+    const body: unknown = request.body;
+    if (
+      !isRecord(body) ||
+      typeof body.name !== "string" ||
+      typeof body.email !== "string" ||
+      typeof body.password !== "string"
+    ) {
+      response.status(400).json({
+        error: { code: "invalid_request", message: "A name, email, and password are required." },
+      });
+      return;
+    }
+
+    try {
+      if (!options.createEmailOtpService) throw new AuthConfigurationError();
+      const result = await (await options.createEmailOtpService()).register(
+        body.name,
+        body.email,
+        body.password,
+      );
+      response.status(202).json(result);
+    } catch (error) {
+      handleAuthError(error, response);
+    }
+  });
+
+  router.post(
+    "/otp/request",
+    registrationRateLimit,
+    async (request: Request, response: Response) => {
+      const body: unknown = request.body;
+      if (!isRecord(body) || typeof body.email !== "string") {
+        response.status(400).json({
+          error: { code: "invalid_request", message: "A valid email address is required." },
+        });
+        return;
+      }
+
+      try {
+        if (!options.createEmailOtpService) throw new AuthConfigurationError();
+        const result = await (await options.createEmailOtpService()).requestRegistrationOtp(
+          body.email,
+        );
+        response.status(202).json(result);
+      } catch (error) {
+        handleAuthError(error, response);
+      }
+    },
+  );
+
+  router.post("/otp/verify", otpVerifyRateLimit, async (request: Request, response: Response) => {
+    const body: unknown = request.body;
+    if (!isRecord(body) || typeof body.email !== "string" || typeof body.code !== "string") {
+      response.status(400).json({
+        error: {
+          code: "invalid_request",
+          message: "A valid email and six-digit code are required.",
+        },
+      });
+      return;
+    }
+
+    try {
+      if (!options.createEmailOtpService) throw new AuthConfigurationError();
+      const session = await (await options.createEmailOtpService()).verifyRegistrationOtp(
+        body.email,
+        body.code,
+      );
+      sendSession(response, session, options.nodeEnvironment);
+    } catch (error) {
+      handleAuthError(error, response);
+    }
   });
 
   router.post("/login", loginRateLimit, async (request: Request, response: Response) => {

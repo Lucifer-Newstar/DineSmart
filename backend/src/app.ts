@@ -4,7 +4,9 @@ import type { Db } from "mongodb";
 import { MongoAuthRepository } from "./auth/auth.repository.js";
 import { createAuthRouter } from "./auth/auth.router.js";
 import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
+import { EmailOtpService } from "./auth/email-otp.service.js";
 import { GoogleIdTokenVerifier, GoogleOAuthService } from "./auth/google-oauth.service.js";
+import { MongoRegistrationOtpRepository } from "./auth/registration.repository.js";
 import { connectToDatabase } from "./database.js";
 
 export interface AppOptions {
@@ -43,7 +45,7 @@ export function createApp(options: AppOptions = {}) {
 
     const db = await (options.getDatabase?.() ?? connectToDatabase());
     const repository = new MongoAuthRepository(db);
-    return { repository, service: new AuthService(repository, secret) };
+    return { db, repository, secret, service: new AuthService(repository, secret) };
   }
 
   app.disable("x-powered-by");
@@ -70,6 +72,18 @@ export function createApp(options: AppOptions = {}) {
       webOrigin,
       nodeEnvironment,
       createService: async () => (await createAuthRuntime()).service,
+      createEmailOtpService: async () => {
+        const { db, secret, service } = await createAuthRuntime();
+        const emailProvider =
+          process.env.EMAIL_PROVIDER ?? (nodeEnvironment === "production" ? "" : "mock");
+        return new EmailOtpService(
+          new MongoRegistrationOtpRepository(db),
+          service,
+          secret,
+          emailProvider,
+          nodeEnvironment,
+        );
+      },
       googleSession: async (idToken) => {
         if (!googleClientId || !googleVerifier) {
           throw new AuthConfigurationError(

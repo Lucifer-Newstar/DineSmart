@@ -50,6 +50,10 @@ interface UserBaseDocument extends TimestampedDocument {
   authProvider?: "email" | "google";
   googleSubject?: string;
   passwordHash?: string;
+  emailOtpCodeHash?: string;
+  emailOtpExpiresAt?: Date;
+  emailOtpResendAt?: Date;
+  emailOtpAttempts?: number;
 }
 
 export interface CustomerUserDocument extends UserBaseDocument {
