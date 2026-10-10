@@ -20,6 +20,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | Restaurant Dashboard | Orders, Inventory, Analytics, Health Score | High |
 | Incident Detection | Delays, Congestion, Shortages | High |
 | AI Engine | Recommendations & summaries | High |
+| Database fallback | Cached reads and read-only/degraded mode | High |
 | Notifications | Customer & manager alerts | Medium |
 | Deployment | Frontend, Backend, Database | High |
 
@@ -28,7 +29,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - Unit Testing: Individual services, utilities and APIs.
 - Integration Testing: Frontend, backend, MongoDB and Gemini integration.
 - System Testing: Complete end-to-end workflows.
-- Performance Testing: Dashboard <2s, API <500ms, Incident detection <5s, AI response <10s.
+- Performance Testing (p95): Dashboard <2s, API <500ms, incident detection <5s, AI response <10s; workload/concurrency and dataset size remain to be specified.
 - Security Testing: Authentication, authorization, JWT, input validation.
 - User Acceptance Testing: Validate business workflows against acceptance criteria.
 ## 4. Functional Test Cases
@@ -47,13 +48,14 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-10 | Health Score | Operational changes | Score recalculated | Medium |
 | TC-11 | Notifications | Critical incident | Manager notified | Medium |
 | TC-12 | Analytics | View reports | Charts load correctly | Medium |
+| TC-13 | Database fallback | Disable database after cache is warmed | Menu/dashboard show stale-data banner; writes fail clearly and are not queued | High |
 
 ## 5. Non-Functional Testing
 
-- Dashboard loads in under 2 seconds.
-- REST API average latency below 500 ms.
-- Incident detection completed within 5 seconds.
-- AI recommendations returned within 10 seconds.
+- Dashboard p95 load time is under 2 seconds.
+- REST API p95 latency is below 500 ms.
+- Incident detection p95 completion time is under 5 seconds.
+- AI recommendation p95 response time is under 10 seconds.
 - Responsive UI on desktop and mobile.
 - Graceful handling of AI/API failures.
 ## 6. Acceptance Criteria
@@ -72,6 +74,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | AC-10 | Application is deployed publicly with working frontend and backend. |
 | AC-11 | All critical defects resolved before submission. |
 | AC-12 | README, documentation and presentation are complete. |
+| AC-13 | Database failure produces cached read-only behavior; writes are not accepted or queued, and normal operation resumes after recovery. |
 
 ## 7. Exit Criteria
 

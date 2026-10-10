@@ -36,7 +36,10 @@ FR-1 User Authentication
 - Password reset
 - Secure logout
 - JWT authentication
-- Role-Based Access Control (Customer, Reception, Kitchen Staff, Manager, Administrator)
+- Role-Based Access Control with the canonical MVP roles: Customer, Reception, Kitchen Staff, Manager, and Administrator
+- Administrator access is restaurant-scoped; Restaurant Owner maps to Manager for MVP. Waiter and Inventory Manager are not separate MVP roles.
+- OTP policy: six digits, 10-minute expiry, 60-second resend cooldown, maximum five verification attempts.
+- Password hashes use Argon2id. Use a 15-minute access JWT and rotating seven-day refresh session; keep the access token in memory and the refresh token in an HttpOnly/Secure cookie. Logout revokes the refresh session.
 
 FR-2 Customer Portal
 
@@ -74,6 +77,7 @@ FR-5 Order Management
 - Kitchen routing
 - Generate bills
 - Order lifecycle: Created → Accepted → Preparing → Ready → Served → Completed
+- Generate and retrieve bills; payment capture/provider integration is not part of the MVP.
 
 FR-6 Kitchen Management
 
@@ -249,4 +253,4 @@ Deferred
 | Must Have | Authentication, Digital Menu, Orders, Reservations, Inventory, Dashboard, Incident Detection, AI Recommendations, Health Score |
 | Should Have | Analytics, Notifications, Staff Management, Table Management |
 | Could Have | Demand Forecasting, ETA Prediction, Personalized Recommendations |
-| Won't Have (MVP) | Multi-branch Support, POS Integrations, IoT Devices, Advanced Predictive ML |
+| Won't Have (MVP) | Multi-branch Support, POS Integrations, IoT Devices, Advanced Predictive ML, Payment Processing, Durable Offline Write Queues/Emergency Offline Mode |

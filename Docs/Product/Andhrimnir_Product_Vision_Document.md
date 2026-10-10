@@ -115,6 +115,8 @@ Deferred:
 - External POS integrations
 - IoT integrations
 - Enterprise analytics
+- Payment processing
+- Durable offline write queues and emergency offline mode
 
 ## Success Metrics
 
@@ -130,7 +132,7 @@ Deferred:
 Frontend: Next.js, React, Tailwind CSS
 Backend: Node.js, Express.js
 Database: MongoDB Atlas
-Authentication: Email/OTP, Google OAuth
+Authentication: Email/OTP registration, Email/Password login, Google OAuth, JWT and RBAC
 AI: Gemini API
 Deployment: Vercel + Render
 Version Control: GitHub

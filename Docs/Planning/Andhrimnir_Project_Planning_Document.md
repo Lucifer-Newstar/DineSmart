@@ -12,7 +12,7 @@ Deliver a cloud-based AI-powered restaurant operations intelligence platform wit
 ## 2. Project Scope (MVP)
 
 Included:
-- Authentication (Email/OTP, Google OAuth, RBAC)
+- Authentication (Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC)
 - Customer Portal (Menu, Reservations, Orders)
 - Restaurant Dashboard
 - Inventory Monitoring
@@ -27,6 +27,8 @@ Deferred:
 - IoT devices
 - Multi-branch support
 - Predictive ML
+- Payment processing
+- Durable offline write queues and emergency offline mode
 
 ## 3. Milestones
 

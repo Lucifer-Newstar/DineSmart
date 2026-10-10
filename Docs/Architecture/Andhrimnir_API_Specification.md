@@ -2,7 +2,7 @@
 
 ## Canonical API Endpoint Inventory
 
-This is the canonical endpoint inventory for the MVP. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, versioning, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions Draft](Andhrimnir_Implementation_Decisions_Draft.md).
+This is the canonical endpoint inventory for the MVP. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, versioning, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions](Andhrimnir_Implementation_Decisions.md).
 
 | Method | Endpoint | Description | Owner |
 | --- | --- | --- | --- |

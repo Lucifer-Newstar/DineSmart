@@ -50,8 +50,7 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 - Order Items
 - Kitchen Queue
 - Inventory
-- Suppliers
-- Staff Schedule
+- Staff (basic role/account records; no shift schedule in MVP)
 - Notifications
 - Incidents
 - Incident Context
@@ -145,4 +144,6 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 | Analytics | Revenue, Orders, Wait Time, Peak Hours, Trends |
 | Health Score | Kitchen, Inventory, Orders, Reservations, Incidents |
 
-The SRS role list above is canonical for the MVP. Owner, Waiter, and Inventory Manager remain user/persona or responsibility labels—not additional MVP roles—until the permission matrix in the implementation-decisions draft is approved.
+The SRS role list above is canonical for the MVP. Owner maps to Manager; Waiter and Inventory Manager are responsibilities, not additional MVP roles. The approved permission matrix is in the [Implementation Decisions](../Architecture/Andhrimnir_Implementation_Decisions.md).
+
+Demo billing generates/views bills only; it does not capture payments. Database-degraded behavior is cached reads and read-only mode; the MVP does not queue writes for offline replay.

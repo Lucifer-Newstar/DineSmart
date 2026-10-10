@@ -39,8 +39,8 @@ Goal: Establish backend foundation and project setup.
 
 | Task ID | Task | Owner | Priority | Story Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| S1-01 | Create GitHub Repository | Navin | High | 1 | To Do |
-| S1-02 | Branch Strategy | Navin | High | 1 | Complete |
+| S1-01 | Create GitHub Repository | Navin | High | 1 | Complete |
+| S1-02 | Branch Strategy | Navin | High | 1 | Ready to Push |
 | S1-03 | Setup Next.js | Dhanush | High | 2 | To Do |
 | S1-04 | Setup Express Backend | Jegatheesan | High | 2 | To Do |
 | S1-05 | Configure MongoDB Atlas | Jegatheesan | High | 2 | To Do |
@@ -94,9 +94,20 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-08 | Frontend Deployment | Gokul | High | 2 | To Do |
 | S3-09 | Backend Deployment | Gokul | High | 2 | To Do |
 | S3-10 | Performance Optimization | Navin | Medium | 2 | To Do |
-| S3-11 | README | Navin | Medium | 2 | To Do |
+| S3-11 | README | Navin | Medium | 2 | In Progress |
 | S3-12 | Presentation & Demo | Entire Team | High | 3 | To Do |
 | S3-13 | AI Fallback Implementation | Navin | Medium | 2 | To Do |
+
+## Status Meanings
+
+| Status | Meaning |
+| --- | --- |
+| To Do | Not started |
+| In Progress | Work started; not yet ready for review/push |
+| Ready to Push | Verified local work is committed; no remote push has been made by this session |
+| In Review | Pull request is open and awaiting review |
+| Complete | Definition of Done is met and the pull request is merged |
+| Blocked | Work cannot proceed until a documented dependency or decision is resolved |
 
 ## Definition of Done
 

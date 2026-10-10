@@ -69,7 +69,7 @@ This Software Design Document defines the technical design of the Andhrímnir pl
 - Bills
 ## 7. API Design
 
-The endpoint inventory is maintained in the canonical [API Specification](Andhrimnir_API_Specification.md). This SDD remains the high-level architecture document; detailed request/response schemas and authorization rules are listed as pending decisions in the [Implementation Decisions Draft](Andhrimnir_Implementation_Decisions_Draft.md).
+The endpoint inventory is maintained in the canonical [API Specification](Andhrimnir_API_Specification.md). This SDD remains the high-level architecture document; detailed request/response schemas and authorization rules are listed as pending decisions in the [Implementation Decisions](Andhrimnir_Implementation_Decisions.md).
 ## 8. Incident Detection Workflow
 
 - Collect operational events.

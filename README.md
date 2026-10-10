@@ -19,8 +19,8 @@ The documented MVP scope includes:
 
 | Layer | Proposed technology |
 | --- | --- |
-| Frontend | Next.js, React, Tailwind CSS |
-| Backend | Node.js, Express.js REST APIs |
+| Frontend | Next.js App Router, React, Tailwind CSS, TypeScript |
+| Backend | Node.js LTS, Express.js REST APIs, TypeScript |
 | Data | MongoDB Atlas |
 | Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC |
 | AI | Gemini API |
@@ -39,7 +39,7 @@ The documented MVP scope includes:
 - [Architecture and design diagrams](Docs/Architecture/Andhrimnir_Complete_Diagrams_Document.md)
 - [Canonical API specification](Docs/Architecture/Andhrimnir_API_Specification.md)
 - [Database fallback strategy](Docs/Architecture/Andhrimnir_Database_Fallback_Strategy.md)
-- [Implementation decisions draft — requires review](Docs/Architecture/Andhrimnir_Implementation_Decisions_Draft.md)
+- [Implementation decisions and open items](Docs/Architecture/Andhrimnir_Implementation_Decisions.md)
 
 ### Planning and delivery
 
@@ -65,7 +65,7 @@ The documented MVP scope includes:
 
 ## Development status
 
-The project has a documented MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria. The **S1-02 branch strategy** is documented. Frontend/backend implementation, environment setup, automated tests, and deployment configuration remain pending; track task status in the canonical sprint backlog. The implementation-decisions draft identifies specifications that still require review before coding.
+The project has a documented MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria. The **S1-02 branch strategy** is documented. Frontend/backend implementation, environment setup, automated tests, and deployment configuration remain pending; track task status in the canonical sprint backlog. The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
 
 ## Repository structure
 

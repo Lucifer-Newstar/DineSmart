@@ -71,7 +71,7 @@ Visit Website: 5: Customer
 Browse Menu: 5: Customer
 Reserve Table: 4: Customer
 Place Order: 5: Customer
-Pay Bill: 5: Customer
+View Bill: 5: Customer
 section Reception
 Receive Reservation: 5: Reception
 Assign Table: 5: Reception
@@ -206,9 +206,9 @@ M --> N[Update Order Status]
 
 N --> O[Customer Receives Notification]
 
-O --> PAY[Payment & Billing]
+O --> BILL[Generate/View Bill]
 
-PAY --> U
+BILL --> U
 
 %% Reception Flow
 
