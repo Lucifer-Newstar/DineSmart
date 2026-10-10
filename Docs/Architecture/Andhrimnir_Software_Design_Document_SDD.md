@@ -57,6 +57,7 @@ This Software Design Document defines the technical design of the Andhrímnir pl
 - Users
 - Restaurants
 - Customers
+- Staff
 - MenuItems
 - Orders
 - OrderItems
@@ -67,9 +68,12 @@ This Software Design Document defines the technical design of the Andhrímnir pl
 - Recommendations
 - Notifications
 - Bills
+
+The initial native-driver fields, relationships, tenancy rules, and indexes are documented in the [S1-08 Database Schema](Andhrimnir_Database_Schema.md). Exact runtime validation and workflow constraints remain pending.
+
 ## 7. API Design
 
-The endpoint inventory is maintained in the canonical [API Specification](Andhrimnir_API_Specification.md). This SDD remains the high-level architecture document; detailed request/response schemas and authorization rules are listed as pending decisions in the [Implementation Decisions](Andhrimnir_Implementation_Decisions.md).
+The endpoint inventory is maintained in the canonical [API Specification](Andhrimnir_API_Specification.md). This SDD remains the high-level architecture document; detailed request/response schemas, authorization rules, and workflow validation decisions are listed as pending in the [Implementation Decisions](Andhrimnir_Implementation_Decisions.md).
 ## 8. Incident Detection Workflow
 
 - Collect operational events.

@@ -46,7 +46,7 @@ Goal: Establish backend foundation and project setup.
 | S1-05 | Configure MongoDB Atlas | Jegatheesan | High | 2 | In Progress |
 | S1-06 | Environment Variables | Gokul | High | 1 | Ready to Push |
 | S1-07 | CI/CD Pipeline | Navin & Gokul | Medium | 2 | In Progress |
-| S1-08 | Database Schema | Jegatheesan | High | 3 | To Do |
+| S1-08 | Database Schema | Jegatheesan | High | 3 | In Progress |
 | S1-09 | JWT Authentication | Dhanush | High | 3 | To Do |
 | S1-10 | Google OAuth | Dhanush | Medium | 2 | To Do |
 | S1-11 | Email OTP | Dhanush | Medium | 2 | To Do |

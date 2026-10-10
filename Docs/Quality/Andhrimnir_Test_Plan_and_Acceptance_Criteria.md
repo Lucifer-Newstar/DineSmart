@@ -20,6 +20,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | Restaurant Dashboard | Orders, Inventory, Analytics, Health Score | High |
 | Incident Detection | Delays, Congestion, Shortages | High |
 | AI Engine | Recommendations & summaries | High |
+| Database schema | Typed collections, restaurant tenancy, index bootstrap and constraints | High |
 | Database fallback | Cached reads and read-only/degraded mode | High |
 | Notifications | Customer & manager alerts | Medium |
 | Deployment | Frontend, Backend, Database | High |
@@ -83,3 +84,10 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - Core user stories demonstrated successfully.
 - Application deployed and accessible.
 - Documentation finalized.
+
+## 8. S1-08 Database Schema Verification
+
+- Backend unit tests verify that every collection has named indexes, operational collections have an index beginning with `restaurantId`, selected identity/domain constraints are unique, email lookup normalization is applied, and startup requests the full index plan.
+- These tests validate the declared plan using a fake MongoDB `Db`; they do not prove MongoDB accepted or built the indexes.
+- Before moving S1-08 to **Ready to Push**, run the configured local MongoDB Compose service and verify startup index creation against a live instance. Docker/`mongod` are not available in the current workspace, so that check remains outstanding.
+- Workflow-level validation (for example, cross-restaurant access, reference ownership, amount/quantity ranges, and reservation conflicts) must also be exercised by the corresponding service/API tests. TypeScript document interfaces alone do not enforce persisted data.

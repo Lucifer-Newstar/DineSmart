@@ -1,6 +1,6 @@
 # Andhrímnir Implementation Decisions
 
-**Status:** Approved baseline with explicit open decisions. The owner approved the recommendations below on 2026-10-10. Items under **Pending decisions** are not requirements yet and must not be implemented by assumption.
+**Status:** Approved project baseline with explicit open decisions. Scope choices marked approved reflect the owner's decisions; where directed, assistant-selected technical recommendations are identified as recommendations rather than attributed to a separate owner selection. Items under **Pending decisions** are not requirements yet and must not be implemented by assumption.
 
 This document refines the Product Vision, SRS, SDD, canonical API inventory, backlog, test plan, demo plan, and database-fallback strategy. It is the reference for decisions that are more detailed than the high-level architecture documents.
 
@@ -49,16 +49,16 @@ The test plan now reflects the SRS: register with Email/OTP, then log in with Em
 ## 4. Data tenancy and API conventions — approved baseline
 
 - Operational records are scoped by `restaurantId`.
-- Store timestamps in UTC using ISO-8601-compatible values; display them in each restaurant's configured timezone.
+- Store timestamps as BSON `Date` values in UTC; serialize them as ISO-8601 over HTTP and display them in each restaurant's configured timezone.
 - Store timezone and currency per restaurant; do not hard-code a global locale.
 - Use the versioned base path `/api/v1`.
 - The canonical endpoint inventory is [Andhrímnir API Specification](Andhrimnir_API_Specification.md).
 
-### Proposed minimum entity fields — pending approval
+### Recommended minimum entity fields — S1-08 baseline
 
-These fields are a proposal, not an approved schema. Confirm the exact fields, references, indexes, and validation before implementing each model.
+On the owner's instruction to choose the best recommendation, this field list is the initial S1-08 implementation baseline (2026-10-10). It is an assistant recommendation, not a claim that the owner separately approved each technical detail. More exact field validation, optionality, and API payload rules remain open until the affected workflows are specified.
 
-| Entity | Proposed fields to review |
+| Entity | Recommended minimum fields |
 | --- | --- |
 | User | `name`, `email`, `role`, `restaurantId` (nullable for customers), `status`, auth-provider reference, timestamps |
 | Restaurant | `name`, contact/address, timezone, currency, operating hours, configurable thresholds, status |
@@ -75,13 +75,24 @@ These fields are a proposal, not an approved schema. Confirm the exact fields, r
 | Notification | recipient, restaurant, type, title/body, related entity, read/delivery timestamps |
 | Bill | order reference, line-item snapshots, subtotal, tax/adjustments, total, status; no payment capture fields |
 
+### S1-08 schema conventions — recommendations applied
+
+- Use MongoDB `ObjectId` for document identifiers and references; use BSON `Date` for stored timestamps.
+- Persist money as integer minor units (for example, cents/paise) alongside an explicit ISO currency code; snapshot menu names and unit prices on order items and bills.
+- Keep a global `customers` identity/profile separate from restaurant-scoped orders and reservations. Customer users may have `restaurantId: null`; staff/administrative users are restaurant-scoped. The owner explicitly approved this cross-restaurant customer identity scope on 2026-10-10.
+- Store both the entered email and its trimmed, lowercase `normalizedEmail`; enforce a global unique index on the normalized value. Do not remove plus tags or provider-specific dots.
+- Give operational collections compound indexes led by `restaurantId`. Use named, idempotent index creation at backend startup. Reservation overlap remains an application-level check; indexes alone do not enforce time-range conflicts.
+- Do not add TTL deletion or incident-deduplication constraints before retention and incident-lifecycle rules are specified. S1-08 adds indexes, not MongoDB JSON Schema validators; exact validation remains pending.
+
+See the [S1-08 Database Schema](Andhrimnir_Database_Schema.md) for collections, fields, relationships, and index definitions.
+
 ### Pending API contract and schema decisions
 
 - Success/error response envelope, pagination/filter conventions, and validation/error codes.
 - Missing endpoint operations (OTP request/verify, reservation cancellation/table assignment, order detail/cancel, inventory creation, table listing, staff creation/deactivation, notification read state).
-- Indexes, exact validation rules, restaurant onboarding, and whether customer accounts may exist without a restaurant association.
+- Exact runtime/document validation rules, optionality for unresolved workflow fields, restaurant onboarding, and remaining workflow constraints.
 
-The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Specification.md). The field list above should be finalized in the canonical SRS/SDD/API documents before the affected APIs are implemented.
+The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Specification.md). The S1-08 field list is a persistence baseline, not a substitute for finalizing the API payloads and domain validation before those workflows are implemented.
 
 ## 5. Restaurant workflow defaults — approved baseline
 
@@ -172,7 +183,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 ## 11. CI, testing, performance, and deployment — approved baseline
 
 - Use Biome `2.5.15` for linting/formatting and run typecheck, unit/integration tests, and production builds for both apps in pull-request CI. Do not deploy from pull requests.
-- The initial CI workflow runs install/audit/Biome/typecheck/build checks for each app package present; it runs tests when a test script is configured. The backend currently has process-liveness and MongoDB-configuration tests; frontend feature tests and deployment are not implemented. Backend CI is gated on `backend/package.json` so the workflow also works before that package is merged.
+- The initial CI workflow runs install/audit/Biome/typecheck/build checks for each app package present; it runs tests when a test script is configured. The backend currently has process-liveness, MongoDB-configuration, and schema/index-plan tests; frontend feature tests and deployment are not implemented. Backend CI is gated on `backend/package.json` so the workflow also works before that package is merged.
 - Biome replaces the generated Next ESLint configuration: its dependency tree contained five high-severity development-only audit findings with no compatible automatic fix; `npm audit --omit=dev` reported zero production dependency findings. Do not force-downgrade `eslint-config-next` to an incompatible Next 14 version.
 - Interpret existing performance targets as p95: dashboard under 2 seconds, REST API under 500 ms, incident detection under 5 seconds, and AI response under 10 seconds. Test workload/concurrency and dataset size are still pending.
 - Keep Vercel (frontend), Render (backend), and MongoDB Atlas as the planned deployment platforms. Do not deploy without owner-provided accounts, domains, and secrets.
@@ -189,11 +200,11 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 
-- Final API response/error/pagination contract and MongoDB collection schemas, indexes, and exact validation rules.
+- Final API response/error/pagination contract and exact runtime/document validation rules for each workflow; S1-08 establishes only the initial native-driver types and index baseline.
 - Remaining order and reservation transition permissions and opening-hour rules.
 - Incident deduplication/status lifecycle and queue-wait estimate formula.
 - Health-score component normalization and analytics/reporting definitions.

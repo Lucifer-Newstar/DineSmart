@@ -65,3 +65,11 @@
 - Recorded S1-06 as **Ready to Push** after confirming `.env.example` remains trackable while real environment files are ignored. Placeholders do not configure OAuth, email, Gemini, or Atlas credentials.
 - **Validation:** local Markdown links and ignore patterns verified; no secrets were committed.
 - **Delivery:** documentation/status update is local only; no remote push was made.
+
+### S1-08 — Schema documentation and status integration
+
+- Updated the implementation decisions from a pending schema proposal to an initial recommended baseline, clearly separating the user's customer-tenancy approval from technical recommendations chosen on the user's instruction.
+- Added the architecture schema reference with collection fields, relationships, tenant-scoped index plan, bootstrap/validation boundaries, and pending runtime rules. Updated the SDD, test plan, backend/root READMEs, assigned developer guide, backlog, and status summary.
+- Kept S1-08 **In Progress** because no live MongoDB instance is available to verify the index bootstrap. No credentials or remote pushes were added.
+- **Validation:** reviewed Markdown links and status alignment; `git diff --check` passes. Code-level tests/build results are recorded in Jegatheesan's work log.
+- **Delivery:** architecture and shared-document changes remain local; no remote push was made.

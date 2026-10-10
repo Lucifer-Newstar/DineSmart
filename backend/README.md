@@ -1,6 +1,6 @@
 # Andhrímnir Backend
 
-This package is the initial Express API foundation. It currently provides a process-liveness endpoint and native MongoDB connection setup; product routes, schemas, authentication, and restaurant workflows are not implemented yet.
+This package provides the Express API foundation, a process-liveness endpoint, native MongoDB connection setup, and the initial typed collection/index baseline in `src/database/schema.ts`. Product routes, authentication workflows, strict document validation, and restaurant operations remain pending.
 
 ## Requirements
 

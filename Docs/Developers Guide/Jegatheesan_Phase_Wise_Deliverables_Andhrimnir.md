@@ -16,7 +16,7 @@ Primary Responsibilities: Backend development, database design, REST APIs, reser
 
 - Setup Express.js backend project.
 - Configure native MongoDB driver access with local MongoDB for development; connect to Atlas after the cluster and URI are supplied.
-- Finalize database schemas and collections only after the pending field/index decisions are approved.
+- Implement the S1-08 database baseline documented in `Docs/Architecture/Andhrimnir_Database_Schema.md`; refine workflow validation and API payload shapes with their owning feature tasks.
 - Implement project folder structure, middleware and configuration.
 - Deliverables: Express backend, local MongoDB connection setup, approved schemas when available, and environment placeholders.
 ## Phase 3 – Core Backend Development
