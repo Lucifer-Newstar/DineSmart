@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
+    "seed": "tsx src/database/seed.cli.ts",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
