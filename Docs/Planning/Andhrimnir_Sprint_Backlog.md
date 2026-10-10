@@ -64,7 +64,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-03 | Reservation Module | Jegatheesan | High | 3 | To Do |
 | S2-04 | Order Placement | Dhanush | High | 5 | To Do |
 | S2-05 | Kitchen Queue | Jegatheesan | High | 3 | To Do |
-| S2-06 | Inventory Module | Jegatheesan | High | 3 | To Do |
+| S2-06 | Inventory Module | Jegatheesan | High | 3 | In Progress |
 | S2-07 | Dashboard UI | Dhanush | High | 5 | To Do |
 | S2-08 | Restaurant Health Score | Navin | High | 3 | In Progress |
 | S2-09 | Analytics Charts | Jegatheesan | Medium | 3 | To Do |

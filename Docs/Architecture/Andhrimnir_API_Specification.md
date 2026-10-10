@@ -2,7 +2,7 @@
 
 ## Canonical API Endpoint Inventory
 
-This is the canonical endpoint inventory for the MVP. Paths below are relative to the approved `/api/v1` base path. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions](Andhrimnir_Implementation_Decisions.md). S1-09 implements login/refresh/logout; S1-10 adds Google ID-token login; S1-11 implements pending registration and OTP verification locally, pending real email-provider and live MongoDB validation. S2-08 adds a locally tested tenant-scoped health-score endpoint; live MongoDB score verification remains outstanding. Password reset remains S2-15.
+This is the canonical endpoint inventory for the MVP. Paths below are relative to the approved `/api/v1` base path. The endpoint table consolidates the initial API design and later additions for authentication, reservations, billing, staff, waitlist, table management, and notifications. Request/response schemas, error envelopes, and detailed authorization rules remain **draft decisions** pending approval; see [Implementation Decisions](Andhrimnir_Implementation_Decisions.md). S1-09 implements login/refresh/logout; S1-10 adds Google ID-token login; S1-11 implements pending registration and OTP verification locally, pending real email-provider and live MongoDB validation. S2-06 adds locally tested, tenant-scoped inventory list/manual-count routes; live MongoDB verification remains outstanding. S2-08 adds a locally tested tenant-scoped health-score endpoint; live MongoDB score verification remains outstanding. Password reset remains S2-15.
 
 | Method | Endpoint | Description | Owner |
 | --- | --- | --- | --- |
@@ -25,8 +25,8 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | PATCH | /orders/{id}/status | Update order status | Jegatheesan |
 | GET | /kitchen/queue | Get kitchen queue | Jegatheesan |
 | PUT | /kitchen/queue/{id} | Update prep status | Jegatheesan |
-| GET | /inventory | Get inventory | Jegatheesan |
-| PUT | /inventory/{id} | Update inventory | Jegatheesan |
+| GET | /inventory | List inventory; Manager/Administrator receive stock detail, Reception/Kitchen Staff receive availability only | Jegatheesan |
+| PUT | /inventory/{id} | Manually set a stock count and optionally its low-stock threshold (Manager/Administrator) | Jegatheesan |
 | GET | /dashboard | Dashboard data | Jegatheesan |
 | GET | /incidents | Get incidents | Navin |
 | GET | /recommendations | Get AI recommendations | Navin |

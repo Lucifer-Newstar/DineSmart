@@ -146,6 +146,10 @@ The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Sp
 
 Exact opening-hour representation, party-size limits, no-show resolution, actor allowed to accept orders, and remaining per-status transition permissions need to be recorded before the corresponding reservation/order APIs are implemented.
 
+### S2-06 inventory endpoint recommendation
+
+The following contract is an assistant recommendation dated 2026-10-10, not a separate owner approval: `GET /api/v1/inventory` uses `inventory:availability:read` and derives tenant scope from the signed principal. Manager/Administrator receive quantity, unit, low-stock threshold, and last-adjusted timestamp; Reception/Kitchen Staff receive item name and low/available status only. `PUT /api/v1/inventory/{id}` requires `inventory:write`, sets an absolute non-negative physical count, accepts an optional non-negative low-stock threshold, and stamps `lastAdjustedAt` server-side. List results are sorted by name, capped at 2,000, and expose whether they were truncated. The endpoint does not auto-deduct stock from orders or create incidents.
+
 ## 6. Incident detection — approved thresholds
 
 All thresholds below are configurable per restaurant. Severity values are `info`, `warning`, and `critical`.

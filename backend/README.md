@@ -1,6 +1,6 @@
 # Andhrímnir Backend
 
-This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, Email/OTP, email/password, Google sign-in, JWT refresh/logout flows, RBAC permission/tenant middleware, and the first operations endpoint for restaurant health score. The health-score route is locally tested but has not been verified against live MongoDB. Most operations routes, password reset, strict document validation, and persisted restaurant workflows remain pending.
+This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, Email/OTP, email/password, Google sign-in, JWT refresh/logout flows, RBAC permission/tenant middleware, and locally tested tenant-scoped inventory and health-score endpoints. These operations routes have not been verified against live MongoDB. Most other operations routes, password reset, strict document validation, and persisted restaurant workflows remain pending.
 
 ## Requirements
 
@@ -46,6 +46,12 @@ OTP policy is six digits, ten-minute expiry, 60-second resend cooldown, and five
 Set `JWT_SECRET` in `backend/.env` to at least 32 bytes of cryptographically random material (for example, generate a value with `openssl rand -base64 32`). `WEB_ORIGIN` must exactly match the frontend origin; local default is `http://localhost:3000`. For Google sign-in, set `GOOGLE_CLIENT_ID` on the backend and the matching public `NEXT_PUBLIC_GOOGLE_CLIENT_ID` on the frontend; this ID-token verification flow does not use a client secret. Never commit real values. Browser calls that refresh/logout must send credentials; production uses `Secure; SameSite=None` cookies and exact-origin checks. Access tokens belong in client memory, not local storage.
 
 Registration assigns the Customer role and a null restaurant scope on the server. New passwords must be at least 12 characters (maximum 1024 UTF-8 bytes). The OTP is stored only as a purpose-separated HMAC on the pending user document; successful verification removes challenge state. MongoDB is required for auth/session persistence; without it, auth routes fail closed while `/health` remains process-liveness-only.
+
+## Inventory API (S2-06)
+
+`GET /api/v1/inventory` requires a bearer token and `inventory:availability:read`. Queries are scoped to the restaurant on the signed principal. Manager/Administrator receive quantities, units, thresholds, low-stock flags, and adjustment timestamps; Reception/Kitchen Staff receive only item names and low/available state. Lists are name-sorted, capped at 2,000 items, and report `truncated` when the cap is reached.
+
+`PUT /api/v1/inventory/:id` requires `inventory:write` (Manager/Administrator). It sets an absolute non-negative manual count, optionally updates the non-negative low-stock threshold, and stamps `lastAdjustedAt` server-side. Inventory is not deducted automatically from orders and the route does not create incidents. The request/response details are assistant recommendations recorded in [Implementation Decisions](../Docs/Architecture/Andhrimnir_Implementation_Decisions.md), not separate owner approvals. Route, validation, repository-tenant, and role-shape tests pass locally; live MongoDB verification remains outstanding.
 
 ## Restaurant health score (S2-08)
 
