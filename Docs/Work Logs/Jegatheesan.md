@@ -35,3 +35,10 @@
 - **Implementation commit:** `548f3aa` (Jegatheesan).
 - **Validation on Node `24.21.0`:** Biome, 27 backend tests, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Unit tests validate fixture references, canonical collection names, deterministic IDs, and production/remote-target refusal. Docker/`mongod` are unavailable, so a live Mongo seed/re-run was not verified.
 - **Status:** In Progress pending live local MongoDB seed and repeat-run verification. No remote push or merge was made.
+
+### S2-06 — Inventory API foundation
+
+- Added tenant-scoped `GET /api/v1/inventory` and `PUT /api/v1/inventory/:id` routes. Manager/Administrator receive full stock details and can set a manual non-negative count/optional threshold; Reception/Kitchen Staff receive availability-only data. Each read/write repository filter includes the signed restaurant ID; lists are name-sorted and capped at 2,000 records with a truncation flag. Orders do not auto-deduct stock.
+- **Implementation commit:** `1086404` (Jegatheesan). Navin documented the recommended request/response and privacy contract in `e2c4e4e`; those contract details remain recommendations, not separate owner approvals.
+- **Validation on Node `24.21.0`:** Biome, TypeScript typecheck, 41 backend tests, production build, `npm audit --audit-level=high` (zero vulnerabilities), and `git diff --check` passed. Fake-repository tests verify tenant filtering; live MongoDB integration remains unavailable.
+- **Status:** S2-06 remains **In Progress** pending UI integration and live MongoDB verification. No remote push or merge was made.
