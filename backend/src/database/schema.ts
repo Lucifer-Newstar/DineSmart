@@ -48,6 +48,7 @@ interface UserBaseDocument extends TimestampedDocument {
   normalizedEmail: string;
   status: "pending" | "active" | "disabled";
   authProvider?: "email" | "google";
+  googleSubject?: string;
   passwordHash?: string;
 }
 
@@ -211,6 +212,12 @@ export interface BillDocument extends TimestampedDocument {
 export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
   users: [
     { key: { normalizedEmail: 1 }, name: "users_normalized_email_unique", unique: true },
+    {
+      key: { googleSubject: 1 },
+      name: "users_google_subject_unique",
+      unique: true,
+      partialFilterExpression: { googleSubject: { $type: "string" } },
+    },
     { key: { restaurantId: 1, role: 1, status: 1 }, name: "users_restaurant_role_status" },
   ],
   refreshSessions: [

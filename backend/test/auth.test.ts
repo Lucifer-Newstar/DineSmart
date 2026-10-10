@@ -15,6 +15,11 @@ import {
   REFRESH_SESSION_TTL_MS,
   type SafeAuthUser,
 } from "../src/auth/auth.service.js";
+import {
+  type GoogleIdentity,
+  type GoogleIdentityVerifier,
+  GoogleOAuthService,
+} from "../src/auth/google-oauth.service.js";
 import type { RefreshSessionDocument, UserDocument } from "../src/database/schema.js";
 
 const JWT_SECRET = "local-test-secret-with-at-least-32-bytes";
@@ -34,6 +39,19 @@ class FakeAuthRepository implements AuthRepository {
 
   async findActiveUserById(userId: ObjectId): Promise<WithId<UserDocument> | null> {
     return this.user?._id.equals(userId) && this.user.status === "active" ? this.user : null;
+  }
+
+  async linkGoogleSubject(
+    userId: ObjectId,
+    googleSubject: string,
+    now: Date,
+  ): Promise<WithId<UserDocument> | null> {
+    if (!this.user?._id.equals(userId) || this.user.status !== "active") return null;
+    if (this.user.googleSubject && this.user.googleSubject !== googleSubject) return null;
+    this.user.googleSubject = googleSubject;
+    this.user.authProvider = "google";
+    this.user.updatedAt = now;
+    return this.user;
   }
 
   async createRefreshSession(session: NewRefreshSession): Promise<void> {
@@ -107,6 +125,14 @@ async function createTestService(repository: FakeAuthRepository) {
   return new AuthService(repository, JWT_SECRET, () => new Date(FIXED_NOW));
 }
 
+class FakeGoogleVerifier implements GoogleIdentityVerifier {
+  constructor(private readonly identity: GoogleIdentity | null) {}
+
+  async verifyIdToken(idToken: string): Promise<GoogleIdentity | null> {
+    return idToken === "signed-google-id-token" ? this.identity : null;
+  }
+}
+
 async function withServer<T>(
   app: express.Express,
   callback: (baseUrl: string) => Promise<T>,
@@ -176,6 +202,68 @@ test("invalid credentials use one generic rejection and do not create a session"
     (error: unknown) => error instanceof AuthError && error.statusCode === 401,
   );
   assert.equal(repository.sessions.size, 0);
+});
+
+test("Google login links a verified identity to an existing active account", async () => {
+  const repository = new FakeAuthRepository();
+  const authService = await createTestService(repository);
+  const googleService = new GoogleOAuthService(
+    repository,
+    authService,
+    new FakeGoogleVerifier({
+      subject: "google-subject-123",
+      email: "TEST.CUSTOMER@example.com",
+      emailVerified: true,
+    }),
+    () => new Date(FIXED_NOW),
+  );
+
+  const session = await googleService.login("signed-google-id-token");
+  assert.equal(repository.user?.googleSubject, "google-subject-123");
+  assert.equal(repository.user?.authProvider, "google");
+  assert.equal(session.user.email, "Test.Customer@example.com");
+  assert.equal(repository.sessions.size, 1);
+});
+
+test("Google login rejects unverified and unregistered identities without creating accounts", async () => {
+  const unverifiedRepository = new FakeAuthRepository();
+  const unverifiedAuthService = await createTestService(unverifiedRepository);
+  const unverifiedService = new GoogleOAuthService(
+    unverifiedRepository,
+    unverifiedAuthService,
+    new FakeGoogleVerifier({
+      subject: "google-subject-123",
+      email: "test.customer@example.com",
+      emailVerified: false,
+    }),
+  );
+  await assert.rejects(
+    unverifiedService.login("signed-google-id-token"),
+    (error: unknown) => error instanceof AuthError && error.statusCode === 401,
+  );
+  assert.equal(unverifiedRepository.user?.googleSubject, undefined);
+
+  const unregisteredRepository = new FakeAuthRepository();
+  const unregisteredAuthService = new AuthService(
+    unregisteredRepository,
+    JWT_SECRET,
+    () => new Date(FIXED_NOW),
+  );
+  const unregisteredService = new GoogleOAuthService(
+    unregisteredRepository,
+    unregisteredAuthService,
+    new FakeGoogleVerifier({
+      subject: "google-subject-123",
+      email: "new.customer@example.com",
+      emailVerified: true,
+    }),
+  );
+  await assert.rejects(
+    unregisteredService.login("signed-google-id-token"),
+    (error: unknown) => error instanceof AuthError && error.statusCode === 401,
+  );
+  assert.equal(unregisteredRepository.user, null);
+  assert.equal(unregisteredRepository.sessions.size, 0);
 });
 
 test("refresh rotates the token, preserves absolute expiry and revokes the family on replay", async () => {
@@ -287,6 +375,11 @@ test("auth HTTP routes keep refresh credentials in HttpOnly cookies and reject u
     "/api/v1/auth",
     createAuthRouter({
       createService: async () => service,
+      googleSession: async (idToken) => {
+        assert.equal(idToken, "signed-google-id-token");
+        assert.ok(repository.user);
+        return service.issueSessionForUser(repository.user);
+      },
       webOrigin: "http://localhost:3000",
       nodeEnvironment: "test",
     }),
@@ -302,6 +395,14 @@ test("auth HTTP routes keep refresh credentials in HttpOnly cookies and reject u
       }),
     });
     assert.equal(rejected.status, 403);
+
+    const googleLogin = await fetch(`${baseUrl}/api/v1/auth/google`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      body: JSON.stringify({ idToken: "signed-google-id-token" }),
+    });
+    assert.equal(googleLogin.status, 200);
+    assert.match(googleLogin.headers.get("set-cookie") ?? "", /HttpOnly/i);
 
     const login = await fetch(`${baseUrl}/api/v1/auth/login`, {
       method: "POST",
@@ -334,6 +435,6 @@ test("auth HTTP routes keep refresh credentials in HttpOnly cookies and reject u
       headers: { origin: "http://localhost:3000", cookie: newCookie },
     });
     assert.equal(logout.status, 204);
-    assert.ok([...repository.sessions.values()][0].revokedAt);
+    assert.ok([...repository.sessions.values()].some((session) => session.revokedAt));
   });
 });

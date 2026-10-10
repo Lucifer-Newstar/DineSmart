@@ -47,6 +47,11 @@ test("operational collections lead at least one compound index with restaurantId
 
 test("identity and one-to-one domain constraints have unique indexes", () => {
   assert.equal(indexFor("users", "users_normalized_email_unique")?.unique, true);
+  const googleSubjectIndex = indexFor("users", "users_google_subject_unique");
+  assert.equal(googleSubjectIndex?.unique, true);
+  assert.deepEqual(googleSubjectIndex?.partialFilterExpression, {
+    googleSubject: { $type: "string" },
+  });
   const linkedCustomerIndex = indexFor("customers", "customers_user_unique");
   assert.equal(linkedCustomerIndex?.unique, true);
   assert.deepEqual(linkedCustomerIndex?.partialFilterExpression, { userId: { $type: "objectId" } });

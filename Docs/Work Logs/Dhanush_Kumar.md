@@ -19,3 +19,11 @@
 - Added the `refresh_sessions` collection/index/TTL baseline and `WEB_ORIGIN` example. Registration/OTP, Google OAuth, password reset, and RBAC enforcement remain assigned to their later stories.
 - **Validation on Node `24.21.0`:** 14 backend tests, Biome, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Tests use a fake auth repository; live MongoDB verification remains unavailable because Docker and `mongod` are absent.
 - **Status:** In Progress pending live MongoDB persistence verification. Work remains local; no remote push was made.
+
+### S1-10 — Google OAuth
+
+- **Branch:** `feature/S1-10-google-oauth`, stacked on local `feature/S1-09-jwt-auth`; prior task branches remain unmerged.
+- Added `POST /api/v1/auth/google` using Google Identity Services ID tokens and server-side signature/audience verification through `google-auth-library`. Verified Google email may link only to an existing active user; the stable Google subject is stored under a unique index. Google login does not create accounts or assign roles; Email/OTP remains the registration path.
+- Reuses the S1-09 access/refresh session, cookie, origin, and rate-limit flow. Added matching public frontend/backend client-ID placeholders; no Google client secret is used or committed.
+- **Validation on Node `24.21.0`:** 17 backend tests, Biome, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Unit/HTTP tests use an injected fake verifier; no live Google credentials or MongoDB instance are available for end-to-end verification.
+- **Status:** In Progress pending a real Google ID-token and live MongoDB check. Work remains local; no remote push was made.

@@ -15,6 +15,11 @@ export interface NewRefreshSession {
 export interface AuthRepository {
   findActiveUserByEmail(normalizedEmail: string): Promise<WithId<UserDocument> | null>;
   findActiveUserById(userId: ObjectId): Promise<WithId<UserDocument> | null>;
+  linkGoogleSubject(
+    userId: ObjectId,
+    googleSubject: string,
+    now: Date,
+  ): Promise<WithId<UserDocument> | null>;
   createRefreshSession(session: NewRefreshSession): Promise<void>;
   rotateRefreshSession(
     currentTokenHash: string,
@@ -40,6 +45,25 @@ export class MongoAuthRepository implements AuthRepository {
 
   findActiveUserById(userId: ObjectId): Promise<WithId<UserDocument> | null> {
     return this.users.findOne({ _id: userId, status: "active" });
+  }
+
+  async linkGoogleSubject(
+    userId: ObjectId,
+    googleSubject: string,
+    now: Date,
+  ): Promise<WithId<UserDocument> | null> {
+    const linked = await this.users.findOneAndUpdate(
+      {
+        _id: userId,
+        status: "active",
+        googleSubject: { $exists: false },
+      },
+      { $set: { googleSubject, authProvider: "google", updatedAt: now } },
+      { returnDocument: "after", includeResultMetadata: false },
+    );
+
+    if (linked) return linked;
+    return this.users.findOne({ _id: userId, status: "active", googleSubject });
   }
 
   async createRefreshSession(session: NewRefreshSession): Promise<void> {

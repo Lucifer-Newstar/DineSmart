@@ -14,6 +14,7 @@ const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1_000;
 
 export interface AuthRouterOptions {
   createService: () => Promise<AuthService>;
+  googleSession?: (idToken: string) => Promise<AuthSession>;
   webOrigin: string;
   nodeEnvironment: string;
 }
@@ -122,6 +123,25 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
 
     try {
       const session = await (await options.createService()).login(body.email, body.password);
+      sendSession(response, session, options.nodeEnvironment);
+    } catch (error) {
+      handleAuthError(error, response);
+    }
+  });
+
+  router.post("/google", loginRateLimit, async (request: Request, response: Response) => {
+    const body: unknown = request.body;
+    if (!isRecord(body) || typeof body.idToken !== "string" || body.idToken.length > 8_192) {
+      response.status(400).json({
+        error: { code: "invalid_request", message: "A valid Google ID token is required." },
+      });
+      return;
+    }
+
+    try {
+      if (!options.googleSession)
+        throw new AuthConfigurationError("Google sign-in is not configured.");
+      const session = await options.googleSession(body.idToken);
       sendSession(response, session, options.nodeEnvironment);
     } catch (error) {
       handleAuthError(error, response);

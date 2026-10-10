@@ -4,11 +4,13 @@ import type { Db } from "mongodb";
 import { MongoAuthRepository } from "./auth/auth.repository.js";
 import { createAuthRouter } from "./auth/auth.router.js";
 import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
+import { GoogleIdTokenVerifier, GoogleOAuthService } from "./auth/google-oauth.service.js";
 import { connectToDatabase } from "./database.js";
 
 export interface AppOptions {
   getDatabase?: () => Promise<Db>;
   getJwtSecret?: () => string | undefined;
+  getGoogleClientId?: () => string | undefined;
   webOrigin?: string;
   nodeEnvironment?: string;
 }
@@ -19,6 +21,8 @@ export function createApp(options: AppOptions = {}) {
   const configuredWebOrigin = options.webOrigin ?? process.env.WEB_ORIGIN;
   const webOrigin =
     configuredWebOrigin ?? (nodeEnvironment === "production" ? "" : "http://localhost:3000");
+  const googleClientId = options.getGoogleClientId?.() ?? process.env.GOOGLE_CLIENT_ID;
+  const googleVerifier = googleClientId ? new GoogleIdTokenVerifier(googleClientId) : undefined;
 
   if (configuredWebOrigin) {
     const parsedOrigin = new URL(configuredWebOrigin);
@@ -28,6 +32,18 @@ export function createApp(options: AppOptions = {}) {
     ) {
       throw new Error("WEB_ORIGIN must be a canonical HTTP(S) origin without a path.");
     }
+  }
+
+  async function createAuthRuntime() {
+    const secret = options.getJwtSecret?.() ?? process.env.JWT_SECRET;
+    if (!secret) throw new AuthConfigurationError();
+    if (nodeEnvironment === "production" && !configuredWebOrigin) {
+      throw new AuthConfigurationError("WEB_ORIGIN must be configured in production.");
+    }
+
+    const db = await (options.getDatabase?.() ?? connectToDatabase());
+    const repository = new MongoAuthRepository(db);
+    return { repository, service: new AuthService(repository, secret) };
   }
 
   app.disable("x-powered-by");
@@ -53,15 +69,16 @@ export function createApp(options: AppOptions = {}) {
     createAuthRouter({
       webOrigin,
       nodeEnvironment,
-      createService: async () => {
-        const secret = options.getJwtSecret?.() ?? process.env.JWT_SECRET;
-        if (!secret) throw new AuthConfigurationError();
-        if (nodeEnvironment === "production" && !configuredWebOrigin) {
-          throw new AuthConfigurationError("WEB_ORIGIN must be configured in production.");
+      createService: async () => (await createAuthRuntime()).service,
+      googleSession: async (idToken) => {
+        if (!googleClientId || !googleVerifier) {
+          throw new AuthConfigurationError(
+            "GOOGLE_CLIENT_ID must be configured for Google sign-in.",
+          );
         }
 
-        const db = await (options.getDatabase?.() ?? connectToDatabase());
-        return new AuthService(new MongoAuthRepository(db), secret);
+        const { repository, service } = await createAuthRuntime();
+        return new GoogleOAuthService(repository, service, googleVerifier).login(idToken);
       },
     }),
   );
