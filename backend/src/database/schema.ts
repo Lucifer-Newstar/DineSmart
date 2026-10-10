@@ -185,9 +185,13 @@ export interface RecommendationDocument extends TimestampedDocument {
   restaurantId: ObjectId;
   incidentId: ObjectId;
   summary: string;
-  actions: Array<{ description: string; rationale?: string; expectedImpact?: string }>;
-  confidence?: number;
+  rootCause: string;
+  priority: IncidentSeverity;
+  actions: Array<{ description: string; rationale: string; expectedImpact: string }>;
+  confidence: number;
+  source: "gemini" | "fallback" | "demo";
   provider: string;
+  generatedAt: Date;
 }
 
 export interface NotificationDocument extends TimestampedDocument {
@@ -291,8 +295,9 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
   ],
   recommendations: [
     {
-      key: { restaurantId: 1, incidentId: 1, createdAt: -1 },
-      name: "recommendations_restaurant_incident_created",
+      key: { restaurantId: 1, incidentId: 1 },
+      name: "recommendations_restaurant_incident_unique",
+      unique: true,
     },
   ],
   notifications: [

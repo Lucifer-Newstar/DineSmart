@@ -206,9 +206,20 @@ If a component has no eligible observations, use a neutral 50, expose `observati
 - Use the proposed WebSocket event envelope and event names for order, reservation, inventory, incident, recommendation, notification, and health-score changes. Authenticate connections and scope them by restaurant.
 - Persist in-app notifications and deliver them in real time over WebSockets. External SMS/push and non-auth email delivery are deferred until providers are selected.
 
+### AI implementation recommendations (assistant-selected 2026-10-10)
+
+These details implement the owner-approved Gemini/advisory/fallback baseline; they are recommendations, not separate owner selections:
+
+- Use Google's official JavaScript SDK `@google/genai` `2.28.0` and default `GEMINI_MODEL=gemini-3.5-flash-lite`. As of 2026-10-10, Google lists this as a stable, cost-conscious Flash-Lite model; model access and quality must be validated with the supplied project key. Keep the model configurable. See [Google's model catalog](https://ai.google.dev/gemini-api/docs/models) and [official SDK release](https://github.com/googleapis/js-genai/releases/tag/v2.28.0).
+- Use constrained JSON generation and validate every field locally. Match recommendation priority to the incident's existing severity; accept only one to three actions and confidence in `[0,1]`.
+- Build a tenant-filtered, bounded operational context from incident evidence and aggregate order, stock, reservation, and restaurant-threshold signals. Whitelist trigger fields, strip email/phone-like strings, and omit customer names, contact details, customer IDs, and database IDs before sending to Gemini.
+- Persist one current recommendation per incident with a unique `(restaurantId, incidentId)` key. A new generation replaces that incident's current recommendation rather than creating an unbounded history.
+- If `GEMINI_API_KEY` is absent, the provider times out, quota is reached, or JSON validation fails, persist a deterministic incident-specific fallback and mark `source=fallback`. The fallback is advisory and never writes an operational state change.
+- Provide `POST /api/v1/incidents/{incidentId}/recommendations` for authorized manager/admin generation and `GET /api/v1/recommendations` for tenant-scoped retrieval. Keep API key and all provider calls server-side.
+
 ### Pending real-time/AI details
 
-Exact Gemini model ID, reconnect/replay guarantees, event-level authorization, and notification retention/read-state rules remain pending. No API keys or provider secrets are to be committed.
+Reconnect/replay guarantees, event-level authorization, and notification retention/read-state rules remain pending. The selected Gemini model/API key still require a live credential check. No API keys or provider secrets are to be committed.
 
 ## 9. Database-fallback scope — approved for MVP
 
@@ -224,7 +235,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 - Pin Node.js `24.21.0` in the repository `.nvmrc`; use Node 24 LTS for both apps. Re-check the official [Node.js release schedule](https://github.com/nodejs/release) before future major upgrades.
 - Production data target: MongoDB Atlas. Local development uses MongoDB `8.0` via root `compose.yaml`, bound to loopback with a named data volume; do not expose the unauthenticated dev container to a network.
 - Use the official MongoDB Node.js driver `mongodb` `7.7.0`; Mongoose is not selected. Atlas provisioning/credentials are deferred. No connection string or other secret is committed.
-- Commit placeholder names only in app-specific `.env.example` files; never commit real `.env`/`.env.local` values. Current names are `NODE_ENV`, `MONGODB_URI`, `SEED_DEMO_PASSWORD`, `PORT`, `JWT_SECRET`, `WEB_ORIGIN`, `GOOGLE_CLIENT_ID`, `EMAIL_PROVIDER`, `EMAIL_API_KEY`, and frontend `NEXT_PUBLIC_API_BASE_URL`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`. The selected Google ID-token verification flow needs the public client ID on both sides but no client secret. Keep `EMAIL_PROVIDER=mock` for local development; provider credentials and the exact Gemini model remain unset until approved/configured.
+- Commit placeholder names only in app-specific `.env.example` files; never commit real `.env`/`.env.local` values. Current names are `NODE_ENV`, `MONGODB_URI`, `SEED_DEMO_PASSWORD`, `PORT`, `JWT_SECRET`, `WEB_ORIGIN`, `GOOGLE_CLIENT_ID`, `EMAIL_PROVIDER`, `EMAIL_API_KEY`, and frontend `NEXT_PUBLIC_API_BASE_URL`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`. The selected Google ID-token verification flow needs the public client ID on both sides but no client secret. Keep `EMAIL_PROVIDER=mock` for local development; a real email provider and Gemini API key still require configuration. `GEMINI_MODEL` defaults to the assistant-recommended `gemini-3.5-flash-lite` and remains configurable.
 - Build responsive customer flows and role-specific restaurant views with loading, empty, error, and degraded states.
 - Draft a visual design proposal for owner review before committing to brand-specific colors/assets.
 
@@ -248,7 +259,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. S1-11 is In Progress while pending-user Email/OTP registration is implemented on S1-10. S1-12 is In Progress while the approved MVP role middleware is implemented on local area branch `feature/backend`; operation-route enforcement remains pending. S1-13 is In Progress with a development-only idempotent seed dataset on the same branch; local MongoDB execution remains unverified. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. S1-11 is In Progress while pending-user Email/OTP registration is implemented on S1-10. S1-12 is In Progress while the approved MVP role middleware is implemented on local area branch `feature/backend`; operation-route enforcement remains pending. S1-13 is In Progress with a development-only idempotent seed dataset on the same branch; local MongoDB execution remains unverified. S3-01, S3-02, S3-04, and S3-13 are In Progress on local area branch `feature/ai` with fake-provider tests; live Gemini credentials and MongoDB persistence remain unverified. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 
@@ -258,7 +269,7 @@ The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-
 - Health-score component normalization and analytics/reporting definitions.
 - MongoDB Atlas cluster provisioning, credential delivery, and network allow-listing.
 - Production `JWT_SECRET` delivery and the deployment-specific `WEB_ORIGIN` value.
-- Exact email provider and Google OAuth configuration.
+- Exact email provider and Google OAuth configuration; owner-provided Gemini API key and a live credential check for the recommended model.
 - WebSocket reconnect/replay/auth detail and notification retention.
 - Visual design approval and accessibility conformance level.
 - Deployment domains, CI branch protection/reviewer/merge policy.

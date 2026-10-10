@@ -577,6 +577,8 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
           restaurantId,
           incidentId: id(DEMO_IDS.incidentKitchen),
           summary: "The kitchen queue is stretching ticket times during the dinner ramp.",
+          rootCause: "Seven active tickets are competing for the hot line during the dinner ramp.",
+          priority: "warning",
           actions: [
             {
               description: "Move one cross-trained teammate to the hot line for 20 minutes.",
@@ -590,7 +592,9 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
             },
           ],
           confidence: 0.82,
+          source: "demo",
           provider: "demo",
+          generatedAt: now,
         },
         now,
       ),
@@ -600,6 +604,8 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
           restaurantId,
           incidentId: id(DEMO_IDS.incidentInventory),
           summary: "Paneer is below its reorder point while dinner service is active.",
+          rootCause: "Current paneer stock is below the configured reorder threshold.",
+          priority: "critical",
           actions: [
             {
               description: "Confirm the closing stock count and contact the approved supplier.",
@@ -608,7 +614,9 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
             },
           ],
           confidence: 0.94,
+          source: "demo",
           provider: "demo",
+          generatedAt: now,
         },
         now,
       ),

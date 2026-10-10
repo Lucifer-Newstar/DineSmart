@@ -59,6 +59,14 @@ Registration assigns the Customer role and a null restaurant scope on the server
 
 The approved weight distribution is in [Implementation Decisions](../Docs/Architecture/Andhrimnir_Implementation_Decisions.md). Normalization formulas and missing-data handling are explicitly marked as assistant recommendations, not separate owner approvals. MongoDB reads are capped at 2,000 records per collection and the response lists collections whose sample was truncated. The route calculates on demand; event-triggered and scheduled hourly refresh are not implemented yet. Unit, authorization, and tenant-query tests pass locally; end-to-end verification against MongoDB remains outstanding.
 
+## AI recommendations (S3-01/02/04/13)
+
+- `POST /api/v1/incidents/{incidentId}/recommendations` — Manager/Administrator only; build a tenant-filtered incident context, request a structured Gemini recommendation when configured, and persist one current recommendation for the incident.
+- `GET /api/v1/recommendations?incidentId={id}` — retrieve current tenant-scoped recommendations (the filter is optional).
+- The backend defaults to `GEMINI_MODEL=gemini-3.5-flash-lite`; the model ID is configurable. Set `GEMINI_API_KEY` only in backend `.env` or a deployment secret. It is never sent to the browser.
+- With no API key, or on timeout/quota/invalid output, the backend persists a deterministic `source=fallback` recommendation. All recommendations are advisory; no operational record is changed automatically.
+- Context construction omits customer names/contact details and direct customer/database identifiers. Live Gemini and MongoDB integration still need credentials/service availability for end-to-end verification.
+
 ## Quality commands
 
 Run these from `backend/`:

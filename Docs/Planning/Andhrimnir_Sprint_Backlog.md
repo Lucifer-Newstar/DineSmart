@@ -84,10 +84,10 @@ Goal: Complete AI features, testing, deployment and presentation.
 
 | Task ID | Task | Owner | Priority | Story Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| S3-01 | Gemini API Integration | Navin | High | 5 | To Do |
-| S3-02 | Prompt Engineering | Navin | High | 3 | To Do |
+| S3-01 | Gemini API Integration | Navin | High | 5 | In Progress |
+| S3-02 | Prompt Engineering | Navin | High | 3 | In Progress |
 | S3-03 | Recommendation UI | Dhanush | High | 3 | To Do |
-| S3-04 | Incident Context Builder | Navin | High | 4 | To Do |
+| S3-04 | Incident Context Builder | Navin | High | 4 | In Progress |
 | S3-05 | Dashboard Polish | Dhanush | Medium | 2 | To Do |
 | S3-06 | Integration Testing | Entire Team | High | 5 | To Do |
 | S3-07 | Bug Fixing | Entire Team | High | 5 | To Do |
@@ -96,7 +96,7 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-10 | Performance Optimization | Navin | Medium | 2 | To Do |
 | S3-11 | README | Navin | Medium | 2 | Ready to Push |
 | S3-12 | Presentation & Demo | Entire Team | High | 3 | To Do |
-| S3-13 | AI Fallback Implementation | Navin | Medium | 2 | To Do |
+| S3-13 | AI Fallback Implementation | Navin | Medium | 2 | In Progress |
 
 ## Status Meanings
 

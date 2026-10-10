@@ -1,6 +1,6 @@
 # Andhrímnir Database Schema — S1-08 Baseline
 
-**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with the authentication `refresh_sessions`, Google `googleSubject`, and pending-user OTP-field extensions added on the S1-09/S1-10/S1-11 task branches. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
+**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with authentication/session and pending-user OTP extensions added on S1-09/S1-10/S1-11, RBAC/seed extensions on `feature/backend`, and AI recommendation fields/index on `feature/ai`. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
 
 ## Design recommendations applied
 
@@ -30,7 +30,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 | `order_items` | `restaurantId`, `orderId`, `menuItemId`, `nameSnapshot`, `unitPriceMinor`, `quantity`, optional `notes`, `preparationStatus` | Restaurant-scoped; names and prices are snapshots. |
 | `inventory_items` | `restaurantId`, `name`, `quantity`, `unit`, `lowStockThreshold`, `lastAdjustedAt` | Restaurant-scoped. |
 | `incidents` | `restaurantId`, `type`, `severity`, `status`, `triggerSnapshot`, `affectedEntity`, optional `rootCause` | Restaurant-scoped. |
-| `recommendations` | `restaurantId`, `incidentId`, `summary`, `actions`, optional `confidence`, `provider` | Restaurant-scoped; AI recommendations remain advisory. |
+| `recommendations` | `restaurantId`, `incidentId`, `summary`, `rootCause`, `priority`, `actions`, `confidence`, `source`, `provider`, `generatedAt` | Restaurant-scoped; one current advisory recommendation per incident, upserted by the generator. |
 | `notifications` | `restaurantId`, `recipientUserId`, `type`, `title`, `body`, optional `relatedEntity`, `deliveredAt`, `readAt` | Restaurant-scoped. |
 | `bills` | `restaurantId`, `orderId`, `lineItems`, `subtotalMinor`, `taxMinor`, `adjustmentsMinor`, `totalMinor`, `currency`, `status` | Restaurant-scoped; no payment capture or provider fields. |
 
@@ -42,7 +42,7 @@ The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Regi
 - A `Customer` may have multiple reservations and orders across restaurants. Each such operational document still contains its own `restaurantId`.
 - A `Restaurant` owns its staff memberships, menu items, tables, reservations, orders, order items, inventory items, incidents, recommendations, notifications, and bills.
 - An `Order` has one or more `OrderItem` documents; each item snapshots the menu name and unit price. An `Order` has at most one `Bill` in this baseline.
-- An `Incident` may have multiple `Recommendation` documents.
+- An `Incident` has at most one current `Recommendation` in the MVP; regenerate with an upsert keyed by `(restaurantId, incidentId)`. Historical recommendation versions are deferred.
 - A `Table` may be assigned over time to reservations. The reservation conflict rule (same-table overlap and capacity) must be enforced by the service layer in a transaction/appropriate consistency strategy; a normal B-tree index cannot prevent overlapping time ranges.
 - MongoDB does not enforce foreign keys. Services must validate that referenced users, customers, tables, menu items, orders, and incidents belong to the same authorized restaurant where the workflow requires it.
 
@@ -64,7 +64,7 @@ The named index specifications live alongside the document types in `backend/src
 | `tables` | Unique `(restaurantId, tableNumber)`. |
 | `inventory_items` | `(restaurantId, name)`; `(restaurantId, quantity)`. |
 | `incidents` | `(restaurantId, status, createdAt desc)`; `(restaurantId, severity, status)`. |
-| `recommendations` | `(restaurantId, incidentId, createdAt desc)`. |
+| `recommendations` | Unique `(restaurantId, incidentId)` for one current recommendation per incident. |
 | `notifications` | `(restaurantId, recipientUserId, readAt, createdAt desc)`. |
 | `bills` | Unique `(restaurantId, orderId)`. |
 
