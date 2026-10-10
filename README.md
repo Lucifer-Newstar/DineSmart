@@ -2,7 +2,7 @@
 
 **Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository contains the product and technical documentation, a documentation-conversion utility, and the initial Next.js frontend shell. Product workflows and the backend have not yet been implemented.
+> This repository contains the product and technical documentation, a documentation-conversion utility, and initial Next.js and Express application shells. Product workflows, database integration, and authentication have not yet been implemented.
 
 ## Product vision
 
@@ -20,13 +20,13 @@ The documented MVP scope includes:
 | Layer | Technology |
 | --- | --- |
 | Frontend | Next.js `16.4.0` App Router, React `19.3.0`, Tailwind CSS `4.3.3`, TypeScript, Biome `2.5.15` |
-| Backend | Node.js `24.21.0` LTS, Express.js REST APIs, TypeScript |
+| Backend | Node.js `24.21.0` LTS, Express `5.3.0`, TypeScript |
 | Data | MongoDB Atlas |
 | Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC |
 | AI | Gemini API |
 | Deployment | Vercel (frontend), Render (backend) |
 
-Node.js `24.21.0` is pinned in the repository-root `.nvmrc`. The frontend dependency lockfile is authoritative for resolved package versions.
+Node.js `24.21.0` is pinned in the repository-root `.nvmrc`. Each app's npm lockfile is authoritative for its resolved package versions.
 
 ## Frontend setup
 
@@ -38,13 +38,30 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows or call a backend. See the [frontend guide](frontend/README.md) for the lint, format, typecheck, and build commands.
+Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows. See the [frontend guide](frontend/README.md) for the lint, format, typecheck, and build commands.
+
+## Backend setup
+
+From the repository root, use Node.js `24.21.0` and run:
+
+```bash
+cd backend
+npm ci
+npm run dev
+```
+
+The API listens on `http://localhost:3001` by default. `GET /health` reports process liveness only; it does not indicate a database connection. See the [backend guide](backend/README.md) for quality commands and current scope.
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from the lockfile, audits dependencies, checks Biome and TypeScript, and builds the frontend. The test step runs when a test script is configured; backend checks activate once the backend package exists. This adds CI only—deployment/CD is not configured.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds the app. Backend checks are gated until `backend/package.json` is present; the backend now has a process-liveness test, while frontend feature tests remain pending. This adds CI only—deployment/CD is not configured.
 
 ## Documentation
+
+### Application setup
+
+- [Frontend setup guide](frontend/README.md)
+- [Backend setup guide](backend/README.md)
 
 ### Product and requirements
 
@@ -81,10 +98,11 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 - [Gokul execution guide](Docs/Developers%20Guide/Andhrimnir_Team_Execution_Guide_Gokul.md)
 - [Navin Jairam work log](Docs/Work%20Logs/Navin_Jairam.md)
 - [Dhanush Kumar work log](Docs/Work%20Logs/Dhanush_Kumar.md)
+- [Jegatheesan work log](Docs/Work%20Logs/Jegatheesan.md)
 
 ## Development status
 
-The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation is locally validated on `feature/S1-03-nextjs-setup` and **Ready to Push**. Initial frontend CI is added on `feature/S1-07-ci-cd`; S1-07 remains **In Progress** pending backend/test coverage and deployment decisions. No remote push has been made. The shell is not a product workflow: the Express backend, integrations, and automated feature tests remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
+The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation and S1-04 Express backend shell are locally validated and **Ready to Push** on their task branches. The S1-04 branch is stacked on S1-07 so CI can verify both packages; S1-07 remains **In Progress** pending GitHub-run confirmation and deployment/CD scope. No remote push has been made. The backend has only an infrastructure liveness endpoint and test; database integration, authentication, and product workflows remain pending. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
 
 ## Repository structure
 
@@ -102,6 +120,7 @@ The MVP scope, architecture, API endpoint inventory, delivery plan, and test cri
 |   |-- Product/            # Product vision and SRS
 |   |-- Quality/            # Test plan and demo strategy
 |   `-- Work Logs/          # Member work logs
+|-- backend/                # Express API shell and backend guide
 |-- frontend/               # Next.js App Router shell and frontend guide
 |-- tools/                  # Documentation conversion utility
 `-- README.md               # Project overview and documentation index

@@ -42,5 +42,12 @@
 
 - **Branch:** `feature/S1-07-ci-cd`, stacked on `feature/S1-03-nextjs-setup` because the frontend and Node pin are required inputs; integrate S1-03 first.
 - Added GitHub Actions checks for the frontend on pull requests, pushes to `main`, and manual runs: clean install, dependency audit, Biome, optional test script, TypeScript typecheck, and production build. Backend checks activate when the backend package is added.
-- No deploy job or secrets were added. The CI/CD backlog item remains **In Progress** because backend/test coverage and deployment are not implemented.
+- No deploy job or secrets were added. After S1-04, the gated backend CI checks run against its package and liveness test; frontend feature tests are still pending. S1-07 remains **In Progress** because deployment/CD and a GitHub-run confirmation are outstanding.
 - **Delivery:** local task branch only; no remote push was made.
+
+### S1-04 — Setup documentation and CI integration
+
+- Added the backend setup guide and updated the root README, implementation decisions, and backlog to reflect the new backend package and automated checks.
+- Marked S1-04 **Ready to Push** after the owner-authored implementation and work log passed local checks. S1-07 remains **In Progress**; no GitHub run or deployment has occurred.
+- **Validation:** local documentation links resolve and `git diff --check` passes; the S1-04 work log records the runtime/test/build/audit results.
+- **Delivery:** documentation/status update committed locally; no remote push was made.
