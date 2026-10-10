@@ -1,5 +1,6 @@
 import "dotenv/config";
 import app from "./app.js";
+import { initializeDatabaseSchema } from "./database/schema.js";
 import { closeDatabase, connectToDatabase } from "./database.js";
 
 const port = Number(process.env.PORT ?? 3001);
@@ -14,9 +15,14 @@ const server = app.listen(port, "0.0.0.0", () => {
 
 if (process.env.MONGODB_URI) {
   void connectToDatabase()
-    .then(() => console.info("Connected to the configured MongoDB instance."))
+    .then(async (database) => {
+      await initializeDatabaseSchema(database);
+      console.info("Connected to MongoDB; schema indexes are ready.");
+    })
     .catch(() => {
-      console.error("MongoDB is unavailable; the API remains in liveness-only mode.");
+      console.error(
+        "MongoDB connection or schema initialization failed; the API remains in liveness-only mode.",
+      );
     });
 } else {
   console.info("MONGODB_URI is unset; database connection skipped.");
