@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local secrets only; keep example placeholders committable
+.env*
+!.env.example
