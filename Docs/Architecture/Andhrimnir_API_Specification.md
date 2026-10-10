@@ -10,7 +10,7 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | POST | /auth/login | Login user | Dhanush |
 | POST | /auth/refresh | Rotate refresh session and renew access token | Dhanush |
 | POST | /auth/logout | Secure logout | Dhanush |
-| POST | /auth/google | Google OAuth | Dhanush |
+| POST | /auth/google | Verify Google Identity Services ID token and start a session | Dhanush |
 | POST | /auth/reset-password | Password reset | Dhanush |
 | GET | /menu | Get digital menu | Dhanush |
 | POST | /reservations | Create reservation | Jegatheesan |

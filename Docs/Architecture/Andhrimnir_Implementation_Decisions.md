@@ -53,6 +53,14 @@ These are the assistant-selected implementation defaults on the owner's directio
 - Return only the access token and safe user identity in JSON; never expose the refresh token or log token/password values. Registration/OTP remains owned by S1-11; S1-09 login accepts only active users that already have a password hash.
 - Include secure logout in S1-09 because revocation belongs with refresh-session handling; keep S2-15 focused on password reset to avoid duplicate ownership.
 
+### S1-10 Google OAuth recommendations
+
+These are assistant-selected implementation defaults on the owner's direction to choose recommendations; they are not separate owner selections:
+
+- Use Google Identity Services to obtain an ID token in the browser, then verify it server-side with Google's `google-auth-library` against the exact `GOOGLE_CLIENT_ID`; never trust profile claims supplied outside the verified token.
+- Require a verified Google email and link it only to an existing active user whose `normalizedEmail` matches. Store the stable Google `sub` as a unique `googleSubject`. Do not create a new user or grant a role from Google sign-in; verified Email/OTP registration remains the account-creation path.
+- Issue the same access/refresh session as email/password login. This ID-token verification flow needs a public client ID in the frontend and backend, but no Google client secret.
+
 ### Authentication test alignment
 
 The test plan now reflects the SRS: register with Email/OTP, then log in with Email/Password; Google OAuth is an additional supported login path.
@@ -187,7 +195,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 - Pin Node.js `24.21.0` in the repository `.nvmrc`; use Node 24 LTS for both apps. Re-check the official [Node.js release schedule](https://github.com/nodejs/release) before future major upgrades.
 - Production data target: MongoDB Atlas. Local development uses MongoDB `8.0` via root `compose.yaml`, bound to loopback with a named data volume; do not expose the unauthenticated dev container to a network.
 - Use the official MongoDB Node.js driver `mongodb` `7.7.0`; Mongoose is not selected. Atlas provisioning/credentials are deferred. No connection string or other secret is committed.
-- Commit placeholder names only in app-specific `.env.example` files; never commit real `.env`/`.env.local` values. Current names are `NODE_ENV`, `MONGODB_URI`, `PORT`, `JWT_SECRET`, `WEB_ORIGIN`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `EMAIL_PROVIDER`, `EMAIL_API_KEY`, and frontend `NEXT_PUBLIC_API_BASE_URL`. Keep `EMAIL_PROVIDER=mock` for local development; provider credentials and the exact Gemini model remain unset until approved/configured.
+- Commit placeholder names only in app-specific `.env.example` files; never commit real `.env`/`.env.local` values. Current names are `NODE_ENV`, `MONGODB_URI`, `PORT`, `JWT_SECRET`, `WEB_ORIGIN`, `GOOGLE_CLIENT_ID`, `EMAIL_PROVIDER`, `EMAIL_API_KEY`, and frontend `NEXT_PUBLIC_API_BASE_URL`/`NEXT_PUBLIC_GOOGLE_CLIENT_ID`. The selected Google ID-token verification flow needs the public client ID on both sides but no client secret. Keep `EMAIL_PROVIDER=mock` for local development; provider credentials and the exact Gemini model remain unset until approved/configured.
 - Build responsive customer flows and role-specific restaurant views with loading, empty, error, and degraded states.
 - Draft a visual design proposal for owner review before committing to brand-specific colors/assets.
 
@@ -211,7 +219,7 @@ Defer durable queued writes and emergency offline mode. This supersedes the earl
 | Complete | Definition of Done is met and the PR is merged |
 | Blocked | Work cannot proceed until a documented dependency/decision is resolved |
 
-The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is being built on the local S1-08 branch. Locally committed work is not Complete until review and merge.
+The existing GitHub repository means S1-01 is marked Complete. S1-02, S1-03, S1-04, and S3-11 are Ready to Push. S1-05 is In Progress: local MongoDB configuration is being added first; Atlas connectivity is deferred. S1-06 is Ready to Push with secret-free environment examples. S1-07 is In Progress while deployment/CD and GitHub-run confirmation are outstanding. S1-08 is In Progress while its recommended schema and index baseline is implemented and verified. S1-09 is In Progress while the JWT/session implementation is on the local S1-09 branch. S1-10 is In Progress while Google ID-token verification and account linking are built on S1-09. Locally committed work is not Complete until review and merge.
 
 ## 13. Remaining decisions before corresponding modules
 

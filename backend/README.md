@@ -29,10 +29,11 @@ To stop MongoDB while preserving data, run `docker compose down` from the reposi
 With a live MongoDB configured, the backend exposes these versioned endpoints:
 
 - `POST /api/v1/auth/login` — verify an active user's email/password and return a 15-minute bearer access token.
+- `POST /api/v1/auth/google` — verify a Google Identity Services ID token and link its verified email to an existing active account.
 - `POST /api/v1/auth/refresh` — rotate the HttpOnly refresh cookie and return a new access token.
 - `POST /api/v1/auth/logout` — revoke the refresh session and clear the cookie.
 
-Set `JWT_SECRET` in `backend/.env` to at least 32 bytes of cryptographically random material (for example, generate a value with `openssl rand -base64 32`). `WEB_ORIGIN` must exactly match the frontend origin; local default is `http://localhost:3000`. Never commit real values. Browser calls that refresh/logout must send credentials; production uses `Secure; SameSite=None` cookies and exact-origin checks. Access tokens belong in client memory, not local storage.
+Set `JWT_SECRET` in `backend/.env` to at least 32 bytes of cryptographically random material (for example, generate a value with `openssl rand -base64 32`). `WEB_ORIGIN` must exactly match the frontend origin; local default is `http://localhost:3000`. For Google sign-in, set `GOOGLE_CLIENT_ID` on the backend and the matching public `NEXT_PUBLIC_GOOGLE_CLIENT_ID` on the frontend; this ID-token verification flow does not use a client secret. Never commit real values. Browser calls that refresh/logout must send credentials; production uses `Secure; SameSite=None` cookies and exact-origin checks. Access tokens belong in client memory, not local storage.
 
 A live user record must already be active and have an Argon2id `passwordHash`; user registration and OTP verification are handled in S1-11. MongoDB is required for login/session persistence; without it, auth routes fail closed while `/health` remains process-liveness-only.
 

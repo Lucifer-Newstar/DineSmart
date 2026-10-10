@@ -1,6 +1,6 @@
 # Andhrímnir Database Schema — S1-08 Baseline
 
-**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with the authentication `refresh_sessions` extension added on `feature/S1-09-jwt-auth`. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
+**Status:** Initial native MongoDB driver schema and index baseline implemented on `feature/S1-08-database-schema` (2026-10-10), with the authentication `refresh_sessions` and Google `googleSubject` extensions added on the S1-09/S1-10 task branches. Live MongoDB index verification is pending; this is not a claim that all workflow validation or API payloads are finalized. See [Implementation Decisions](Andhrimnir_Implementation_Decisions.md) for approved scope and remaining decisions.
 
 ## Design recommendations applied
 
@@ -18,7 +18,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 
 | Collection | Initial fields | Scope |
 | --- | --- | --- |
-| `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `passwordHash` | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
+| `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `googleSubject`, optional `passwordHash` | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
 | `refresh_sessions` | `userId`, current `tokenHash`, `usedTokenHashes`, absolute `expiresAt`, `revokedAt`, `lastUsedAt` | Authentication session family; token values are hashes, and the session is not restaurant-scoped. |
 | `restaurants` | `name`, optional `contact`/`address`, `timezone`, `currency`, optional `operatingHours`/`thresholds`, `status` | Root tenant record. |
 | `customers` | optional `userId`, `displayName`, optional guest `email`/`phone`, optional `contactPreferences` | Global profile; not tenant-scoped. |
@@ -52,7 +52,7 @@ The named index specifications live alongside the document types in `backend/src
 
 | Collection | Indexes |
 | --- | --- |
-| `users` | Unique `normalizedEmail`; `(restaurantId, role, status)`. |
+| `users` | Unique `normalizedEmail`; unique `googleSubject` only when present as a string; `(restaurantId, role, status)`. |
 | `refresh_sessions` | Unique current `tokenHash`; `usedTokenHashes` for replay lookup; `(userId, revokedAt, expiresAt)`; TTL on `expiresAt`. |
 | `restaurants` | `(status, name)`. |
 | `customers` | Unique `userId` only when it is an `ObjectId`; permits multiple guest profiles without a linked user. |

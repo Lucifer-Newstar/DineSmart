@@ -81,3 +81,11 @@
 - S1-09 remains **In Progress** pending a live MongoDB persistence check; no secrets or remote pushes were added.
 - **Validation:** documentation links and status alignment reviewed; `git diff --check` passes. Backend code/test/build results are recorded in Dhanush's work log.
 - **Delivery:** shared documentation updates remain local; no remote push was made.
+
+### S1-10 — Google OAuth architecture and status integration
+
+- Recorded the assistant-selected Google Identity Services ID-token approach, verified-email linking rule, and no-self-provisioning policy as recommendations (not separate owner approvals).
+- Updated the S1-08 user schema/index reference, API endpoint inventory, SDD, test plan, implementation decisions, backend/frontend environment examples, backend guide, README, and backlog status. Removed the unused client-secret placeholder from the selected ID-token flow.
+- S1-10 remains **In Progress** until a real Google credential and live MongoDB integration are verified. No secrets or remote pushes were added.
+- **Validation:** documentation links/statuses reviewed; `git diff --check` passes. Backend results are in Dhanush's work log.
+- **Delivery:** shared documentation updates remain local; no remote push was made.

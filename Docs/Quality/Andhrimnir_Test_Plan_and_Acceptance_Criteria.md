@@ -38,7 +38,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | ID | Feature | Test Scenario | Expected Result | Priority |
 | --- | --- | --- | --- | --- |
 | TC-01 | Authentication | Register with Email/OTP; log in with Email/Password | Registration is verified and login succeeds | High |
-| TC-02 | Google OAuth | Login using Google | User redirected to dashboard | High |
+| TC-02 | Google OAuth | Submit a signed Google ID token for a verified email linked to an active user | Backend verifies token audience/signature, links the stable subject, and starts the standard session | High |
 | TC-03 | Digital Menu | View menu and availability | Available items displayed | High |
 | TC-04 | Reservations | Create reservation | Reservation saved and visible | High |
 | TC-05 | Orders | Place order | Order lifecycle starts | High |
@@ -100,3 +100,9 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - HTTP tests cover the versioned login/refresh/logout routes, HttpOnly cookie delivery, absence of refresh tokens from JSON, exact-origin rejection, and bearer middleware behavior.
 - Current route tests use a fake repository. Run the login/refresh/logout flow with a live MongoDB instance before treating persistence behavior as integration-tested; this workspace has no Docker/`mongod`.
 - The access token is returned to the client for memory-only storage. Frontend credential inclusion and protected-route/RBAC coverage remain pending their corresponding stories.
+
+## 10. S1-10 Google OAuth Verification
+
+- Unit tests use an injected verifier to cover verified-email linking to an existing active account, rejection of unverified/unregistered identities, and standard session issuance.
+- The production adapter uses `google-auth-library` to verify Google ID-token signature, issuer, audience, and expiry against `GOOGLE_CLIENT_ID`.
+- No Google project/client ID or live signed credential is available in this workspace. Before marking S1-10 **Ready to Push**, validate the configured frontend client ID and backend audience against a real Google Identity Services credential. Do not commit a client secret.
