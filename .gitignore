@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js and build output
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+dist/
+**/dist/
+coverage/
+**/coverage/
+
+# Environment files: commit examples only, never local secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Generated files
+*.tsbuildinfo
+next-env.d.ts
+**/next-env.d.ts
+
+# Local/editor files
+.DS_Store
+*.pem
+*.log
+.vscode/
+.idea/
