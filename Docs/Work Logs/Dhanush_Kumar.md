@@ -10,3 +10,12 @@
 - **Implementation commit:** `f75bcfe` (Dhanush). Navin's separate security commit `7d542aa` removed the generated ESLint dependency chain and configured Biome `2.5.15`.
 - **Validation on Node `24.21.0`:** `npm run lint`, `npm run typecheck`, and `npm run build` passed. Both full `npm audit` and `npm audit --omit=dev` report zero vulnerabilities. The root page returned the expected static shell in the local dev-server smoke check.
 - **Delivery:** committed locally; no remote push was made during this task.
+
+### S1-09 — JWT Authentication
+
+- **Branch:** `feature/S1-09-jwt-auth`, stacked on local `feature/S1-08-database-schema`; S1-08 is not yet merged.
+- Added versioned email/password login, JWT bearer verification middleware, refresh, and logout. Access JWTs expire after 15 minutes; refresh tokens are 256-bit opaque values, stored only as SHA-256 hashes, rotated on use, replay-detected, and revoked on logout. The recommended seven-day lifetime is absolute and is not extended by rotation.
+- Added Argon2id password helpers, generic invalid-credential responses, exact-origin credentialed CORS, production Secure/HttpOnly/SameSite=None cookies, local Lax cookies, and in-memory IP rate limits. The technical details are assistant-selected recommendations per owner direction, not separate owner approvals.
+- Added the `refresh_sessions` collection/index/TTL baseline and `WEB_ORIGIN` example. Registration/OTP, Google OAuth, password reset, and RBAC enforcement remain assigned to their later stories.
+- **Validation on Node `24.21.0`:** 14 backend tests, Biome, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Tests use a fake auth repository; live MongoDB verification remains unavailable because Docker and `mongod` are absent.
+- **Status:** In Progress pending live MongoDB persistence verification. Work remains local; no remote push was made.

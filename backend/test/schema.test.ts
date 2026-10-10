@@ -9,7 +9,12 @@ import {
   normalizeEmail,
 } from "../src/database/schema.js";
 
-const GLOBAL_COLLECTIONS = new Set<CollectionName>(["users", "restaurants", "customers"]);
+const GLOBAL_COLLECTIONS = new Set<CollectionName>([
+  "users",
+  "refreshSessions",
+  "restaurants",
+  "customers",
+]);
 
 function indexFor(collection: CollectionName, name: string) {
   return COLLECTION_INDEXES[collection].find((index) => index.name === name);
@@ -47,6 +52,8 @@ test("identity and one-to-one domain constraints have unique indexes", () => {
   assert.deepEqual(linkedCustomerIndex?.partialFilterExpression, { userId: { $type: "objectId" } });
   assert.equal(indexFor("staff", "staff_restaurant_user_unique")?.unique, true);
   assert.equal(indexFor("tables", "tables_restaurant_number_unique")?.unique, true);
+  assert.equal(indexFor("refreshSessions", "refresh_sessions_token_hash_unique")?.unique, true);
+  assert.equal(indexFor("refreshSessions", "refresh_sessions_expiry_ttl")?.expireAfterSeconds, 0);
   assert.equal(indexFor("bills", "bills_restaurant_order_unique")?.unique, true);
 });
 

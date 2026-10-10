@@ -2,6 +2,7 @@ import type { Db, Document, IndexDescription, ObjectId } from "mongodb";
 
 export const COLLECTIONS = {
   users: "users",
+  refreshSessions: "refresh_sessions",
   restaurants: "restaurants",
   customers: "customers",
   staff: "staff",
@@ -62,6 +63,18 @@ export interface RestaurantUserDocument extends UserBaseDocument {
 }
 
 export type UserDocument = CustomerUserDocument | RestaurantUserDocument;
+
+export interface RefreshSessionDocument extends TimestampedDocument {
+  userId: ObjectId;
+  /** SHA-256 hash of the current 256-bit opaque refresh token. */
+  tokenHash: string;
+  /** Hashes retained to detect replay of any previously rotated token. */
+  usedTokenHashes: string[];
+  /** Absolute expiry; rotation does not extend the seven-day session lifetime. */
+  expiresAt: Date;
+  revokedAt: Date | null;
+  lastUsedAt: Date | null;
+}
 
 export interface RestaurantDocument extends TimestampedDocument {
   name: string;
@@ -199,6 +212,12 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
   users: [
     { key: { normalizedEmail: 1 }, name: "users_normalized_email_unique", unique: true },
     { key: { restaurantId: 1, role: 1, status: 1 }, name: "users_restaurant_role_status" },
+  ],
+  refreshSessions: [
+    { key: { tokenHash: 1 }, name: "refresh_sessions_token_hash_unique", unique: true },
+    { key: { usedTokenHashes: 1 }, name: "refresh_sessions_used_token_hashes" },
+    { key: { userId: 1, revokedAt: 1, expiresAt: 1 }, name: "refresh_sessions_user_active_expiry" },
+    { key: { expiresAt: 1 }, name: "refresh_sessions_expiry_ttl", expireAfterSeconds: 0 },
   ],
   restaurants: [{ key: { status: 1, name: 1 }, name: "restaurants_status_name" }],
   customers: [
