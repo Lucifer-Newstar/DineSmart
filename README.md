@@ -38,7 +38,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows. See the [frontend guide](frontend/README.md) for the lint, format, typecheck, and build commands.
+Open `http://localhost:3000`. The `/` route is a neutral application shell only; it does not yet implement customer or restaurant workflows. The optional `frontend/.env.example` contains only a local API URL placeholder; never put secrets in `NEXT_PUBLIC_` variables. See the [frontend guide](frontend/README.md) for quality commands.
 
 ## Backend setup
 
@@ -101,10 +101,11 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 - [Navin Jairam work log](Docs/Work%20Logs/Navin_Jairam.md)
 - [Dhanush Kumar work log](Docs/Work%20Logs/Dhanush_Kumar.md)
 - [Jegatheesan work log](Docs/Work%20Logs/Jegatheesan.md)
+- [Gokul work log](Docs/Work%20Logs/Gokul.md)
 
 ## Development status
 
-The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation and S1-04 Express backend shell are locally validated and **Ready to Push** on their task branches. S1-05 local-first MongoDB configuration is **In Progress** on `feature/S1-05-mongodb-atlas`; the workspace has no Docker daemon, so a live database connection could not be verified here. The S1-04 branch is stacked on S1-07 so CI can verify both packages; S1-07 remains **In Progress** pending GitHub-run confirmation and deployment/CD scope. No remote push has been made. The backend has a liveness route and native-driver connection setup, but no product collections/workflows or Atlas credentials. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
+The MVP scope, architecture, API endpoint inventory, delivery plan, and test criteria are documented. The S1-03 Next.js foundation and S1-04 Express backend shell are locally validated and **Ready to Push** on their task branches. S1-05 local-first MongoDB configuration is **In Progress** on `feature/S1-05-mongodb-atlas`; the workspace has no Docker daemon, so a live database connection could not be verified here. S1-06 secret-free environment examples are **Ready to Push** on `feature/S1-06-environment-variables`. The S1-04 branch is stacked on S1-07 so CI can verify both packages; S1-07 remains **In Progress** pending GitHub-run confirmation and deployment/CD scope. No remote push has been made. The backend has a liveness route and native-driver connection setup, but no product collections/workflows or Atlas credentials. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) document records approved defaults and open module-specific decisions.
 
 ## Repository structure
 

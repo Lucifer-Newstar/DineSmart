@@ -19,6 +19,10 @@ npm run dev
 
 Open `http://localhost:3000` in a browser.
 
+## Environment
+
+`NEXT_PUBLIC_API_BASE_URL` is provided as a non-secret local API URL example. Copy `.env.example` to `.env.local` if you need it. The current shell does not call the API, and secrets must never use a `NEXT_PUBLIC_` name.
+
 ## Quality commands
 
 Run these from `frontend/`:

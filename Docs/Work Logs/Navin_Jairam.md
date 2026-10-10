@@ -58,3 +58,10 @@
 - Updated the implementation decisions, backend and team setup guides, root README, and backlog. S1-05 remains **In Progress** because this workspace has no Docker daemon and the live database/Atlas connection is not verified.
 - **Validation:** documentation links and YAML parse checks pass; no database credentials were added to the repository.
 - **Delivery:** documentation/status update is local only; no remote push was made.
+
+### S1-06 — Environment variable documentation
+
+- Documented the explicit environment variable names and secret-handling policy; linked Gokul's work log and updated the README/setup guidance.
+- Recorded S1-06 as **Ready to Push** after confirming `.env.example` remains trackable while real environment files are ignored. Placeholders do not configure OAuth, email, Gemini, or Atlas credentials.
+- **Validation:** local Markdown links and ignore patterns verified; no secrets were committed.
+- **Delivery:** documentation/status update is local only; no remote push was made.
