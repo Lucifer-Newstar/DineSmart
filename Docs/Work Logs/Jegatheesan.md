@@ -122,3 +122,10 @@
 - **Local verification via Node `24.21.0`:** Biome checked 135 backend files with no findings; typecheck and production build passed; all 237 backend tests passed; `npm audit --audit-level=high` reported zero vulnerabilities; `git diff --check` passed. The base shell Node remains `20.20.2`.
 - Cross-collection changes cannot be transactional on the selected standalone local MongoDB. Fake-backed tests exercise filters/failure paths, but no live MongoDB/Atlas, browser UI, remote CI, deployment, push, or merge is claimed.
 - **Status:** S2-16 is **Ready to Push** on local `main`, not Complete.
+
+### 2026-10-11 — S2-17 Waitlist Management API started
+
+- Continued sequentially on local `main` after S2-16's Ready to Push checkpoint; S2-17 is In Progress and remains assigned to Jegatheesan.
+- Reviewed the sparse `GET /waitlist` and `POST /waitlist` inventory, existing Reception/Manager/Administrator permissions, the approved FIFO/manual-promotion workflow, guest/customer profiles, and current table-state fields.
+- Recommend a bounded signed-tenant walk-in queue plus a staff-only update to seat/cancel/no-show entries. Seating must be staff-directed, same-tenant, table-capacity-safe, and linked to an available table; it is not automatic seating or guest notification. These request/status details are recommendations, not separate owner approvals.
+- Shared API/architecture/test-plan docs and later app composition remain Navin-owned. Live MongoDB/Atlas and multi-document allocation behavior remain unverified; no deployment, push, or remote CI is planned.
