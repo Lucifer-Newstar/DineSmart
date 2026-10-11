@@ -277,16 +277,17 @@ S2-17 is **Ready to Push** on local `main`, not Complete. FIFO/manual promotion 
 
 - Test signed-tenant staff-only list/create/update behavior, FIFO ordering and truncation, guest input bounds, strict body/query/path validation, and role denials.
 - Test only waiting entries can be resolved, seating requires a same-tenant available table with sufficient capacity, duplicate/stale writes fail closed, and table/waitlist synchronization failure is surfaced with compensation.
-- Verify `currentWaitlistId` is attached on staff-directed seating; S2-18 table reopen will clear it when staff marks the table available. Successful occupancy requests health-score/incident refreshes and publishes tenant-scoped table/waitlist invalidations.
+- Verify `currentWaitlistId` is attached on staff-directed seating; the S2-18 table status route now validates and clears it when staff marks the table available. Successful occupancy requests health-score/incident refreshes and publishes tenant-scoped table/waitlist invalidations.
 - **Local verification via Node `24.21.0`:** Biome checked 142 backend files; typecheck and production build passed; all 257 backend tests passed; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed.
 - Local fakes cannot establish multi-document transactionality or cross-process table allocation. Live MongoDB/index behavior, browser workflow, remote CI, deployment, push, and merge remain outstanding.
 
 ## 29. S2-18 Table Status API Verification
 
-S2-18 is **In Progress**. The endpoint inventory includes only `PUT /tables/{id}/status`; the transition map and reference-cleanup behavior below are assistant recommendations to fill the unspecified contract, not separate owner approval.
+S2-18 is **Ready to Push** on local `main`, not Complete. The endpoint inventory includes only `PUT /tables/{id}/status`; the transition map and reference-cleanup behavior below are assistant recommendations to fill the unspecified contract, not separate owner approval.
 
 - Test Reception/Manager/Administrator authorization and signed-restaurant filters; Customers and Kitchen Staff are denied. Reject client-selected tenant, query filters, malformed IDs, unknown request fields, and unsupported status values.
 - Test the documented transition graph and idempotent same-status updates. A table cannot leave disabled/out-of-service except to available; occupied/reserved tables must be explicitly cleared before disabling.
 - On transition to `available`, verify same-tenant linked reservation/order records are terminal and a waitlist assignment is seated and points back to that table; clear only the safe links. Active, missing, mismatched, or cross-tenant references fail closed.
 - Verify conditional `updatedAt`/status/reference matching prevents stale writes; successful changes request health-score/incident refresh and publish only minimal tenant-scoped table invalidations.
+- **Local verification via Node `24.21.0`:** Biome checked 149 backend files; typecheck and production build passed; all 272 backend tests passed; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed.
 - Local fakes cannot establish consistency between table documents and linked reservation/order/waitlist documents under cross-process writes. Live MongoDB/index behavior, browser workflow, remote CI, deployment, push, and merge remain outstanding.

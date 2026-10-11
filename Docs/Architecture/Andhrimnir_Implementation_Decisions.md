@@ -412,7 +412,7 @@ The SRS says to manage a waitlist; the endpoint inventory gives only list/add op
 
 ## 16. S2-18 Table Status API recommendations (assistant-selected 2026-10-11)
 
-The canonical inventory contains `PUT /tables/{id}/status` but no table list/get operation or explicit status contract. Seeded tables use lowercase `available`, `reserved`, and `occupied`; incident/health-score logic also recognizes `disabled` and `out_of_service`. The following local contract is a recommendation, not separate owner approval.
+The canonical inventory contains `PUT /tables/{id}/status` but no table list/get operation or explicit status contract. Seeded tables use lowercase `available`, `reserved`, and `occupied`; incident/health-score logic also recognizes `disabled` and `out_of_service`. The following local contract is a recommendation, not separate owner approval. S2-18 now locally implements the route, guarded reference cleanup, and table-change hooks; it is Ready to Push on local `main`, not Complete. Live MongoDB/index and cross-collection consistency, remote CI, deployment, push, and merge remain unverified/deferred.
 
 - Restrict this route to Reception, Manager, and Administrator with the existing `tables:write` permission. Derive `restaurantId` from the signed principal, filter every read/write by both tenant and table ID, and return a safe table summary without reservation/order/waitlist identifiers. Do not add a table list route, table creation, combining, or a new access permission.
 - Accept exactly `{ status }`, with canonical lowercase values `available`, `reserved`, `occupied`, `disabled`, and `out_of_service`; reject aliases/extra fields. Same-status requests are idempotent.
