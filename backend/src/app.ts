@@ -53,6 +53,9 @@ import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
 import { MongoReservationRepository } from "./reservations/reservation.repository.js";
 import { createReservationRouter } from "./reservations/reservation.router.js";
 import { ReservationService } from "./reservations/reservation.service.js";
+import { MongoStaffRepository } from "./staff/staff.repository.js";
+import { createStaffRouter } from "./staff/staff.router.js";
+import { StaffService } from "./staff/staff.service.js";
 
 export interface AppOptions {
   getDatabase?: () => Promise<Db>;
@@ -295,6 +298,19 @@ export function createApp(options: AppOptions = {}) {
         const { db, service: authService } = await createAuthRuntime();
         return {
           service: new BillService(new MongoBillRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/staff",
+    createStaffRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new StaffService(new MongoStaffRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

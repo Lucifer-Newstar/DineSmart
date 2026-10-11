@@ -72,6 +72,9 @@ test("createApp mounts the public menu and protected analytics, billing, order, 
     });
     assert.equal(resetResponse.status, 400);
 
+    const staffResponse = await fetch(`${baseUrl}/api/v1/staff`);
+    assert.equal(staffResponse.status, 401);
+
     const kitchenResponse = await fetch(`${baseUrl}/api/v1/kitchen/queue`);
     assert.equal(kitchenResponse.status, 401);
 
