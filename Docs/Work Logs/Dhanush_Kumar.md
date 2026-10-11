@@ -72,7 +72,7 @@
 
 ### S2-03 — Reservation UI integration
 
-- Replaced the `/book` preview-only submit with authenticated Customer reservation requests. Restaurant ID is configurable through the public demo environment variable; booking times are submitted with the Chennai/India offset. The page shows saved status only after an API success and clearly explains that an `Awaiting` request is not a confirmed table.
+- Replaced the `/book` preview-only submit with authenticated Customer reservation requests. Restaurant ID is configurable through the public demo environment variable; booking selections are interpreted in Chennai/India time and converted to a timezone-qualified UTC ISO timestamp for the API. The page shows saved status only after an API success and clearly explains that an `Awaiting` request is not a confirmed table.
 - Added return-to-booking navigation after login/registration, customer next-visit loading across restaurants (using the API's restaurant display name) and pre-start cancellation, plus live staff schedule reads/status updates. Sample and unavailable data remain explicitly labeled; preview updates are not persisted.
 - **Validation on Node `24.21.0`:** frontend `npm ci`, audit (zero vulnerabilities), Biome, typecheck, and Next.js production build passed. The frontend has no automated test script; no live browser interaction or MongoDB-backed UI flow was verified.
 - **Implementation commit:** `9143697` (Dhanush).
