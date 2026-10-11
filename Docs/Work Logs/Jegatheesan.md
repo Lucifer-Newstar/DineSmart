@@ -62,3 +62,12 @@
 - **Implementation commits:** `f74c728` (repository/snapshots/history), `3b9a0c0` (service/cart validation/cancellation), `dd169ef` (HTTP endpoints), and `e02bd14` (customer response excludes kitchen-only state), Jegatheesan.
 - **Local validation on Node `24.21.0`:** all 79 backend tests passed; Biome, TypeScript typecheck, production build, `npm audit --audit-level=high` (zero vulnerabilities), and `git diff --check` passed. Repository tests use fakes; Docker/`mongod` are unavailable, so live MongoDB persistence/index behavior remains unverified.
 - **Status:** S2-04 API work is Ready to Push on local `main`, pending live MongoDB verification and integration E2E. No remote push or GitHub Actions run was made.
+
+### S2-05 — Kitchen Queue and staff order progression
+
+- Implemented a tenant-scoped, oldest-first kitchen queue limited to 200 active tickets with `truncated`, item-only preparation data, and no customer contacts/prices. Added conditional item `Created → Preparing → Ready` updates and parent-header derivation (`Accepted → Preparing → Ready`); idempotent retries re-run header synchronization across the separate MongoDB documents.
+- Added tenant-scoped staff order progression (`Created → Accepted`, `Ready → Served`, `Served → Completed`) with status/`updatedAt` compare-and-set. Direct staff cancellation, payment/tax, fulfillment/table assignment, auto-stock deductions, and dashboard UI integration remain out of scope.
+- Recorded detailed endpoint rules as assistant recommendations, not separate owner approvals. Identified Reception's missing `orders:write` grant despite the approved order-update matrix; Navin integrated the recommended permission and regression coverage.
+- **Implementation commits:** `bd46f2f` (tenant-scoped repository/service/types) and `dad0024` (staff HTTP routes), Jegatheesan. **App/RBAC integration commit:** `4e550bc`; **contract/status documentation commit:** `ccefeba`, Navin.
+- **Validation on Node `24.21.0`:** backend Biome lint, TypeScript typecheck, production build, `npm audit --audit-level=high` (zero vulnerabilities), all 92 tests, and `git diff --check` passed. Tests use fakes; Docker/`mongod` are unavailable, so live MongoDB persistence/index/concurrency/crash recovery is not verified. No browser/dashboard E2E was run.
+- **Status:** S2-05 is Ready to Push on local `main`, not Complete. No remote is configured; no push, GitHub Actions run, or merge occurred.
