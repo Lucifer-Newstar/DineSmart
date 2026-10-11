@@ -41,7 +41,8 @@
 - Added tenant-scoped `GET /api/v1/inventory` and `PUT /api/v1/inventory/:id` routes. Manager/Administrator receive full stock details and can set a manual non-negative count/optional threshold; Reception/Kitchen Staff receive availability-only data. Each read/write repository filter includes the signed restaurant ID; lists are name-sorted and capped at 2,000 records with a truncation flag. Orders do not auto-deduct stock.
 - **Implementation commit:** `1086404` (Jegatheesan). Navin documented the recommended request/response and privacy contract in `e2c4e4e`; those contract details remain recommendations, not separate owner approvals.
 - **Validation on Node `24.21.0`:** Biome, TypeScript typecheck, 41 backend tests, production build, `npm audit --audit-level=high` (zero vulnerabilities), and `git diff --check` passed. Fake-repository tests verify tenant filtering; live MongoDB integration remains unavailable.
-- **Status:** S2-06 remains **In Progress** pending live MongoDB verification. No remote push or merge was made.
+- **2026-10-11 local closeout:** Rechecked frontend `npm ci`, Biome, TypeScript typecheck, production build, and audit (zero vulnerabilities); backend CI-equivalent Biome, typecheck, build, production-dependency audit, and all 111 backend tests also pass on Node `24.21.0`. The frontend has no automated test runner, so no browser E2E is claimed.
+- **Status:** S2-06 is **Ready to Push** on local `main`. Live MongoDB persistence/index verification is deferred to the final database/deployment stage; no remote push or merge was made.
 
 ## 2026-10-11
 

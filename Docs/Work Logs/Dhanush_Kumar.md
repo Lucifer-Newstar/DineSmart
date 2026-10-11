@@ -66,7 +66,8 @@
 - Added authenticated `GET /api/v1/inventory`, defensive response parsing, loading/live/unavailable/preview labels, retry, empty-list and truncation states, and sample-data disclosures. Reception and Kitchen Staff see availability without quantities or write controls. Managers and Administrators can submit an exact finite, non-negative on-hand count through `PUT /api/v1/inventory/{id}`. Preview edits remain local and are not persisted; supplier integration and automatic order deductions remain out of scope.
 - **Frontend implementation commits:** `f2afac0` and `8d7f15a` (Dhanush). **Frontend README commit:** `7fdee3f` (Navin). **Integration merge commits:** `92604f7` and `b324460` (Navin).
 - **CI-equivalent local validation on Node `24.21.0`:** frontend and backend `npm ci`, `npm audit`, Biome lint, typechecks, and production builds passed; backend suite passed all 45 tests. The frontend has no configured test script. `git diff --check` passed. GitHub Actions was not triggered because no push or pull request was made. Live MongoDB verification remains unavailable because Docker and `mongod` are absent.
-- **Status:** S2-06 remains **In Progress** pending live MongoDB/API verification and final review. The integrated code is on local `main`; no remote push or GitHub Actions run was made.
+- **2026-10-11 local closeout:** Frontend `npm ci`, Biome, TypeScript typecheck, Next.js production build, and audit (zero vulnerabilities) were rechecked with Node `24.21.0`; the frontend still has no automated test runner, so no browser E2E is claimed.
+- **Status:** S2-06 is **Ready to Push** on local `main`. Live MongoDB/API persistence and index verification are deferred to the final database/deployment stage; no remote push or GitHub Actions run was made.
 
 ## 2026-10-11
 

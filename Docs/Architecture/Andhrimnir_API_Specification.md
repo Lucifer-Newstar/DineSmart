@@ -83,6 +83,17 @@ Kitchen item updates derive the order header: the first item moved out of `Creat
 
 The queue is oldest-first, bounded to 200 parent orders. Conditional item status and order status/`updatedAt` matches prevent stale writes from overwriting another transition. Item and parent records are separate MongoDB documents and cannot be updated atomically in local standalone mode; item-first updates plus an idempotent retry can repair header aggregation after an interrupted request, but process-crash consistency and live MongoDB concurrency remain unverified. The customer-facing order page and staff dashboard UI are outside this API story; the existing dashboard queue remains explicitly sample data pending UI integration.
 
+## S2-06 Inventory — local API/UI implementation; assistant-recommended contract
+
+This endpoint contract records assistant-selected details, not separate owner approvals. The tenant-scoped inventory API and dashboard UI are implemented and locally verified on `main`; S2-06 is Ready to Push. Live MongoDB persistence/index verification is deferred to the final database/deployment stage.
+
+| Route | Authorization and scope | Request/behavior | Success response |
+| --- | --- | --- | --- |
+| `GET /inventory` | Reception/Kitchen Staff: `inventory:availability:read`; Manager/Administrator: same read permission; restaurant from signed principal | No client-selected tenant. Sorted by item name, capped at 2,000. Managers/Admins receive quantity, unit, low-stock threshold, and last-adjusted timestamp; Reception/Kitchen Staff receive availability only. | `200 { items, truncated }` |
+| `PUT /inventory/{id}` | Manager/Administrator: `inventory:write`; restaurant from signed principal | Exact allowed fields are `quantity` and optional `lowStockThreshold`, both finite and non-negative. This sets the physical count; the server stamps `lastAdjustedAt`. No automatic order deduction or incident creation. | `200 { item }` |
+
+The UI submits manager adjustments only after a live API response, displays unavailable/preview states clearly, and keeps supplier integration and automatic stock deduction out of this story. Low-stock incident generation belongs to S2-12, so TC-07/AC incident alerts are not claimed as complete by S2-06.
+
 ## S2-10 Notifications — local backend implementation; assistant-recommended contract
 
 This contract is an assistant recommendation chosen to fill unspecified S2-10 details; it is not a separate owner approval. The authenticated API, recipient/tenant-scoped repository, server-only creation service, and fake-backed tests are implemented locally. Live MongoDB verification remains outstanding. No automatic producer/event mapping, retention period, or WebSocket delivery guarantee is selected here.
