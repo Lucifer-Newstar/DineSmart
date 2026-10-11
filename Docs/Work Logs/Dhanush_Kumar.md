@@ -58,7 +58,7 @@
 - Restricted the restaurant-wide score from Kitchen Staff, hid commercial metrics outside Manager/Administrator views, and changed non-manager inventory displays to availability-only with no restock controls. A persistent preview banner now clarifies that most dashboard metrics and operations are sample-only and not persisted.
 - **Frontend implementation commit:** `5d83355` (Dhanush). The companion backend route originated in `77ccd7c` and was integrated into local `main` at `70f5fb4`; the temporary area branches were later deleted at the owner's direction.
 - **Validation on Node `24.21.0`:** frontend Biome, TypeScript typecheck, production build (all six app routes prerendered), and `npm audit --audit-level=high` passed; zero vulnerabilities. Live API/MongoDB testing is unavailable without Docker/MongoDB credentials.
-- **Status:** S2-08 is now **Ready to Push** on local `main`: Navin completed the event/hourly recalculation cadence in the 2026-10-11 backend closeout. Live MongoDB/Atlas validation and browser E2E remain deferred. S2-11 remains **In Progress** pending full role-by-role workflow review. No remote push or merge was made.
+- **Checkpoint before the S2-11 closeout below:** S2-08 is **Ready to Push** on local `main`; Navin completed the event/hourly recalculation cadence in the 2026-10-11 backend closeout. Live MongoDB/Atlas validation and browser E2E remain deferred. At this checkpoint S2-11 was still **In Progress** pending role-by-role workflow and tenant-state review; see the later closeout entry below.
 
 ### S2-06 — Inventory UI integration
 
@@ -101,3 +101,13 @@
 - Added local-time daily/hourly order charts, fulfillment/cancellation/in-progress outcomes, preparation observations, reservation status counts, current stock alerts, and visible partial-sample disclosure. Financial revenue, average check, guest PII, and inferred fulfillment-channel mix remain excluded because the implemented data does not support those claims.
 - **Frontend implementation commit:** `d25fadf` (Dhanush). **Local validation on Node `24.21.0`:** frontend Biome checked 21 files; typecheck and Next.js production build passed; `npm audit --audit-level=high` reported zero vulnerabilities; `git diff --check` passed.
 - **Status:** S2-09 is **Ready to Push** on local `main`, not Complete. No frontend automated test runner/browser E2E or live API/MongoDB validation was available; those checks, remote CI, deployment, push, and merge are not claimed.
+
+### S2-11 — Role-based dashboard and customer order-summary closeout
+
+- Completed the five-role workspace presentation against the approved matrix: Reception sees Orders, Reservations, and read-only Inventory availability; Kitchen Staff sees relevant Orders, Kitchen, and availability-only Inventory; Managers/Administrators retain restaurant-wide navigation; Customers enter their own account portal.
+- Added a price-free recent-order summary from authenticated `GET /api/v1/orders/history` to the Customer portal, retaining the full order-history workflow separately at `/orders`. Customer ownership and restaurant scope continue to be enforced by the API, not the UI.
+- Added stale-section fallback and navigation-action filtering. Recommendation/review UI state is matched to the active user, restaurant, and role; mismatched state immediately falls back to demo/unreviewed. Analytics remounts with the same workspace scope key so a previous tenant report and request are discarded. These are client-state safeguards, not authorization.
+- Added Node-native role/access tests, including workspace-scope isolation. **Test result:** 6 passed, 0 failed; the configured frontend test script is also picked up by CI.
+- **Implementation commit:** `0ee395a` (Dhanush), local `main`.
+- **Local validation on Node `24.21.0`:** frontend `npm ci`, dependency audit (zero vulnerabilities), Biome (22 files), unit tests, TypeScript typecheck, and Next.js production build all passed. No browser E2E, live MongoDB/Atlas test, remote CI run, push, or merge is claimed.
+- **Status:** S2-11 is **Ready to Push** on local `main`, not Complete.
