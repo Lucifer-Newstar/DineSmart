@@ -278,3 +278,10 @@
 - Updated the canonical endpoint inventory, recommendation/security/session-watermark documentation, database schema, backlog, acceptance criteria, and test plan. Kept the sparse staff route choices explicitly assistant-recommended, not owner-approved, and recorded the cross-collection standalone MongoDB limitation.
 - S2-16 is **Ready to Push** on local `main`, not Complete. Final local Node `24.21.0` verification: backend Biome checked 135 files, typecheck/build passed, all 237 tests passed, audit found zero high-severity vulnerabilities, and `git diff --check` passed.
 - Live MongoDB/Atlas, browser workflow, remote CI, deployment, push, and merge remain unverified or deferred to later work.
+
+### 2026-10-11 — S2-17 Waitlist contract and shared integration started
+
+- Continued sequentially on local `main`; marked S2-17 In Progress after the S2-16 Ready to Push checkpoint.
+- Added an assistant-recommended FIFO/manual-seating contract for the walk-in waitlist. The sparse endpoint inventory contains list/add; the documented update route is added to support the existing manual promotion/table-assignment workflow. These details are recommendations, not separate owner approvals.
+- Shared architecture/API/test-plan documentation and app composition remain Navin-owned; feature repository/service/router work remains assigned to Jegatheesan.
+- Waitlist/table synchronization spans collections and remains a local-fake limitation; no live MongoDB, remote CI, deployment, or push is claimed.
