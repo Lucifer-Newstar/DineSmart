@@ -272,9 +272,10 @@ S2-16 is **Ready to Push** on local `main`, not Complete. The request semantics 
 
 ## 28. S2-17 Waitlist Management API Verification
 
-S2-17 is **In Progress**. FIFO/manual promotion and the new request contract are assistant recommendations based on the sparse endpoint inventory and existing workflow decision; no additional owner approval is implied.
+S2-17 is **Ready to Push** on local `main`, not Complete. FIFO/manual promotion and the new request contract are assistant recommendations based on the sparse endpoint inventory and existing workflow decision; no additional owner approval is implied.
 
 - Test signed-tenant staff-only list/create/update behavior, FIFO ordering and truncation, guest input bounds, strict body/query/path validation, and role denials.
 - Test only waiting entries can be resolved, seating requires a same-tenant available table with sufficient capacity, duplicate/stale writes fail closed, and table/waitlist synchronization failure is surfaced with compensation.
-- Verify `currentWaitlistId` is attached/released through the table workflow and successful table occupancy notifies health-score/incident/realtime hooks.
+- Verify `currentWaitlistId` is attached on staff-directed seating; S2-18 table reopen will clear it when staff marks the table available. Successful occupancy requests health-score/incident refreshes and publishes tenant-scoped table/waitlist invalidations.
+- **Local verification via Node `24.21.0`:** Biome checked 142 backend files; typecheck and production build passed; all 257 backend tests passed; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed.
 - Local fakes cannot establish multi-document transactionality or cross-process table allocation. Live MongoDB/index behavior, browser workflow, remote CI, deployment, push, and merge remain outstanding.

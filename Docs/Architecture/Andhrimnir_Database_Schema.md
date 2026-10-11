@@ -24,7 +24,8 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 | `customers` | optional `userId`, `displayName`, optional guest `email`/`phone`, optional `contactPreferences` | Global profile; not tenant-scoped. |
 | `staff` | `restaurantId`, `userId`, `role`, `isActive` | Restaurant membership; no shift/schedule fields in MVP. |
 | `menu_items` | `restaurantId`, `category`, `name`, optional `description`, `priceMinor`, `isAvailable`, optional dietary/allergen labels | Restaurant-scoped. |
-| `tables` | `restaurantId`, `tableNumber`, `capacity`, optional `zone`, `status`, optional current reservation/order references | Restaurant-scoped. |
+| `tables` | `restaurantId`, `tableNumber`, `capacity`, optional `zone`, `status`, optional current reservation/order/waitlist references | Restaurant-scoped. `currentWaitlistId` records a staff-directed walk-in seating assignment until the table is explicitly reopened. |
+| `waitlist` | `restaurantId`, `guestName`, `partySize`, optional `phone`/`notes`, `status` (`waiting`, `seated`, `cancelled`, `no_show`), optional `tableId`/`seatedAt` | Restaurant-scoped walk-in queue item; it is not a Customer profile or reservation. The API lists only open `waiting` entries; no TTL/history policy is selected. |
 | `reservations` | `restaurantId`, `customerId`, `partySize`, `startAt`, `endAt`, optional `tableId`, `status`, optional `notes` | Restaurant-scoped; customer identity may span restaurants. |
 | `orders` | `restaurantId`, `customerId`, optional `reservationId`/`tableId`, `totalMinor`, `currency`, `status`, optional `statusTimestamps` | Restaurant-scoped. |
 | `order_items` | `restaurantId`, `orderId`, `menuItemId`, `nameSnapshot`, `unitPriceMinor`, `quantity`, optional `notes`, `preparationStatus` | Restaurant-scoped; names and prices are snapshots. |
@@ -40,7 +41,8 @@ The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Regi
 
 - A `User` may have zero or one linked `Customer` profile and multiple refresh-session families. A guest `Customer` may have no `userId`.
 - A `Customer` may have multiple reservations and orders across restaurants. Each such operational document still contains its own `restaurantId`.
-- A `Restaurant` owns its staff memberships, menu items, tables, reservations, orders, order items, inventory items, incidents, recommendations, notifications, and bills.
+- A `Restaurant` owns its staff memberships, menu items, tables, waitlist entries, reservations, orders, order items, inventory items, incidents, recommendations, notifications, and bills.
+- A seated waitlist entry references one same-restaurant `Table` through both `tableId` and the table's `currentWaitlistId`; the table is conditionally changed from `available` to `occupied`. `currentWaitlistId` is cleared only when the table is explicitly reopened. This cross-document write uses conditional writes and compensation, not a MongoDB transaction.
 - An `Order` has one or more `OrderItem` documents; each item snapshots the menu name and unit price. An `Order` has at most one `Bill` in this baseline.
 - An `Incident` has at most one current `Recommendation` in the MVP; regenerate with an upsert keyed by `(restaurantId, incidentId)`. Historical recommendation versions are deferred.
 - A `Table` may be assigned over time to reservations. The reservation conflict rule (same-table overlap and capacity) must be enforced by the service layer in a transaction/appropriate consistency strategy; a normal B-tree index cannot prevent overlapping time ranges.
@@ -61,6 +63,7 @@ The named index specifications live alongside the document types in `backend/src
 | `orders` | `(restaurantId, status, createdAt desc)`; `(restaurantId, createdAt desc)` for rolling health-score snapshots; `(customerId, createdAt desc)`. |
 | `order_items` | `(restaurantId, orderId)`. |
 | `reservations` | `(restaurantId, startAt, status)`; `(restaurantId, tableId, startAt)`. These are non-unique. |
+| `waitlist` | `(restaurantId, status, createdAt, _id)` for FIFO open-queue reads; `(restaurantId, tableId, status)` for assigned-table lookup. |
 | `tables` | Unique `(restaurantId, tableNumber)`. |
 | `inventory_items` | `(restaurantId, name)`; `(restaurantId, quantity)`. |
 | `incidents` | `(restaurantId, status, createdAt desc)`; `(restaurantId, severity, status)`. |
@@ -75,3 +78,7 @@ MongoDB's built-in unique `_id` index is omitted from this table. Query plans an
 When `MONGODB_URI` is configured, the backend connects and creates the named indexes before reporting schema readiness. Index/bootstrap errors leave the API in liveness-only mode; the log does not expose the URI. The index initializer is unit-tested with a fake `Db`, but a live MongoDB run was not possible in this workspace because Docker and `mongod` are unavailable.
 
 S1-08 does **not** add MongoDB JSON Schema validators or migrations. TypeScript types are compile-time guidance only. Required-field/range checks, exact enum transitions, reservation overlap enforcement, authorization, and API request validation must be implemented and tested with the corresponding workflow tasks. Any future breaking index or field change should be delivered with a migration plan rather than relying on startup to silently rewrite data.
+
+## S2-17 waitlist schema update (local, 2026-10-11)
+
+The `waitlist` collection and its FIFO/assigned-table indexes are now present in the native-driver schema and local demo seed manifest (empty by default). Waitlist entries retain `restaurantId`; table occupancy is acquired with a conditional write and compensated if the entry update fails. The seat/update operation spans two standalone-MongoDB documents, so this is not transactionally atomic; live MongoDB index and failure behavior remain unverified. See the [S2-17 API and assistant-selected contract](Andhrimnir_API_Specification.md#s2-17-waitlist-management-apis-local-implementation) and [implementation decision](Andhrimnir_Implementation_Decisions.md#s2-17-waitlist-api-recommendations-assistant-selected-2026-10-11).

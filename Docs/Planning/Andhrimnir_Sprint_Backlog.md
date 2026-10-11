@@ -75,7 +75,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-14 | Billing APIs | Jegatheesan | High | 3 | Ready to Push |
 | S2-15 | Password Reset API | Dhanush | High | 2 | Ready to Push |
 | S2-16 | Staff Management APIs | Jegatheesan | Medium | 3 | Ready to Push |
-| S2-17 | Waitlist Management APIs | Jegatheesan | Medium | 2 | In Progress |
+| S2-17 | Waitlist Management APIs | Jegatheesan | Medium | 2 | Ready to Push |
 | S2-18 | Table Status APIs | Jegatheesan | Medium | 2 | To Do |
 
 ## Sprint 3 – AI Integration & Release
