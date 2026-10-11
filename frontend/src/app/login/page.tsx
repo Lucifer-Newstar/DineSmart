@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { GoogleSignInButton } from "../google-sign-in";
@@ -20,10 +20,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
   const goHome = useCallback(() => router.push(returnPath()), [router]);
+  const [continuationPath, setContinuationPath] = useState("/");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setContinuationPath(returnPath());
+  }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -125,7 +130,10 @@ export default function LoginPage() {
             <div className="auth-divider">YOUR RESTAURANT, YOUR SHIFT</div>
           )}
           <p className="auth-switch">
-            New to DineSmart? <Link href="/register">Create an account</Link>
+            New to DineSmart?{" "}
+            <Link href={`/register?next=${encodeURIComponent(continuationPath)}`}>
+              Create an account
+            </Link>
           </p>
           <div className="auth-note">
             <span aria-hidden="true">✦</span>

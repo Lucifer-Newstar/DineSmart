@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 
@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register, requestOtp, verifyOtp } = useAuth();
   const [step, setStep] = useState<"details" | "verification">("details");
+  const [continuationPath, setContinuationPath] = useState("/");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +29,10 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    setContinuationPath(returnPath());
+  }, []);
 
   const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -188,7 +193,8 @@ export default function RegisterPage() {
               </form>
               <div className="auth-divider">A SMALL STEP TOWARD BETTER SERVICE</div>
               <p className="auth-switch">
-                Already have an account? <Link href="/login">Sign in</Link>
+                Already have an account?{" "}
+                <Link href={`/login?next=${encodeURIComponent(continuationPath)}`}>Sign in</Link>
               </p>
               <div className="auth-note">
                 <span aria-hidden="true">✦</span>
