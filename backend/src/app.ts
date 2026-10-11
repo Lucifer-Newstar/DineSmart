@@ -11,6 +11,9 @@ import { IncidentContextBuilder } from "./ai/incident-context.builder.js";
 import { MongoIncidentContextRepository } from "./ai/incident-context.repository.js";
 import { MongoRecommendationRepository } from "./ai/recommendation.repository.js";
 import { RecommendationService } from "./ai/recommendation.service.js";
+import { MongoAnalyticsRepository } from "./analytics/analytics.repository.js";
+import { createAnalyticsRouter } from "./analytics/analytics.router.js";
+import { AnalyticsService } from "./analytics/analytics.service.js";
 import { MongoAuthRepository } from "./auth/auth.repository.js";
 import { createAuthRouter } from "./auth/auth.router.js";
 import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
@@ -129,6 +132,19 @@ export function createApp(options: AppOptions = {}) {
 
         const { repository, service } = await createAuthRuntime();
         return new GoogleOAuthService(repository, service, googleVerifier).login(idToken);
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/analytics",
+    createAnalyticsRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new AnalyticsService(new MongoAnalyticsRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
       },
     }),
   );
