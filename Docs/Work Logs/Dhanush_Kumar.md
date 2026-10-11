@@ -111,3 +111,10 @@
 - **Implementation commit:** `0ee395a` (Dhanush), local `main`.
 - **Local validation on Node `24.21.0`:** frontend `npm ci`, dependency audit (zero vulnerabilities), Biome (22 files), unit tests, TypeScript typecheck, and Next.js production build all passed. No browser E2E, live MongoDB/Atlas test, remote CI run, push, or merge is claimed.
 - **Status:** S2-11 is **Ready to Push** on local `main`, not Complete.
+
+### 2026-10-11 — S2-15 Password Reset API started
+
+- Continued sequentially on local `main` after S2-14's Ready to Push checkpoint; marked S2-15 In Progress. No branch was created.
+- Reviewed the approved authentication baseline, S1-11 registration OTP controls, refresh-session lifecycle, and the draft `/auth/reset-password` inventory. Reuse the approved six-digit/10-minute/60-second/five-attempt OTP values, but keep registration OTP fields and reset flows separate.
+- Implement the two-step request/confirm flow under my Git identity. The generic request response prevents account enumeration; only active password-backed accounts receive a code. Reset code remains HMAC-hashed, successful confirmation changes the Argon2id password and revokes refresh sessions. These additional contract details are recommendations, not separate owner approvals.
+- Work remains local; no email-provider credentials, production provider check, live database, deployment, push, or remote CI is part of this item.
