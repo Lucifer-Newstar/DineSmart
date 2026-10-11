@@ -3322,6 +3322,192 @@ a {
   font-weight: 700;
   letter-spacing: 0.1em;
 }
+.analytics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding: 15px 18px;
+}
+.analytics-toolbar h2 {
+  margin: 5px 0 3px;
+  color: #37493e;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+.analytics-toolbar p {
+  margin: 0;
+  color: #8a958d;
+  font-size: 9px;
+}
+.analytics-toolbar-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+}
+.analytics-toolbar-controls label {
+  display: grid;
+  gap: 4px;
+  color: #89948c;
+  font-size: 8px;
+}
+.analytics-toolbar-controls select {
+  min-width: 118px;
+  padding: 8px 27px 8px 10px;
+  border: 1px solid #e6ebe4;
+  border-radius: 8px;
+  color: #43564a;
+  background: #fff;
+  font: inherit;
+  font-size: 9px;
+}
+.analytics-toolbar-controls .button {
+  min-height: 33px;
+  padding: 0 10px;
+  font-size: 8px;
+}
+.analytics-state-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 102px;
+  padding: 17px;
+}
+.analytics-state-card > div {
+  flex: 1;
+}
+.analytics-state-card strong {
+  color: #43564a;
+  font-size: 11px;
+}
+.analytics-state-card p {
+  margin: 5px 0 0;
+  color: #89948c;
+  font-size: 9px;
+}
+.analytics-state-icon {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  flex: 0 0 35px;
+  place-items: center;
+  border-radius: 11px;
+  color: #73876b;
+  background: #edf2e8;
+}
+.analytics-state-icon-error {
+  color: #a76349;
+  background: #fbf0ec;
+}
+.analytics-bars-viewport {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.analytics-bars {
+  min-width: 520px;
+}
+.analytics-bars-month {
+  min-width: 880px;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.analytics-bars-month .analytics-bar-wrap {
+  width: 25px;
+  flex: 0 0 25px;
+}
+.analytics-bars-month .analytics-day {
+  font-size: 7px;
+}
+.analytics-bar {
+  min-height: 2px;
+}
+.analytics-day {
+  white-space: nowrap;
+}
+.analytics-outcome-legend {
+  gap: 11px;
+  flex-wrap: wrap;
+}
+.analytics-peak-note {
+  color: #71856a;
+  font-size: 8px;
+  font-weight: 650;
+}
+.analytics-hour-card,
+.analytics-operations-card {
+  min-height: 235px;
+}
+.analytics-hour-bars {
+  display: flex;
+  height: 130px;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 27px;
+  padding: 0 3px;
+  border-bottom: 1px solid #edf0eb;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    #f0f2ee 32px,
+    transparent 33px
+  );
+}
+.analytics-hour-wrap {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+}
+.analytics-hour-bar {
+  width: 75%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: #d9e3d3;
+}
+.analytics-hour-wrap > span {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  color: #9ba59e;
+  font-size: 7px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.analytics-operational-rows {
+  display: grid;
+  gap: 0;
+  margin-top: 13px;
+}
+.analytics-operational-rows > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2ee;
+  color: #859188;
+  font-size: 8px;
+}
+.analytics-operational-rows > div:last-child {
+  border-bottom: 0;
+}
+.analytics-operational-rows strong {
+  color: #46594d;
+  font-size: 9px;
+  font-weight: 650;
+}
+.analytics-footnote {
+  margin: 10px 2px 0;
+  color: #929c94;
+  font-size: 8px;
+  line-height: 1.6;
+}
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4509,6 +4695,15 @@ a {
   .analytics-summary-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+  }
+  .analytics-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px;
+  }
+  .analytics-toolbar-controls {
+    width: 100%;
+    justify-content: space-between;
   }
   .analytics-kpi {
     min-height: 90px;
