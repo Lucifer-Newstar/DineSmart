@@ -1,11 +1,11 @@
 import type { Db, ObjectId, WithId } from "mongodb";
+import { MongoCustomerProfileRepository } from "../customers/customer-profile.repository.js";
 import {
   COLLECTIONS,
   type CustomerDocument,
   type ReservationDocument,
   type RestaurantDocument,
   type TableDocument,
-  type UserDocument,
 } from "../database/schema.js";
 import type {
   NewReservation,
@@ -32,45 +32,20 @@ const INACTIVE_RESERVATION_STATUSES = [
 export class MongoReservationRepository implements ReservationRepository {
   private readonly reservations;
   private readonly customers;
-  private readonly users;
+  private readonly customerProfiles: MongoCustomerProfileRepository;
   private readonly restaurants;
   private readonly tables;
 
   constructor(db: Db) {
     this.reservations = db.collection<ReservationDocument>(COLLECTIONS.reservations);
     this.customers = db.collection<CustomerDocument>(COLLECTIONS.customers);
-    this.users = db.collection<UserDocument>(COLLECTIONS.users);
+    this.customerProfiles = new MongoCustomerProfileRepository(db);
     this.restaurants = db.collection<RestaurantDocument>(COLLECTIONS.restaurants);
     this.tables = db.collection<TableDocument>(COLLECTIONS.tables);
   }
 
-  async getCustomerIdForUser(userId: ObjectId, now: Date): Promise<ObjectId | null> {
-    const user = await this.users.findOne({ _id: userId, role: "Customer", status: "active" });
-    if (user?.role !== "Customer") return null;
-
-    try {
-      const customer = await this.customers.findOneAndUpdate(
-        { userId },
-        {
-          $setOnInsert: {
-            userId,
-            displayName: user.name,
-            email: user.email,
-            contactPreferences: { email: true },
-            createdAt: now,
-            updatedAt: now,
-          },
-        },
-        { upsert: true, returnDocument: "after", includeResultMetadata: false },
-      );
-      if (customer) return customer._id;
-    } catch (error) {
-      // A concurrent first reservation can create the same profile first.
-      if (!isDuplicateKeyError(error)) throw error;
-    }
-
-    const existing = await this.customers.findOne({ userId }, { projection: { _id: 1 } });
-    return existing?._id ?? null;
+  getCustomerIdForUser(userId: ObjectId, now: Date): Promise<ObjectId | null> {
+    return this.customerProfiles.getCustomerIdForUser(userId, now);
   }
 
   async getActiveRestaurant(restaurantId: ObjectId): Promise<ReservationSchedule | null> {
@@ -250,8 +225,4 @@ export class MongoReservationRepository implements ReservationRepository {
       updatedAt: document.updatedAt,
     }));
   }
-}
-
-function isDuplicateKeyError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
 }
