@@ -3680,10 +3680,26 @@ a {
 .customer-brand .brand-mark {
   flex-basis: 34px;
 }
+.customer-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
 .customer-account {
   display: flex;
   align-items: center;
   gap: 9px;
+}
+.customer-signout {
+  padding: 7px 10px;
+  border: 1px solid #e5e1d6;
+  border-radius: 8px;
+  color: #68766a;
+  background: transparent;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 620;
+  cursor: pointer;
 }
 .customer-account .profile-avatar {
   color: #fbf4e8;
@@ -3902,6 +3918,12 @@ a {
   margin: 4px 0 0;
   color: #95988d;
   font-size: 8px;
+}
+.customer-order-truncated {
+  display: block;
+  margin-top: 5px;
+  color: #81775f;
+  font-size: 7px;
 }
 .customer-quick-grid article > button,
 .customer-quick-grid article > a {
@@ -4755,6 +4777,19 @@ a {
   }
   .customer-topbar {
     height: 63px;
+  }
+  .customer-account-actions {
+    gap: 8px;
+  }
+  .customer-account strong {
+    max-width: 94px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .customer-signout {
+    padding: 6px 7px;
+    font-size: 7px;
   }
   .customer-hero {
     min-height: unset;

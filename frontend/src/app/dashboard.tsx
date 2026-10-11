@@ -6,7 +6,16 @@ import { useEffect, useRef, useState } from "react";
 import { type AnalyticsData, type AnalyticsRange, parseAnalyticsData } from "./analytics-data";
 import { type AuthUser, useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
-import { canViewHealthScore, canViewRecommendations, navigationForRole } from "./dashboard-access";
+import {
+  canAccessDashboardSection,
+  canViewAnalytics,
+  canViewHealthScore,
+  canViewRecommendations,
+  dashboardWorkspaceScopeKey,
+  navigationForRole,
+  resolveDashboardSection,
+  valueForDashboardWorkspace,
+} from "./dashboard-access";
 
 type Section =
   | "Overview"
@@ -1441,6 +1450,7 @@ export function Dashboard() {
   const [reservationsRefreshKey, setReservationsRefreshKey] = useState(0);
   const [savingReservationId, setSavingReservationId] = useState("");
   const [recommendation, setRecommendation] = useState(DEMO_RECOMMENDATION);
+  const [recommendationScopeKey, setRecommendationScopeKey] = useState("preview");
   const [recommendationReviewed, setRecommendationReviewed] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
@@ -1450,6 +1460,26 @@ export function Dashboard() {
   const [healthScoreLoading, setHealthScoreLoading] = useState(false);
   const [healthScoreRefreshKey, setHealthScoreRefreshKey] = useState(0);
   const role = user?.role;
+  const workspaceScopeKey = dashboardWorkspaceScopeKey(user);
+  const currentRecommendation = valueForDashboardWorkspace(
+    recommendation,
+    recommendationScopeKey,
+    workspaceScopeKey,
+    DEMO_RECOMMENDATION,
+  );
+  const currentRecommendationReviewed = valueForDashboardWorkspace(
+    recommendationReviewed,
+    recommendationScopeKey,
+    workspaceScopeKey,
+    false,
+  );
+
+  useEffect(() => {
+    if (recommendationScopeKey === workspaceScopeKey) return;
+    setRecommendation(DEMO_RECOMMENDATION);
+    setRecommendationReviewed(false);
+    setRecommendationScopeKey(workspaceScopeKey);
+  }, [recommendationScopeKey, workspaceScopeKey]);
 
   useEffect(() => {
     if (!accessToken || !role || role === "Customer") {
@@ -1460,6 +1490,8 @@ export function Dashboard() {
     }
 
     const controller = new AbortController();
+    setOrders([]);
+    setOrdersTruncated(false);
     setOrdersStatus("loading");
     void fetch(`${API_BASE}/orders`, {
       cache: ordersRefreshKey > 0 ? "reload" : "no-store",
@@ -1480,7 +1512,7 @@ export function Dashboard() {
       .catch((error: unknown) => {
         if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
           return;
-        setOrders(INITIAL_ORDERS);
+        setOrders([]);
         setOrdersTruncated(false);
         setOrdersStatus("unavailable");
       });
@@ -1500,6 +1532,8 @@ export function Dashboard() {
     }
 
     const controller = new AbortController();
+    setKitchenTickets([]);
+    setKitchenQueueTruncated(false);
     setKitchenQueueStatus("loading");
     void fetch(`${API_BASE}/kitchen/queue`, {
       cache: kitchenQueueRefreshKey > 0 ? "reload" : "no-store",
@@ -1537,6 +1571,8 @@ export function Dashboard() {
     }
 
     const controller = new AbortController();
+    setInventory([]);
+    setInventoryTruncated(false);
     setInventoryStatus("loading");
     void fetch(`${API_BASE}/inventory`, {
       cache: inventoryRefreshKey > 0 ? "reload" : "no-store",
@@ -1557,7 +1593,7 @@ export function Dashboard() {
       .catch((error: unknown) => {
         if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
           return;
-        setInventory(INITIAL_INVENTORY);
+        setInventory([]);
         setInventoryTruncated(false);
         setInventoryStatus("unavailable");
       });
@@ -1574,6 +1610,8 @@ export function Dashboard() {
     }
 
     const controller = new AbortController();
+    setReservations([]);
+    setReservationsTruncated(false);
     setReservationsStatus("loading");
     void fetch(`${API_BASE}/reservations`, {
       cache: reservationsRefreshKey > 0 ? "reload" : "no-store",
@@ -1594,7 +1632,7 @@ export function Dashboard() {
       .catch((error: unknown) => {
         if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
           return;
-        setReservations(INITIAL_RESERVATIONS);
+        setReservations([]);
         setReservationsTruncated(false);
         setReservationsStatus("unavailable");
       });
@@ -1611,6 +1649,7 @@ export function Dashboard() {
     }
 
     const controller = new AbortController();
+    setHealthScore(null);
     setHealthScoreLoading(true);
     setHealthScoreError("");
 
@@ -1647,6 +1686,11 @@ export function Dashboard() {
   }, [accessToken, role, healthScoreRefreshKey]);
 
   const availableNav = navigationForRole(NAVIGATION, role);
+  const currentSection = resolveDashboardSection(NAVIGATION, role, section) as Section;
+
+  useEffect(() => {
+    if (section !== currentSection) setSection(currentSection);
+  }, [currentSection, section]);
 
   const notify = (message: string) => {
     setToast(message);
@@ -1915,6 +1959,7 @@ export function Dashboard() {
     try {
       if (!accessToken) {
         setRecommendation({ ...DEMO_RECOMMENDATION, source: "demo" });
+        setRecommendationScopeKey(workspaceScopeKey);
         notify(
           "Preview guidance refreshed. Sign in as a manager and connect the API for live recommendations.",
         );
@@ -1939,6 +1984,7 @@ export function Dashboard() {
         recommendation: Omit<Recommendation, "incidentId"> & { incidentId: string };
       };
       setRecommendation(result.recommendation);
+      setRecommendationScopeKey(workspaceScopeKey);
       setRecommendationReviewed(false);
       notify(
         result.recommendation.source === "gemini"
@@ -1955,6 +2001,12 @@ export function Dashboard() {
   };
 
   const goTo = (next: Section) => {
+    if (!canAccessDashboardSection(NAVIGATION, role, next)) {
+      setSection("Overview");
+      setMobileMenuOpen(false);
+      setNotificationsOpen(false);
+      return;
+    }
     setSection(next);
     setMobileMenuOpen(false);
     setNotificationsOpen(false);
@@ -1966,7 +2018,7 @@ export function Dashboard() {
   };
 
   if (user?.role === "Customer") {
-    return <CustomerPortal userName={user.name} accessToken={accessToken} />;
+    return <CustomerPortal userName={user.name} accessToken={accessToken} onSignOut={signOut} />;
   }
 
   const greetingName = user?.name.split(" ")[0] ?? "Maya";
@@ -2033,7 +2085,7 @@ export function Dashboard() {
         description: "Your workspace, access, and service connections in one place.",
       },
     };
-  const pageMeta = headingBySection[section];
+  const pageMeta = headingBySection[currentSection];
 
   return (
     <div className="app-shell">
@@ -2088,9 +2140,9 @@ export function Dashboard() {
               ) : null}
               <button
                 type="button"
-                className={`nav-item ${section === item.label ? "nav-item-active" : ""}`}
+                className={`nav-item ${currentSection === item.label ? "nav-item-active" : ""}`}
                 onClick={() => goTo(item.label)}
-                aria-current={section === item.label ? "page" : undefined}
+                aria-current={currentSection === item.label ? "page" : undefined}
               >
                 <Icon name={item.icon} size={18} />
                 <span>{item.label}</span>
@@ -2162,7 +2214,7 @@ export function Dashboard() {
               <Icon name="menu" size={20} />
             </button>
             <span className="topbar-crumb">
-              SAFFRON &amp; CO. <span>/</span> <strong>{section}</strong>
+              SAFFRON &amp; CO. <span>/</span> <strong>{currentSection}</strong>
             </span>
           </div>
           <div className="topbar-right">
@@ -2239,7 +2291,7 @@ export function Dashboard() {
             title={pageMeta.title}
             description={pageMeta.description}
           >
-            {section === "Overview" ? (
+            {currentSection === "Overview" ? (
               <>
                 {canViewCommercialData ? (
                   <button
@@ -2265,7 +2317,7 @@ export function Dashboard() {
                   </button>
                 ) : null}
               </>
-            ) : section === "Orders" ? (
+            ) : currentSection === "Orders" ? (
               <>
                 <button
                   type="button"
@@ -2288,7 +2340,7 @@ export function Dashboard() {
                   </button>
                 ) : null}
               </>
-            ) : section === "Insights" ? (
+            ) : currentSection === "Insights" ? (
               <button
                 type="button"
                 className="button button-dark"
@@ -2312,7 +2364,7 @@ export function Dashboard() {
             />
           ) : null}
 
-          {section === "Overview" ? (
+          {currentSection === "Overview" ? (
             <OverviewPage
               orders={orders}
               orderFeedStatus={ordersStatus}
@@ -2321,7 +2373,7 @@ export function Dashboard() {
               inventory={inventory}
               inventoryStatus={inventoryStatus}
               inventoryTruncated={inventoryTruncated}
-              recommendation={recommendation}
+              recommendation={currentRecommendation}
               showAi={canUseInsights}
               role={role}
               healthScore={healthScore}
@@ -2335,7 +2387,7 @@ export function Dashboard() {
               onOrders={() => goTo("Orders")}
               onReservations={() => goTo("Reservations")}
             />
-          ) : section === "Orders" ? (
+          ) : currentSection === "Orders" ? (
             <OrdersPage
               orders={orders}
               status={ordersStatus}
@@ -2348,7 +2400,7 @@ export function Dashboard() {
               onFilter={setOrderStatusFilter}
               onRefresh={() => setOrdersRefreshKey((current) => current + 1)}
             />
-          ) : section === "Kitchen" ? (
+          ) : currentSection === "Kitchen" ? (
             <KitchenPage
               orders={orders}
               tickets={kitchenTickets}
@@ -2358,7 +2410,7 @@ export function Dashboard() {
               onAdvanceItem={(orderId, itemId) => void advanceKitchenItem(orderId, itemId)}
               onAdvanceOrder={(orderId) => void advanceOrder(orderId)}
             />
-          ) : section === "Reservations" ? (
+          ) : currentSection === "Reservations" ? (
             <ReservationsPage
               reservations={reservations}
               status={reservationsStatus}
@@ -2368,7 +2420,7 @@ export function Dashboard() {
               onRefresh={() => setReservationsRefreshKey((current) => current + 1)}
               onToast={notify}
             />
-          ) : section === "Inventory" ? (
+          ) : currentSection === "Inventory" ? (
             <InventoryPage
               inventory={inventory}
               onRestock={addStock}
@@ -2377,21 +2429,25 @@ export function Dashboard() {
               inventoryTruncated={inventoryTruncated}
               onRefresh={() => setInventoryRefreshKey((current) => current + 1)}
             />
-          ) : section === "Incidents" ? (
-            <IncidentsPage recommendation={recommendation} onInsights={() => goTo("Insights")} />
-          ) : section === "Insights" ? (
+          ) : currentSection === "Incidents" ? (
+            <IncidentsPage
+              recommendation={currentRecommendation}
+              onInsights={() => goTo("Insights")}
+            />
+          ) : currentSection === "Insights" ? (
             <InsightsPage
-              recommendation={recommendation}
-              reviewed={recommendationReviewed}
+              recommendation={currentRecommendation}
+              reviewed={currentRecommendationReviewed}
               onReview={() => {
                 setRecommendationReviewed(true);
+                setRecommendationScopeKey(workspaceScopeKey);
                 notify("Insight marked as reviewed.");
               }}
               onGenerate={() => void generateRecommendation()}
               generating={generating}
             />
-          ) : section === "Analytics" ? (
-            <AnalyticsPage />
+          ) : currentSection === "Analytics" ? (
+            <AnalyticsPage key={workspaceScopeKey} />
           ) : (
             <SettingsPage
               userName={user?.name ?? "Maya Nair"}
@@ -3914,7 +3970,7 @@ function AnalyticsPage() {
   const [error, setError] = useState("");
   const [range, setRange] = useState<AnalyticsRange>("7d");
   const [refreshKey, setRefreshKey] = useState(0);
-  const canReadAnalytics = user?.role === "Manager" || user?.role === "Administrator";
+  const canReadAnalytics = canViewAnalytics(user?.role);
 
   useEffect(() => {
     if (!accessToken || !canReadAnalytics) {
@@ -4410,13 +4466,97 @@ function SettingsPage({
   );
 }
 
+function formatCustomerOrderDate(value: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value));
+}
+
+interface CustomerOrderSummary {
+  id: string;
+  restaurantName: string;
+  status: "Created" | "Accepted" | "Preparing" | "Ready" | "Served" | "Completed" | "Cancelled";
+  createdAt: string;
+  items: Array<{ name: string; quantity: number }>;
+}
+
+interface ParsedCustomerOrderHistory {
+  orders: CustomerOrderSummary[];
+  truncated: boolean;
+}
+
+function parseCustomerOrderHistory(value: unknown): ParsedCustomerOrderHistory | null {
+  if (
+    !isObjectRecord(value) ||
+    !Array.isArray(value.orders) ||
+    typeof value.truncated !== "boolean"
+  )
+    return null;
+  const allowedStatuses = new Set([
+    "Created",
+    "Accepted",
+    "Preparing",
+    "Ready",
+    "Served",
+    "Completed",
+    "Cancelled",
+  ]);
+  const orders: CustomerOrderSummary[] = [];
+  for (const order of value.orders) {
+    if (
+      !isObjectRecord(order) ||
+      typeof order.id !== "string" ||
+      !/^[a-f\d]{24}$/i.test(order.id) ||
+      typeof order.restaurantName !== "string" ||
+      typeof order.status !== "string" ||
+      !allowedStatuses.has(order.status) ||
+      typeof order.createdAt !== "string" ||
+      !Number.isFinite(Date.parse(order.createdAt)) ||
+      !Array.isArray(order.items)
+    ) {
+      return null;
+    }
+    const items: Array<{ name: string; quantity: number }> = [];
+    for (const item of order.items) {
+      if (
+        !isObjectRecord(item) ||
+        typeof item.name !== "string" ||
+        typeof item.quantity !== "number" ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity < 1
+      ) {
+        return null;
+      }
+      items.push({ name: item.name, quantity: item.quantity });
+    }
+    orders.push({
+      id: order.id,
+      restaurantName: order.restaurantName,
+      status: order.status as CustomerOrderSummary["status"],
+      createdAt: order.createdAt,
+      items,
+    });
+  }
+  return { orders, truncated: value.truncated };
+}
+
 function CustomerPortal({
   userName,
   accessToken,
+  onSignOut,
 }: {
   userName: string;
   accessToken: string | null;
+  onSignOut: () => Promise<void>;
 }) {
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrderSummary[]>([]);
+  const [orderHistoryTruncated, setOrderHistoryTruncated] = useState(false);
+  const [orderHistoryState, setOrderHistoryState] = useState<"loading" | "live" | "unavailable">(
+    "loading",
+  );
+  const [orderHistoryError, setOrderHistoryError] = useState("");
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationState, setReservationState] = useState<"loading" | "live" | "unavailable">(
     "loading",
@@ -4434,10 +4574,59 @@ function CustomerPortal({
 
   useEffect(() => {
     if (!accessToken) {
+      setCustomerOrders([]);
+      setOrderHistoryTruncated(false);
+      setOrderHistoryError("Sign in again to view your saved orders.");
+      setOrderHistoryState("unavailable");
+      return;
+    }
+    const controller = new AbortController();
+    setCustomerOrders([]);
+    setOrderHistoryTruncated(false);
+    setOrderHistoryError("");
+    setOrderHistoryState("loading");
+    void fetch(`${API_BASE}/orders/history`, {
+      cache: "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Your saved orders are unavailable.");
+        const payload: unknown = await response.json();
+        const parsed = parseCustomerOrderHistory(payload);
+        if (!parsed) throw new Error("The order history response was invalid.");
+        if (controller.signal.aborted) return;
+        setCustomerOrders(parsed.orders);
+        setOrderHistoryTruncated(parsed.truncated);
+        setOrderHistoryState("live");
+      })
+      .catch((requestError: unknown) => {
+        if (
+          controller.signal.aborted ||
+          (requestError instanceof Error && requestError.name === "AbortError")
+        )
+          return;
+        setCustomerOrders([]);
+        setOrderHistoryTruncated(false);
+        setOrderHistoryError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Your saved orders are unavailable.",
+        );
+        setOrderHistoryState("unavailable");
+      });
+    return () => controller.abort();
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      setReservations([]);
       setReservationState("unavailable");
       return;
     }
     const controller = new AbortController();
+    setReservations([]);
     setReservationState("loading");
     void fetch(`${API_BASE}/reservations`, {
       cache: "no-store",
@@ -4514,6 +4703,16 @@ function CustomerPortal({
   const canCancel =
     nextReservation &&
     (nextReservation.status === "Awaiting" || nextReservation.status === "Confirmed");
+  const latestOrder = customerOrders[0];
+  const latestOrderStatus =
+    latestOrder?.status === "Created" ? "Sent to restaurant" : latestOrder?.status;
+  const latestOrderItems = latestOrder?.items.length
+    ? `${latestOrder.items
+        .slice(0, 2)
+        .map((item) => `${item.name} × ${item.quantity}`)
+        .join(", ")}${latestOrder.items.length > 2 ? ` +${latestOrder.items.length - 2} more` : ""}`
+    : "Order item details are unavailable.";
+  const latestOrderDate = latestOrder ? formatCustomerOrderDate(latestOrder.createdAt) : "";
 
   return (
     <main className="customer-portal" id="main-content">
@@ -4522,19 +4721,24 @@ function CustomerPortal({
           <BrandMark />
           <span>DineSmart</span>
         </Link>
-        <div className="customer-account">
-          <span className="profile-avatar">
-            {userName
-              .split(" ")
-              .map((part) => part[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
-          </span>
-          <span>
-            <strong>{userName}</strong>
-            <small>Guest account</small>
-          </span>
+        <div className="customer-account-actions">
+          <div className="customer-account">
+            <span className="profile-avatar">
+              {userName
+                .split(" ")
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </span>
+            <span>
+              <strong>{userName}</strong>
+              <small>Customer account</small>
+            </span>
+          </div>
+          <button className="customer-signout" type="button" onClick={() => void onSignOut()}>
+            Sign out
+          </button>
         </div>
       </header>
       <section className="customer-hero">
@@ -4578,10 +4782,29 @@ function CustomerPortal({
           </span>
           <div>
             <span>YOUR ORDERS</span>
-            <strong>Nothing on the table yet.</strong>
-            <p>Your next favourite might be one click away.</p>
+            <strong>
+              {orderHistoryState === "loading"
+                ? "Loading your saved orders…"
+                : orderHistoryState === "unavailable"
+                  ? "Order history unavailable"
+                  : latestOrder
+                    ? `${latestOrderStatus} · ${latestOrder.restaurantName}`
+                    : "No saved orders yet."}
+            </strong>
+            <p>
+              {orderHistoryState === "loading"
+                ? "Checking your customer account."
+                : orderHistoryState === "unavailable"
+                  ? orderHistoryError || "No sample orders are shown; try your order history again."
+                  : latestOrder
+                    ? `${latestOrderItems} · ${latestOrderDate}`
+                    : "Your restaurant orders will appear here after the API confirms them."}
+            </p>
+            {orderHistoryTruncated && orderHistoryState === "live" ? (
+              <small className="customer-order-truncated">Showing the latest saved orders.</small>
+            ) : null}
           </div>
-          <Link href="/menu" aria-label="Explore menu">
+          <Link href="/orders" aria-label="View your order history">
             <Icon name="arrow-right" size={17} />
           </Link>
         </article>
