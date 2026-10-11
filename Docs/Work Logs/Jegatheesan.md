@@ -144,3 +144,11 @@
 - Reviewed the endpoint inventory (`PUT /tables/{id}/status` only), existing `tables:write` permissions, seeded lowercase table states, reservation/order assignment pointers, S2-17's `currentWaitlistId`, and S2-08/S2-12 table-change hooks.
 - The assistant-recommended contract uses an explicit status transition graph, signed-tenant `PUT`, and safe release rules for terminal reservation/order links and verified seated waitlist links. These details are recommendations, not separate owner approval.
 - Feature repository/service/router tests are next. Live MongoDB/Atlas and cross-collection consistency remain unverified; no deployment, push, or remote CI is planned.
+
+### 2026-10-11 — S2-18 Table Status API local implementation
+
+- Implemented the tenant-scoped `PUT /api/v1/tables/{id}/status` service/repository/router against the assistant-recommended status graph; no table list/create route or new permission was added.
+- Added compare-and-set table updates and verified release rules: same-tenant order/reservation references must be terminal, a waitlist link must point back to a seated entry, and only validated links are cleared when staff marks a table available. Missing, active, mismatched, cross-tenant, and stale references fail closed.
+- Added service/repository/HTTP tests for role gates, strict input and tenant scope, transitions/idempotency, reference cleanup, conflict behavior, safe response fields, and operational hooks.
+- Verification on Node `24.21.0`: Biome checked 149 backend files; typecheck and production build passed; all 272 backend tests passed; high-severity `npm audit` found zero vulnerabilities; `git diff --check` passed. S2-18 is Ready to Push on local `main`, not Complete.
+- Live MongoDB/Atlas and cross-collection concurrency, browser workflow, remote CI, deployment, push, and merge remain outstanding/deferred.
