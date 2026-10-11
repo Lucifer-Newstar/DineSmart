@@ -13,7 +13,8 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | POST | /auth/refresh | Rotate refresh session and renew access token | Dhanush |
 | POST | /auth/logout | Secure logout | Dhanush |
 | POST | /auth/google | Verify Google Identity Services ID token and start a session | Dhanush |
-| POST | /auth/reset-password | Password reset | Dhanush |
+| POST | /auth/reset-password/request | Request a password-reset email code (generic response) | Dhanush |
+| POST | /auth/reset-password/confirm | Consume a reset code, update password, and revoke refresh sessions | Dhanush |
 | GET | /menu?restaurantId={id} | Public read-only active menu; available items only | Dhanush |
 | POST | /reservations | Create reservation | Jegatheesan |
 | GET | /reservations | Get reservations | Jegatheesan |
@@ -172,3 +173,14 @@ The following details are assistant-selected recommendations made to proceed wit
 | `GET /api/v1/bills/order/{orderId}` | Same role/scope policy as bill-by-ID. | Customer may retrieve only an issued bill for their own order across restaurants. Staff lookups include the signed tenant. | `200 { bill }`; no bill or inaccessible order returns `404`. |
 
 Bill lines preserve snapshot names, quantities, and unit prices. `subtotalMinor` is calculated from those snapshots and checked against the persisted order total; `taxMinor` and `adjustmentsMinor` are zero and `totalMinor` equals the subtotal until an owner-approved policy says otherwise. Currency is copied from the order. The existing unique `(restaurantId, orderId)` index is the concurrency invariant. Generation does not mutate the order; bill records are not editable, deletable, settled, or paid through this API. Unknown query parameters and extra POST fields are rejected. Local unit/HTTP tests use fake repositories; live MongoDB/index behavior is deferred to the agreed final DB/deployment stage.
+
+## S2-15 Password Reset API — assistant-recommended contract; implementation in progress
+
+These details follow the approved authentication baseline and fill the unspecified S2-15 HTTP contract. They are implementation recommendations, not separate owner approvals. The 6-digit OTP, 10-minute expiry, 60-second cooldown, and five-attempt ceiling are already approved; password minimum/maximum reuse S1-11's 12-character/1,024-byte recommendations.
+
+| Endpoint | Authorization / scope | Request and behavior | Response |
+| --- | --- | --- | --- |
+| `POST /api/v1/auth/reset-password/request` | Public; exact configured-origin policy from the existing auth router. | Accept exactly `{ email }`. For syntactically valid email, issue a reset code only for an active email/password account; unknown, disabled, pending, Google-only, and cooldown cases share the same message. Do not expose account existence. | `202 { message }`; development mock may additionally return `developmentCode`. |
+| `POST /api/v1/auth/reset-password/confirm` | Public; exact configured-origin policy from the existing auth router. | Accept exactly `{ email, code, newPassword }`. Consume a valid unexpired code once, replace the Argon2id hash, clear reset state, stamp `passwordChangedAt`, and revoke the user's active refresh sessions. Does not issue a new session. | `204`; invalid/expired/locked/unissued code returns a generic `401`. |
+
+Store a domain-separated HMAC for password-reset codes in separate per-user fields from registration OTP state. Apply process-local IP rate limits, retain the approved per-account cooldown/attempt limits, reject unknown body/query fields, and do not log secrets. In local development, the mock mail adapter may return the generated code for manual testing; production must fail closed until an owner-configured provider is implemented. Existing stateless access JWTs cannot be revoked immediately and remain valid until their 15-minute expiry. Password replacement and refresh-session revocation cross separate MongoDB collections, so local standalone MongoDB does not provide a transaction-level guarantee; behavior must be explicit and tested.

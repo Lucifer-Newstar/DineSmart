@@ -75,6 +75,16 @@ The six-digit/10-minute/60-second/five-attempt policy is owner-approved. The fol
 - Keep the mock mailer local-only. In development with `EMAIL_PROVIDER=mock`, return the one-time code as `developmentCode` in the response for manual testing; never log it, never return it in production, and reject mock email in production. A real mail provider remains unconfigured.
 - Apply process-local IP rate limits in addition to the per-account cooldown and attempt ceiling; use a shared store before horizontal scaling.
 
+### S2-15 password-reset API recommendations (assistant-selected 2026-10-11)
+
+These details fill gaps in the S2-15 story under the instruction to choose and document unspecified module decisions. They are recommendations, not separate owner approvals. The owner-approved baseline already selects a six-digit OTP, 10-minute expiry, 60-second resend cooldown, maximum five verification attempts, Argon2id, and email-provider boundary.
+
+- Use `POST /api/v1/auth/reset-password/request` with exactly `{ email }` and `POST /api/v1/auth/reset-password/confirm` with exactly `{ email, code, newPassword }`. The request always returns the same `202` message for syntactically valid emails, whether the account exists, is disabled/pending, lacks a password hash, or is cooling down; do not disclose account existence. Return a mock `developmentCode` only in local development, matching S1-11's mock-provider practice.
+- Issue reset codes only for active accounts that already have an email/password hash. Google-only accounts and all other ineligible addresses receive the same generic request response. Normalize email consistently with login. Keep the reset fields on the user document so code issuance, attempt/cooldown checks, single-use consumption, and password replacement are atomic on one MongoDB document; store only a domain-separated HMAC, never the raw code.
+- Confirmation accepts the approved six-digit/10-minute/five-attempt OTP policy and the S1-11 recommended 12-character minimum / 1,024-byte maximum password length. Re-hash with the existing Argon2id configuration. A successful confirmation clears reset fields, records `passwordChangedAt`, and revokes all active refresh sessions; do not return a login session. Stateless access JWTs remain valid until their existing maximum 15-minute expiry.
+- Do not extend registration OTP semantics or overwrite the registration OTP fields. Rate-limit request/confirm per IP in process for MVP; a distributed limiter is required before horizontal scaling. Reject unexpected query/body fields; never log OTPs, reset hashes, passwords, or email-provider payloads.
+- Reuse the mock-email-only development boundary until a real provider is owner-configured; production must fail closed rather than report a code delivered. A standalone MongoDB cannot atomically update the user and refresh-session collection together; test password replacement and session revocation failure handling and do not claim transaction-level revocation.
+
 ### Authentication test alignment
 
 The test plan now reflects the SRS: register with Email/OTP, then log in with Email/Password; Google OAuth is an additional supported login path.

@@ -251,3 +251,9 @@
 - Documented the S2-14 API/authorization contract and assistant-recommended bill eligibility, snapshot arithmetic, idempotency, and scope decisions without implying owner approval for tax/payment/settlement policy. Added TC-22 and billing API verification scope; marked the backlog item Ready to Push.
 - Final local backend verification ran explicitly with Node `24.21.0`: Biome checked 122 files, TypeScript typecheck and production build passed, all 194 tests passed, `npm audit --audit-level=high` found zero vulnerabilities, and `git diff --check` passed. Base shell Node remains `20.20.2`.
 - S2-14 is **Ready to Push**, not Complete. Tests use fakes; live MongoDB/Atlas persistence/index enforcement, remote CI, deployment, push, and merge remain unverified/deferred. No remote/upstream was configured for the attempted pull. Atlas and deployment remain scheduled after the remaining project work.
+
+### 2026-10-11 — S2-15 password-reset contract started
+
+- Continued backlog order on local `main`; S2-15 is In Progress and assigned implementation to Dhanush.
+- Added an assistant-recommended two-step reset request/confirm contract consistent with approved OTP limits, generic account-enumeration-safe request behavior, mock-only development email, single-use HMAC verification, Argon2id replacement, refresh-session revocation, and stateless access-token expiry. These implementation details are not additional owner approvals.
+- Shared architecture/API/test-plan documentation remains Navin-owned. Production email-provider credentials and live reset-mail delivery are not available; do not claim them.
