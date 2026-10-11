@@ -3684,6 +3684,26 @@ a {
   background: #fff;
   cursor: pointer;
 }
+.customer-quick-grid .customer-reservation-cancel {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  margin-top: 7px;
+  padding: 0;
+  border: 0;
+  color: #9f5a4c;
+  background: transparent;
+  font-size: 8px;
+  font-weight: 650;
+}
+.customer-quick-grid .customer-reservation-cancel:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.customer-quick-grid .customer-reservation-error {
+  color: #a33f36;
+  font-size: 8px;
+}
 .customer-footer {
   display: flex;
   justify-content: space-between;

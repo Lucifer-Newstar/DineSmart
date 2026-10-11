@@ -7,6 +7,14 @@ import { useState } from "react";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 
+function returnPath(): string {
+  if (typeof window === "undefined") return "/";
+  const requested = new URLSearchParams(window.location.search).get("next");
+  return requested?.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")
+    ? requested
+    : "/";
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const { register, requestOtp, verifyOtp } = useAuth();
@@ -51,7 +59,7 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await verifyOtp(email.trim(), code.trim());
-      router.push("/");
+      router.push(returnPath());
     } catch (requestError) {
       setError(
         requestError instanceof Error

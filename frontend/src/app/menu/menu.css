@@ -1183,9 +1183,38 @@
   letter-spacing: -0.03em;
 }
 .book-subtitle {
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   color: #929a8f;
   font-size: 8px;
+}
+.book-account-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 13px;
+  padding: 9px 10px;
+  border: 1px solid #e8eee4;
+  border-radius: 7px;
+  color: #788678;
+  background: #f8faf5;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.book-account-note strong {
+  color: #4f6653;
+  font-weight: 650;
+}
+.book-account-note a {
+  color: #4c704f;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.book-request-error {
+  margin: 0;
+  color: #a33f36;
+  font-size: 8px;
+  line-height: 1.5;
 }
 .book-form {
   display: flex;
@@ -1242,8 +1271,13 @@
     background 0.14s ease,
     border-color 0.14s ease;
 }
-.book-time-grid button:hover {
+.book-time-grid button:hover:not(:disabled) {
   border-color: #becdba;
+}
+.book-time-grid button:disabled {
+  color: #bbc0b6;
+  background: #f5f6f2;
+  cursor: not-allowed;
 }
 .book-time-grid .book-time-active {
   border-color: #587458;

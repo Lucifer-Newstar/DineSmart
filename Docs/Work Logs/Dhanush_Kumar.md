@@ -67,3 +67,12 @@
 - **Frontend implementation commits:** `f2afac0` and `8d7f15a` (Dhanush). **Frontend README commit:** `7fdee3f` (Navin). **Integration merge commits:** `92604f7` and `b324460` (Navin).
 - **CI-equivalent local validation on Node `24.21.0`:** frontend and backend `npm ci`, `npm audit`, Biome lint, typechecks, and production builds passed; backend suite passed all 45 tests. The frontend has no configured test script. `git diff --check` passed. GitHub Actions was not triggered because no push or pull request was made. Live MongoDB verification remains unavailable because Docker and `mongod` are absent.
 - **Status:** S2-06 remains **In Progress** pending live MongoDB/API verification and final review. The integrated code is on local `main`; no remote push or GitHub Actions run was made.
+
+## 2026-10-11
+
+### S2-03 — Reservation UI integration
+
+- Replaced the `/book` preview-only submit with authenticated Customer reservation requests. Restaurant ID is configurable through the public demo environment variable; booking times are submitted with the Chennai/India offset. The page shows saved status only after an API success and clearly explains that an `Awaiting` request is not a confirmed table.
+- Added return-to-booking navigation after login/registration, customer next-visit loading across restaurants (using the API's restaurant display name) and pre-start cancellation, plus live staff schedule reads/status updates. Sample and unavailable data remain explicitly labeled; preview updates are not persisted.
+- **Validation on Node `24.21.0`:** frontend `npm ci`, audit (zero vulnerabilities), Biome, typecheck, and Next.js production build passed. The frontend has no automated test script; no live browser interaction or MongoDB-backed UI flow was verified.
+- **Delivery:** frontend changes committed locally on `main`; no remote push or GitHub Actions run was made. S2-03 remains Ready to Push pending live MongoDB and end-to-end UI verification.

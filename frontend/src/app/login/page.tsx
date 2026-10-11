@@ -8,10 +8,18 @@ import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { GoogleSignInButton } from "../google-sign-in";
 
+function returnPath(): string {
+  if (typeof window === "undefined") return "/";
+  const requested = new URLSearchParams(window.location.search).get("next");
+  return requested?.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")
+    ? requested
+    : "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const goHome = useCallback(() => router.push("/"), [router]);
+  const goHome = useCallback(() => router.push(returnPath()), [router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

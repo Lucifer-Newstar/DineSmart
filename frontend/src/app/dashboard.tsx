@@ -74,13 +74,18 @@ interface InventoryItem {
   unit: string;
 }
 
+type ReservationStatus = "Awaiting" | "Confirmed" | "Seated" | "Completed" | "Cancelled" | "NoShow";
+type ReservationViewStatus = "preview" | "loading" | "live" | "unavailable";
+
 interface Reservation {
   id: string;
   guest: string;
   time: string;
   party: number;
   table: string;
-  status: "Confirmed" | "Seated" | "Awaiting";
+  status: ReservationStatus;
+  startAt?: string;
+  restaurantName?: string;
 }
 
 interface Recommendation {
@@ -120,6 +125,11 @@ type InventoryViewStatus = "preview" | "loading" | "live" | "unavailable";
 
 interface ParsedInventoryResponse {
   items: InventoryItem[];
+  truncated: boolean;
+}
+
+interface ParsedReservationsResponse {
+  reservations: Reservation[];
   truncated: boolean;
 }
 
@@ -589,10 +599,12 @@ function PageHeading({
 function DemoBanner({
   onDismiss,
   inventoryStatus,
+  reservationsStatus,
   canManageInventory,
 }: {
   onDismiss: () => void;
   inventoryStatus: InventoryViewStatus;
+  reservationsStatus: ReservationViewStatus;
   canManageInventory: boolean;
 }) {
   return (
@@ -604,13 +616,21 @@ function DemoBanner({
         <strong>Preview workspace</strong>
         <span>
           {inventoryStatus === "live"
-            ? `Inventory is live${canManageInventory ? " and manager adjustments save" : " in read-only mode"}; other metrics, orders, and reservations remain sample-only.`
+            ? `Inventory is live${canManageInventory ? " and manager adjustments save" : " in read-only mode"}. `
             : inventoryStatus === "loading"
-              ? "Loading live inventory; sample rows are shown until it arrives. Other operational data remains sample-only."
+              ? "Loading live inventory; sample rows are shown until it arrives. "
               : inventoryStatus === "unavailable"
-                ? "The inventory API is unavailable; sample rows are shown and adjustments are not saved. Other operational data remains sample-only."
-                : "Dashboard metrics, orders, reservations, and inventory are sample-only and not saved."}{" "}
-          Health score or recommendations use the API only when connected.
+                ? "The inventory API is unavailable; sample rows are shown and adjustments are not saved. "
+                : "Inventory is sample-only and not saved. "}
+          {reservationsStatus === "live"
+            ? "Reservations are live and status updates save. "
+            : reservationsStatus === "loading"
+              ? "Loading reservations; sample bookings are shown until the API responds. "
+              : reservationsStatus === "unavailable"
+                ? "The reservation API is unavailable; sample bookings are shown and updates are not saved. "
+                : "Reservations are sample-only and not saved. "}
+          Orders and kitchen queue remain sample data. Health score and recommendations use the API
+          only when connected.
         </span>
       </p>
       <button type="button" className="demo-banner-link" onClick={onDismiss}>
@@ -1075,6 +1095,67 @@ function parseInventoryResponse(value: unknown): ParsedInventoryResponse | null 
   return { items, truncated: response.truncated };
 }
 
+function parseReservationRecord(value: unknown): Reservation | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const statuses: ReservationStatus[] = [
+    "Awaiting",
+    "Confirmed",
+    "Seated",
+    "Completed",
+    "Cancelled",
+    "NoShow",
+  ];
+  if (
+    typeof record.id !== "string" ||
+    !/^[a-f\d]{24}$/i.test(record.id) ||
+    typeof record.guestName !== "string" ||
+    typeof record.restaurantName !== "string" ||
+    typeof record.partySize !== "number" ||
+    !Number.isInteger(record.partySize) ||
+    record.partySize < 1 ||
+    record.partySize > 12 ||
+    typeof record.startAt !== "string" ||
+    !Number.isFinite(Date.parse(record.startAt)) ||
+    typeof record.status !== "string" ||
+    !statuses.includes(record.status as ReservationStatus) ||
+    (record.tableNumber !== null && typeof record.tableNumber !== "string")
+  ) {
+    return null;
+  }
+  const startAt = new Date(record.startAt);
+  return {
+    id: record.id,
+    guest: record.guestName,
+    time: new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(startAt),
+    party: record.partySize,
+    table: record.tableNumber ? `Table ${record.tableNumber}` : "Unassigned",
+    status: record.status as ReservationStatus,
+    startAt: record.startAt,
+    restaurantName: record.restaurantName,
+  };
+}
+
+function parseReservationsResponse(value: unknown): ParsedReservationsResponse | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const response = value as Record<string, unknown>;
+  if (!Array.isArray(response.reservations) || typeof response.truncated !== "boolean") return null;
+  const reservations = response.reservations.map(parseReservationRecord);
+  if (reservations.some((reservation) => reservation === null)) return null;
+  return { reservations: reservations as Reservation[], truncated: response.truncated };
+}
+
+function parseReservationResponse(value: unknown): Reservation | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const response = value as Record<string, unknown>;
+  return parseReservationRecord(response.reservation);
+}
+
 function parseInventoryUpdate(value: unknown): InventoryItem | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const response = value as Record<string, unknown>;
@@ -1120,6 +1201,10 @@ export function Dashboard() {
   const [inventoryTruncated, setInventoryTruncated] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
+  const [reservationsStatus, setReservationsStatus] = useState<ReservationViewStatus>("preview");
+  const [reservationsTruncated, setReservationsTruncated] = useState(false);
+  const [reservationsRefreshKey, setReservationsRefreshKey] = useState(0);
+  const [savingReservationId, setSavingReservationId] = useState("");
   const [recommendation, setRecommendation] = useState(DEMO_RECOMMENDATION);
   const [recommendationReviewed, setRecommendationReviewed] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -1167,6 +1252,43 @@ export function Dashboard() {
 
     return () => controller.abort();
   }, [accessToken, role, inventoryRefreshKey]);
+
+  useEffect(() => {
+    if (!accessToken || !role || role === "Customer" || role === "Kitchen Staff") {
+      setReservations(INITIAL_RESERVATIONS);
+      setReservationsStatus("preview");
+      setReservationsTruncated(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setReservationsStatus("loading");
+    void fetch(`${API_BASE}/reservations`, {
+      cache: reservationsRefreshKey > 0 ? "reload" : "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Reservations are not available from the API.");
+        const payload: unknown = await response.json();
+        const parsed = parseReservationsResponse(payload);
+        if (!parsed) throw new Error("The reservation response was invalid.");
+        if (controller.signal.aborted) return;
+        setReservations(parsed.reservations);
+        setReservationsTruncated(parsed.truncated);
+        setReservationsStatus("live");
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
+          return;
+        setReservations(INITIAL_RESERVATIONS);
+        setReservationsTruncated(false);
+        setReservationsStatus("unavailable");
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, reservationsRefreshKey]);
 
   useEffect(() => {
     if (!accessToken || !canViewHealthScore(role)) {
@@ -1286,16 +1408,56 @@ export function Dashboard() {
     return true;
   };
 
-  const updateReservation = (id: string) => {
-    let next = "Confirmed";
-    setReservations((current) =>
-      current.map((reservation) => {
-        if (reservation.id !== id) return reservation;
-        next = reservation.status === "Awaiting" ? "Confirmed" : "Seated";
-        return { ...reservation, status: next as Reservation["status"] };
-      }),
+  const updateReservation = async (id: string) => {
+    const current = reservations.find((reservation) => reservation.id === id);
+    if (!current) return;
+    const next: ReservationStatus | null =
+      current.status === "Awaiting"
+        ? "Confirmed"
+        : current.status === "Confirmed"
+          ? "Seated"
+          : current.status === "Seated"
+            ? "Completed"
+            : null;
+    if (!next) return;
+
+    if (reservationsStatus === "live" && accessToken) {
+      setSavingReservationId(id);
+      try {
+        const response = await fetch(`${API_BASE}/reservations/${id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ status: next }),
+        });
+        if (!response.ok) {
+          notify("The reservation was not updated. Refresh and check your permissions.");
+          return;
+        }
+        const updated = parseReservationResponse(await response.json());
+        if (!updated) {
+          notify("The reservation response was invalid; no local change was made.");
+          return;
+        }
+        setReservations((currentReservations) =>
+          currentReservations.map((item) => (item.id === id ? updated : item)),
+        );
+        notify(`Reservation marked ${next.toLowerCase()}.`);
+      } catch {
+        notify("Reservations are unavailable; the status was not changed.");
+      } finally {
+        setSavingReservationId("");
+      }
+      return;
+    }
+
+    setReservations((currentReservations) =>
+      currentReservations.map((item) => (item.id === id ? { ...item, status: next } : item)),
     );
-    notify(`${id} marked ${next.toLowerCase()}.`);
+    notify(`${id} changed in this preview only; the API did not save it.`);
   };
 
   const generateRecommendation = async () => {
@@ -1353,7 +1515,9 @@ export function Dashboard() {
     notify("You are signed out. The sample workspace remains available.");
   };
 
-  if (user?.role === "Customer") return <CustomerPortal userName={user.name} />;
+  if (user?.role === "Customer") {
+    return <CustomerPortal userName={user.name} accessToken={accessToken} />;
+  }
 
   const greetingName = user?.name.split(" ")[0] ?? "Maya";
   const isDemo = !user;
@@ -1691,6 +1855,7 @@ export function Dashboard() {
             <DemoBanner
               onDismiss={() => setDemoBannerVisible(false)}
               inventoryStatus={inventoryStatus}
+              reservationsStatus={reservationsStatus}
               canManageInventory={canManageInventory}
             />
           ) : null}
@@ -1729,7 +1894,11 @@ export function Dashboard() {
           ) : section === "Reservations" ? (
             <ReservationsPage
               reservations={reservations}
+              status={reservationsStatus}
+              truncated={reservationsTruncated}
+              savingId={savingReservationId}
               onUpdate={updateReservation}
+              onRefresh={() => setReservationsRefreshKey((current) => current + 1)}
               onToast={notify}
             />
           ) : section === "Inventory" ? (
@@ -2475,13 +2644,39 @@ function KitchenPage({ orders, onAdvance }: { orders: Order[]; onAdvance: (id: s
 
 function ReservationsPage({
   reservations,
+  status,
+  truncated,
+  savingId,
   onUpdate,
+  onRefresh,
   onToast,
 }: {
   reservations: Reservation[];
-  onUpdate: (id: string) => void;
+  status: ReservationViewStatus;
+  truncated: boolean;
+  savingId: string;
+  onUpdate: (id: string) => void | Promise<void>;
+  onRefresh: () => void;
   onToast: (message: string) => void;
 }) {
+  const reservationCount = status === "live" ? reservations.length : 12;
+  const guestCount =
+    status === "live"
+      ? reservations.reduce((total, reservation) => total + reservation.party, 0)
+      : 38;
+  const assignedTables =
+    status === "live"
+      ? reservations.filter((reservation) => reservation.table !== "Unassigned").length
+      : 9;
+  const dataLabel =
+    status === "live"
+      ? "LIVE RESERVATIONS · CHENNAI TIME"
+      : status === "loading"
+        ? "LOADING RESERVATIONS"
+        : status === "unavailable"
+          ? "API UNAVAILABLE · SAMPLE DATA"
+          : "SAMPLE DATA · PREVIEW ONLY";
+
   return (
     <>
       <section className="reservation-summary-grid">
@@ -2490,9 +2685,9 @@ function ReservationsPage({
             <Icon name="calendar" size={18} />
           </span>
           <div>
-            <span>Tonight</span>
+            <span>Reservations loaded</span>
             <strong>
-              12 <small>bookings</small>
+              {reservationCount} <small>bookings</small>
             </strong>
           </div>
         </article>
@@ -2501,9 +2696,9 @@ function ReservationsPage({
             <Icon name="user" size={18} />
           </span>
           <div>
-            <span>Expected guests</span>
+            <span>Party seats</span>
             <strong>
-              38 <small>people</small>
+              {guestCount} <small>people</small>
             </strong>
           </div>
         </article>
@@ -2512,9 +2707,9 @@ function ReservationsPage({
             <Icon name="table" size={18} />
           </span>
           <div>
-            <span>Tables held</span>
+            <span>Tables assigned today</span>
             <strong>
-              9 <small>of 14</small>
+              {assignedTables} <small>reservations</small>
             </strong>
           </div>
         </article>
@@ -2522,13 +2717,17 @@ function ReservationsPage({
       <article className="card reservations-card">
         <div className="orders-toolbar">
           <div>
-            <div className="card-overline">SATURDAY · 10 OCTOBER</div>
-            <h2>Upcoming reservations</h2>
+            <div className="card-overline">{dataLabel}</div>
+            <h2>Reservation schedule</h2>
           </div>
-          <button className="select-button" type="button">
-            <Icon name="calendar" size={15} />
-            <span>Tonight</span>
-            <Icon name="chevron" size={15} />
+          <button
+            className="select-button"
+            type="button"
+            onClick={onRefresh}
+            disabled={status === "loading"}
+          >
+            <Icon name="refresh" size={15} />
+            <span>{status === "loading" ? "Loading…" : "Refresh"}</span>
           </button>
         </div>
         <div className="table-scroll">
@@ -2546,44 +2745,92 @@ function ReservationsPage({
               </tr>
             </thead>
             <tbody>
-              {reservations.map((reservation) => (
-                <tr key={reservation.id}>
-                  <td>
-                    <span className="reservation-time">{reservation.time}</span>
-                    <span className="cell-subline">{reservation.id}</span>
-                  </td>
-                  <td>
-                    <span className="cell-strong">{reservation.guest}</span>
-                    <span className="cell-subline">Dinner · indoor</span>
-                  </td>
-                  <td>{reservation.party} guests</td>
-                  <td>{reservation.table}</td>
-                  <td>
-                    <StatusPill>{reservation.status}</StatusPill>
-                  </td>
-                  <td className="table-action-cell">
-                    <button
-                      type="button"
-                      className="table-action"
-                      onClick={() => onUpdate(reservation.id)}
-                    >
-                      {reservation.status === "Seated"
-                        ? "Seated"
-                        : reservation.status === "Awaiting"
-                          ? "Confirm"
-                          : "Seat guest"}
-                    </button>
+              {reservations.length ? (
+                reservations.map((reservation) => {
+                  const action =
+                    reservation.status === "Awaiting"
+                      ? "Confirm"
+                      : reservation.status === "Confirmed"
+                        ? "Seat guest"
+                        : reservation.status === "Seated"
+                          ? "Complete"
+                          : null;
+                  const statusLabel =
+                    reservation.status === "NoShow" ? "No show" : reservation.status;
+                  return (
+                    <tr key={reservation.id}>
+                      <td>
+                        <span className="reservation-time">{reservation.time}</span>
+                        <span className="cell-subline">
+                          {reservation.startAt
+                            ? new Intl.DateTimeFormat("en-IN", {
+                                timeZone: "Asia/Kolkata",
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              }).format(new Date(reservation.startAt))
+                            : reservation.id}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="cell-strong">{reservation.guest}</span>
+                        <span className="cell-subline">
+                          Reservation · {reservation.restaurantName ?? "Saffron & Co."}
+                        </span>
+                      </td>
+                      <td>{reservation.party} guests</td>
+                      <td>{reservation.table}</td>
+                      <td>
+                        <StatusPill>{statusLabel}</StatusPill>
+                      </td>
+                      <td className="table-action-cell">
+                        <button
+                          aria-label={
+                            action
+                              ? `${action} ${reservation.guest}`
+                              : `No action for ${reservation.guest}`
+                          }
+                          className="table-action"
+                          disabled={!action || savingId === reservation.id || status === "loading"}
+                          type="button"
+                          onClick={() => void onUpdate(reservation.id)}
+                        >
+                          {savingId === reservation.id ? "Saving…" : (action ?? "—")}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6}>
+                    {status === "live"
+                      ? "No reservations were returned for this restaurant."
+                      : "No sample reservations are available."}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
         <div className="reservation-foot">
           <span>
-            <i className="small-live-dot" /> 4 of 12 reservations shown in preview
+            {status === "live" ? <i className="small-live-dot" /> : null}
+            {status === "live"
+              ? `${reservations.length}${truncated ? "+" : ""} reservations loaded from the API${truncated ? " (list capped at 500)" : ""}.`
+              : status === "loading"
+                ? "Loading saved reservations; sample data is shown until the API responds."
+                : status === "unavailable"
+                  ? "Showing sample reservations. Changes are not saved while the API is unavailable."
+                  : "Showing sample reservations. Changes are not saved."}
           </span>
-          <button className="text-link" type="button">
+          <button
+            className="text-link"
+            type="button"
+            onClick={() =>
+              onToast("Floor planning will be available once table-management APIs are connected.")
+            }
+          >
             View floor plan <Icon name="arrow-right" size={15} />
           </button>
         </div>
@@ -3243,7 +3490,111 @@ function SettingsPage({
   );
 }
 
-function CustomerPortal({ userName }: { userName: string }) {
+function CustomerPortal({
+  userName,
+  accessToken,
+}: {
+  userName: string;
+  accessToken: string | null;
+}) {
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservationState, setReservationState] = useState<"loading" | "live" | "unavailable">(
+    "loading",
+  );
+  const [reservationError, setReservationError] = useState("");
+  const [savingReservationId, setSavingReservationId] = useState("");
+  const [nowMs, setNowMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const refreshClock = () => setNowMs(Date.now());
+    refreshClock();
+    const timer = window.setInterval(refreshClock, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!accessToken) {
+      setReservationState("unavailable");
+      return;
+    }
+    const controller = new AbortController();
+    setReservationState("loading");
+    void fetch(`${API_BASE}/reservations`, {
+      cache: "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Your reservations are unavailable.");
+        const payload: unknown = await response.json();
+        const parsed = parseReservationsResponse(payload);
+        if (!parsed) throw new Error("The reservation response was invalid.");
+        if (controller.signal.aborted) return;
+        setReservations(parsed.reservations);
+        setReservationState("live");
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setReservations([]);
+        setReservationState("unavailable");
+      });
+    return () => controller.abort();
+  }, [accessToken]);
+
+  const nextReservation = reservations
+    .filter(
+      (reservation) =>
+        reservation.startAt &&
+        nowMs !== null &&
+        Date.parse(reservation.startAt) > nowMs &&
+        reservation.status !== "Cancelled" &&
+        reservation.status !== "Completed" &&
+        reservation.status !== "NoShow",
+    )
+    .sort((first, second) => Date.parse(first.startAt ?? "") - Date.parse(second.startAt ?? ""))[0];
+
+  const cancelReservation = async (reservationId: string) => {
+    if (!accessToken) return;
+    setReservationError("");
+    setSavingReservationId(reservationId);
+    try {
+      const response = await fetch(`${API_BASE}/reservations/${reservationId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ status: "Cancelled" }),
+      });
+      if (!response.ok)
+        throw new Error("We couldn't cancel this reservation. Please refresh and try again.");
+      const updated = parseReservationResponse(await response.json());
+      if (!updated) throw new Error("The reservation response was invalid.");
+      setReservations((current) =>
+        current.map((reservation) => (reservation.id === reservationId ? updated : reservation)),
+      );
+    } catch (error) {
+      setReservationError(
+        error instanceof Error ? error.message : "Your reservation could not be cancelled.",
+      );
+    } finally {
+      setSavingReservationId("");
+    }
+  };
+
+  const nextVisitDetails = nextReservation?.startAt
+    ? new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(nextReservation.startAt))
+    : "";
+  const canCancel =
+    nextReservation &&
+    (nextReservation.status === "Awaiting" || nextReservation.status === "Confirmed");
+
   return (
     <main className="customer-portal" id="main-content">
       <header className="customer-topbar">
@@ -3320,8 +3671,37 @@ function CustomerPortal({ userName }: { userName: string }) {
           </span>
           <div>
             <span>YOUR NEXT VISIT</span>
-            <strong>Make room for a good evening.</strong>
-            <p>Reserve a table at Saffron &amp; Co.</p>
+            <strong>
+              {reservationState === "loading"
+                ? "Checking your reservations…"
+                : nextReservation
+                  ? `${nextReservation.status} · ${nextVisitDetails}`
+                  : reservationState === "unavailable"
+                    ? "Reservation status unavailable"
+                    : "No upcoming reservation yet."}
+            </strong>
+            <p>
+              {nextReservation
+                ? `${nextReservation.restaurantName ?? "Restaurant"} · ${nextReservation.party} ${nextReservation.party === 1 ? "guest" : "guests"} · ${nextReservation.table}`
+                : reservationState === "unavailable"
+                  ? "Your request was not changed; try again when the service is available."
+                  : "Reserve a table at Saffron & Co."}
+            </p>
+            {canCancel ? (
+              <button
+                className="customer-reservation-cancel"
+                disabled={savingReservationId === nextReservation.id}
+                type="button"
+                onClick={() => void cancelReservation(nextReservation.id)}
+              >
+                {savingReservationId === nextReservation.id ? "Cancelling…" : "Cancel reservation"}
+              </button>
+            ) : null}
+            {reservationError ? (
+              <p className="customer-reservation-error" role="alert">
+                {reservationError}
+              </p>
+            ) : null}
           </div>
           <Link href="/book" aria-label="Book a table">
             <Icon name="arrow-right" size={17} />
