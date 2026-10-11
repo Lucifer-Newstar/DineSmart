@@ -45,10 +45,14 @@ test("operational collections lead at least one compound index with restaurantId
   }
 });
 
-test("orders have an index for tenant-scoped rolling health-score snapshots", () => {
+test("orders and reservations have indexes for tenant and customer history queries", () => {
   assert.deepEqual(indexFor("orders", "orders_restaurant_created")?.key, {
     restaurantId: 1,
     createdAt: -1,
+  });
+  assert.deepEqual(indexFor("reservations", "reservations_customer_start")?.key, {
+    customerId: 1,
+    startAt: -1,
   });
 });
 

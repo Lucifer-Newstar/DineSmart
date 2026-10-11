@@ -1,0 +1,360 @@
+import {
+  type NextFunction,
+  type Request,
+  type RequestHandler,
+  type Response,
+  Router,
+} from "express";
+import { ObjectId } from "mongodb";
+import { authenticateAccessToken } from "../auth/auth.middleware.js";
+import type { AuthPrincipal } from "../auth/auth.service.js";
+import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { ReservationError } from "./reservation.service.js";
+import type {
+  ReservationRecord,
+  ReservationServiceReader,
+  ReservationStatus,
+} from "./reservation.types.js";
+
+export interface ReservationRuntime {
+  service: ReservationServiceReader;
+  verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
+}
+
+export interface ReservationRouterOptions {
+  createRuntime: () => Promise<ReservationRuntime>;
+}
+
+const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
+const ISO_DATE_TIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i;
+const VALID_RESERVATION_STATUSES = new Set<ReservationStatus>([
+  "Awaiting",
+  "Confirmed",
+  "Seated",
+  "Completed",
+  "Cancelled",
+  "NoShow",
+]);
+
+function sendUnavailable(response: Response): void {
+  response.status(503).json({
+    error: {
+      code: "reservation_unavailable",
+      message: "Reservations are temporarily unavailable.",
+    },
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
+  const keys = new Set(allowed);
+  return Object.keys(value).every((key) => keys.has(key));
+}
+
+function objectId(value: unknown): ObjectId | null {
+  return typeof value === "string" && OBJECT_ID_PATTERN.test(value) ? new ObjectId(value) : null;
+}
+
+function dateWithTimeZone(value: unknown): Date | null {
+  if (typeof value !== "string" || !ISO_DATE_TIME_PATTERN.test(value)) return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+interface ParsedCreateBody {
+  restaurantId?: ObjectId;
+  customerId?: ObjectId;
+  tableId?: ObjectId | null;
+  partySize: number;
+  startAt: Date;
+  notes?: string;
+}
+
+function parseCreateBody(value: unknown, role: AuthPrincipal["role"]): ParsedCreateBody | null {
+  if (!isRecord(value)) return null;
+  const isCustomer = role === "Customer";
+  const allowedKeys = isCustomer
+    ? ["restaurantId", "partySize", "startAt", "notes"]
+    : ["restaurantId", "customerId", "tableId", "partySize", "startAt", "notes"];
+  if (!hasOnlyKeys(value, allowedKeys)) return null;
+
+  if (typeof value.partySize !== "number" || !Number.isFinite(value.partySize)) return null;
+  const startAt = dateWithTimeZone(value.startAt);
+  if (!startAt) return null;
+
+  const parsed: ParsedCreateBody = { partySize: value.partySize, startAt };
+  if (isCustomer) {
+    const restaurantId = objectId(value.restaurantId);
+    if (!restaurantId) return null;
+    parsed.restaurantId = restaurantId;
+  } else {
+    if (value.restaurantId !== undefined && typeof value.restaurantId !== "string") return null;
+    const customerId = objectId(value.customerId);
+    if (!customerId) return null;
+    parsed.customerId = customerId;
+    if (value.tableId !== undefined) {
+      if (value.tableId === null) parsed.tableId = null;
+      else {
+        const tableId = objectId(value.tableId);
+        if (!tableId) return null;
+        parsed.tableId = tableId;
+      }
+    }
+  }
+  if (value.notes !== undefined) {
+    if (typeof value.notes !== "string") return null;
+    parsed.notes = value.notes;
+  }
+  return parsed;
+}
+
+interface ParsedUpdateBody {
+  status?: ReservationStatus;
+  tableId?: ObjectId | null;
+  partySize?: number;
+  startAt?: Date;
+  notes?: string;
+}
+
+function parseUpdateBody(value: unknown, role: AuthPrincipal["role"]): ParsedUpdateBody | null {
+  if (!isRecord(value) || Object.keys(value).length === 0) return null;
+  if (!hasOnlyKeys(value, ["status", "tableId", "partySize", "startAt", "notes"])) return null;
+  if (role === "Customer" && Object.keys(value).some((key) => key !== "status")) return null;
+
+  const parsed: ParsedUpdateBody = {};
+  if (value.status !== undefined) {
+    if (
+      typeof value.status !== "string" ||
+      !VALID_RESERVATION_STATUSES.has(value.status as ReservationStatus)
+    ) {
+      return null;
+    }
+    if (role === "Customer" && value.status !== "Cancelled") return null;
+    parsed.status = value.status as ReservationStatus;
+  }
+  if (value.tableId !== undefined) {
+    if (value.tableId === null) parsed.tableId = null;
+    else {
+      const tableId = objectId(value.tableId);
+      if (!tableId) return null;
+      parsed.tableId = tableId;
+    }
+  }
+  if (value.partySize !== undefined) {
+    if (typeof value.partySize !== "number" || !Number.isFinite(value.partySize)) return null;
+    parsed.partySize = value.partySize;
+  }
+  if (value.startAt !== undefined) {
+    const startAt = dateWithTimeZone(value.startAt);
+    if (!startAt) return null;
+    parsed.startAt = startAt;
+  }
+  if (value.notes !== undefined) {
+    if (typeof value.notes !== "string") return null;
+    parsed.notes = value.notes;
+  }
+  if (Object.keys(parsed).length === 0) return null;
+  if (role === "Customer" && parsed.status !== "Cancelled") return null;
+  return parsed;
+}
+
+function sendReservationError(error: unknown, response: Response): void {
+  if (error instanceof ReservationError) {
+    response.status(error.statusCode).json({
+      error: { code: error.code, message: error.message },
+    });
+    return;
+  }
+  sendUnavailable(response);
+}
+
+function requireReservationPermission(
+  customerPermission:
+    | "reservations:own:create"
+    | "reservations:own:read"
+    | "reservations:own:update",
+  staffPermission: "reservations:read" | "reservations:write",
+): RequestHandler {
+  return (request: Request, response: Response, next: NextFunction): void => {
+    if (request.auth?.role === "Customer") {
+      requirePermissions(customerPermission)(request, response, next);
+      return;
+    }
+    requirePermissions(staffPermission)(request, response, () => {
+      requireRestaurantScope()(request, response, next);
+    });
+  };
+}
+
+function toJson(reservation: ReservationRecord) {
+  return {
+    id: reservation.id.toHexString(),
+    restaurantId: reservation.restaurantId.toHexString(),
+    restaurantName: reservation.restaurantName,
+    guestName: reservation.guestName,
+    partySize: reservation.partySize,
+    startAt: reservation.startAt.toISOString(),
+    endAt: reservation.endAt.toISOString(),
+    tableId: reservation.tableId?.toHexString() ?? null,
+    tableNumber: reservation.tableNumber,
+    status: reservation.status,
+    ...(reservation.notes === undefined ? {} : { notes: reservation.notes }),
+    createdAt: reservation.createdAt.toISOString(),
+    updatedAt: reservation.updatedAt.toISOString(),
+  };
+}
+
+export function createReservationRouter(options: ReservationRouterOptions): Router {
+  const router = Router();
+  const runtimes = new WeakMap<Request, ReservationRuntime>();
+
+  router.use(async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const runtime = await options.createRuntime();
+      runtimes.set(request, runtime);
+      authenticateAccessToken(runtime.verifyAccessToken)(request, response, next);
+    } catch {
+      sendUnavailable(response);
+    }
+  });
+
+  router.get(
+    "/",
+    requireReservationPermission("reservations:own:read", "reservations:read"),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      if (!runtime || !principal) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+
+      try {
+        const result =
+          principal.role === "Customer"
+            ? await runtime.service.listForCustomer(asObjectId(principal.userId))
+            : await runtime.service.listForRestaurant(asObjectId(principal.restaurantId));
+        response.status(200).json({
+          reservations: result.reservations.map(toJson),
+          truncated: result.truncated,
+        });
+      } catch (error) {
+        sendReservationError(error, response);
+      }
+    },
+  );
+
+  router.post(
+    "/",
+    requireReservationPermission("reservations:own:create", "reservations:write"),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      if (!runtime || !principal) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+
+      const body = parseCreateBody(request.body, principal.role);
+      if (!body) {
+        response.status(400).json({
+          error: {
+            code: "invalid_reservation_request",
+            message:
+              "Provide a restaurant, customer, party size, and timezone-qualified start time.",
+          },
+        });
+        return;
+      }
+
+      try {
+        const reservation =
+          principal.role === "Customer"
+            ? await runtime.service.createForCustomer({
+                userId: asObjectId(principal.userId),
+                restaurantId: body.restaurantId as ObjectId,
+                partySize: body.partySize,
+                startAt: body.startAt,
+                ...(body.notes === undefined ? {} : { notes: body.notes }),
+              })
+            : await runtime.service.createForStaff({
+                restaurantId: asObjectId(principal.restaurantId),
+                customerId: body.customerId as ObjectId,
+                partySize: body.partySize,
+                startAt: body.startAt,
+                ...(body.tableId === undefined ? {} : { tableId: body.tableId }),
+                ...(body.notes === undefined ? {} : { notes: body.notes }),
+              });
+        response.status(201).json({ reservation: toJson(reservation) });
+      } catch (error) {
+        sendReservationError(error, response);
+      }
+    },
+  );
+
+  router.put(
+    "/:id",
+    requireReservationPermission("reservations:own:update", "reservations:write"),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      if (!runtime || !principal) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+      const reservationId = objectId(request.params.id);
+      if (!reservationId) {
+        response.status(400).json({
+          error: { code: "invalid_reservation_id", message: "A valid reservation ID is required." },
+        });
+        return;
+      }
+      const changes = parseUpdateBody(request.body, principal.role);
+      if (!changes) {
+        response.status(400).json({
+          error: {
+            code: "invalid_reservation_update",
+            message: "Provide supported reservation fields with valid values.",
+          },
+        });
+        return;
+      }
+
+      try {
+        const reservation =
+          principal.role === "Customer"
+            ? await runtime.service.updateForCustomer({
+                userId: asObjectId(principal.userId),
+                reservationId,
+                status: "Cancelled",
+              })
+            : await runtime.service.updateForStaff({
+                restaurantId: asObjectId(principal.restaurantId),
+                reservationId,
+                changes,
+              });
+        response.status(200).json({ reservation: toJson(reservation) });
+      } catch (error) {
+        sendReservationError(error, response);
+      }
+    },
+  );
+
+  return router;
+}
+
+function asObjectId(value: string | null): ObjectId {
+  if (!value || !OBJECT_ID_PATTERN.test(value))
+    throw new Error("Invalid authenticated identifier.");
+  return new ObjectId(value);
+}

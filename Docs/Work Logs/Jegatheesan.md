@@ -41,4 +41,14 @@
 - Added tenant-scoped `GET /api/v1/inventory` and `PUT /api/v1/inventory/:id` routes. Manager/Administrator receive full stock details and can set a manual non-negative count/optional threshold; Reception/Kitchen Staff receive availability-only data. Each read/write repository filter includes the signed restaurant ID; lists are name-sorted and capped at 2,000 records with a truncation flag. Orders do not auto-deduct stock.
 - **Implementation commit:** `1086404` (Jegatheesan). Navin documented the recommended request/response and privacy contract in `e2c4e4e`; those contract details remain recommendations, not separate owner approvals.
 - **Validation on Node `24.21.0`:** Biome, TypeScript typecheck, 41 backend tests, production build, `npm audit --audit-level=high` (zero vulnerabilities), and `git diff --check` passed. Fake-repository tests verify tenant filtering; live MongoDB integration remains unavailable.
-- **Status:** S2-06 remains **In Progress** pending UI integration and live MongoDB verification. No remote push or merge was made.
+- **Status:** S2-06 remains **In Progress** pending live MongoDB verification. No remote push or merge was made.
+
+## 2026-10-11
+
+### S2-03 — Reservation Module API
+
+- Implemented authenticated `POST`, `GET`, and `PUT /api/v1/reservations` with customer-owned cross-restaurant reads/cancellation and tenant-scoped Reception/Manager/Administrator operations. Customer identity is derived from the active user; the request cannot forge `customerId` or status.
+- Applied the approved 90-minute duration, 30-minute slots, table overlap/capacity checks, customer cancellation-before-start rule, and 15-minute no-show grace. Selected and documented additional assistant recommendations (party size 1–12, `Awaiting` request status, staff-confirmed table assignment, bounded notes, status transitions, response shape, and concurrency limitation) without describing them as separate owner approvals.
+- Added a customer reservation-history index, Mongo repository/service/router, app mounting, and service/HTTP/repository/schema tests. The table-overlap check is application-level and not atomic across API processes.
+- **Local validation on Node `24.21.0`:** backend `npm ci`, audit (zero vulnerabilities), Biome, typecheck, production build, and all 58 backend tests passed. Route/repository tests use injected/fake storage; Docker/`mongod` are unavailable, so live Mongo persistence and concurrent booking behavior remain unverified.
+- **Delivery:** implementation committed locally on `main`; no remote push or GitHub Actions run was made. S2-03 is Ready to Push pending live MongoDB persistence/concurrency verification.

@@ -271,6 +271,7 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
       key: { restaurantId: 1, tableId: 1, startAt: 1 },
       name: "reservations_restaurant_table_start",
     },
+    { key: { customerId: 1, startAt: -1 }, name: "reservations_customer_start" },
   ],
   tables: [
     {

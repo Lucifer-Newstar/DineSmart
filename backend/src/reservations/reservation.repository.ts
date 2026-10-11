@@ -1,0 +1,257 @@
+import type { Db, ObjectId, WithId } from "mongodb";
+import {
+  COLLECTIONS,
+  type CustomerDocument,
+  type ReservationDocument,
+  type RestaurantDocument,
+  type TableDocument,
+  type UserDocument,
+} from "../database/schema.js";
+import type {
+  NewReservation,
+  ReservationChanges,
+  ReservationListResult,
+  ReservationRecord,
+  ReservationRepository,
+  ReservationSchedule,
+} from "./reservation.types.js";
+
+export const RESERVATION_LIST_LIMIT = 500;
+
+const INACTIVE_RESERVATION_STATUSES = [
+  "Cancelled",
+  "cancelled",
+  "Canceled",
+  "canceled",
+  "NoShow",
+  "No Show",
+  "no_show",
+  "no-show",
+] as const;
+
+export class MongoReservationRepository implements ReservationRepository {
+  private readonly reservations;
+  private readonly customers;
+  private readonly users;
+  private readonly restaurants;
+  private readonly tables;
+
+  constructor(db: Db) {
+    this.reservations = db.collection<ReservationDocument>(COLLECTIONS.reservations);
+    this.customers = db.collection<CustomerDocument>(COLLECTIONS.customers);
+    this.users = db.collection<UserDocument>(COLLECTIONS.users);
+    this.restaurants = db.collection<RestaurantDocument>(COLLECTIONS.restaurants);
+    this.tables = db.collection<TableDocument>(COLLECTIONS.tables);
+  }
+
+  async getCustomerIdForUser(userId: ObjectId, now: Date): Promise<ObjectId | null> {
+    const user = await this.users.findOne({ _id: userId, role: "Customer", status: "active" });
+    if (user?.role !== "Customer") return null;
+
+    try {
+      const customer = await this.customers.findOneAndUpdate(
+        { userId },
+        {
+          $setOnInsert: {
+            userId,
+            displayName: user.name,
+            email: user.email,
+            contactPreferences: { email: true },
+            createdAt: now,
+            updatedAt: now,
+          },
+        },
+        { upsert: true, returnDocument: "after", includeResultMetadata: false },
+      );
+      if (customer) return customer._id;
+    } catch (error) {
+      // A concurrent first reservation can create the same profile first.
+      if (!isDuplicateKeyError(error)) throw error;
+    }
+
+    const existing = await this.customers.findOne({ userId }, { projection: { _id: 1 } });
+    return existing?._id ?? null;
+  }
+
+  async getActiveRestaurant(restaurantId: ObjectId): Promise<ReservationSchedule | null> {
+    const restaurant = await this.restaurants.findOne({ _id: restaurantId, status: "active" });
+    if (!restaurant) return null;
+    return {
+      timeZone: restaurant.timezone,
+      ...(restaurant.operatingHours ? { operatingHours: restaurant.operatingHours } : {}),
+    };
+  }
+
+  async customerExists(customerId: ObjectId): Promise<boolean> {
+    return (await this.customers.findOne({ _id: customerId }, { projection: { _id: 1 } })) !== null;
+  }
+
+  async getTable(
+    restaurantId: ObjectId,
+    tableId: ObjectId,
+  ): Promise<{ capacity: number; status: string; tableNumber: string } | null> {
+    const table = await this.tables.findOne({ _id: tableId, restaurantId });
+    return table
+      ? { capacity: table.capacity, status: table.status, tableNumber: table.tableNumber }
+      : null;
+  }
+
+  async hasTableConflict(
+    restaurantId: ObjectId,
+    tableId: ObjectId,
+    startAt: Date,
+    endAt: Date,
+    excludingReservationId?: ObjectId,
+  ): Promise<boolean> {
+    const filter: Record<string, unknown> = {
+      restaurantId,
+      tableId,
+      status: { $nin: INACTIVE_RESERVATION_STATUSES },
+      startAt: { $lt: endAt },
+      endAt: { $gt: startAt },
+    };
+    if (excludingReservationId) filter._id = { $ne: excludingReservationId };
+    return (await this.reservations.findOne(filter, { projection: { _id: 1 } })) !== null;
+  }
+
+  async createReservation(reservation: NewReservation, now: Date): Promise<ReservationRecord> {
+    const document: ReservationDocument = {
+      ...reservation,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const result = await this.reservations.insertOne(document);
+    const created = await this.findForRestaurant(result.insertedId, reservation.restaurantId);
+    if (!created) throw new Error("The new reservation could not be read back.");
+    return created;
+  }
+
+  listForRestaurant(restaurantId: ObjectId): Promise<ReservationListResult> {
+    return this.list({ restaurantId });
+  }
+
+  listForCustomer(customerId: ObjectId): Promise<ReservationListResult> {
+    return this.list({ customerId });
+  }
+
+  async findForRestaurant(
+    reservationId: ObjectId,
+    restaurantId: ObjectId,
+  ): Promise<ReservationRecord | null> {
+    const reservation = await this.reservations.findOne({ _id: reservationId, restaurantId });
+    if (!reservation) return null;
+    return (await this.toRecords([reservation]))[0] ?? null;
+  }
+
+  async findForCustomer(
+    reservationId: ObjectId,
+    customerId: ObjectId,
+  ): Promise<ReservationRecord | null> {
+    const reservation = await this.reservations.findOne({ _id: reservationId, customerId });
+    if (!reservation) return null;
+    return (await this.toRecords([reservation]))[0] ?? null;
+  }
+
+  async updateForRestaurant(
+    reservationId: ObjectId,
+    restaurantId: ObjectId,
+    expectedUpdatedAt: Date,
+    changes: ReservationChanges,
+    now: Date,
+  ): Promise<ReservationRecord | null> {
+    const fields: Partial<ReservationDocument> = { ...changes, updatedAt: now };
+    const result = await this.reservations.updateOne(
+      { _id: reservationId, restaurantId, updatedAt: expectedUpdatedAt },
+      { $set: fields },
+    );
+    if (result.matchedCount === 0) return null;
+    return this.findForRestaurant(reservationId, restaurantId);
+  }
+
+  async updateForCustomer(
+    reservationId: ObjectId,
+    customerId: ObjectId,
+    expectedUpdatedAt: Date,
+    changes: ReservationChanges,
+    now: Date,
+  ): Promise<ReservationRecord | null> {
+    const fields: Partial<ReservationDocument> = { ...changes, updatedAt: now };
+    const result = await this.reservations.updateOne(
+      { _id: reservationId, customerId, updatedAt: expectedUpdatedAt },
+      { $set: fields },
+    );
+    if (result.matchedCount === 0) return null;
+    return this.findForCustomer(reservationId, customerId);
+  }
+
+  private async list(filter: Record<string, unknown>): Promise<ReservationListResult> {
+    const documents = await this.reservations
+      .find(filter)
+      .sort({ startAt: 1, _id: 1 })
+      .limit(RESERVATION_LIST_LIMIT + 1)
+      .toArray();
+    const truncated = documents.length > RESERVATION_LIST_LIMIT;
+    return {
+      reservations: await this.toRecords(documents.slice(0, RESERVATION_LIST_LIMIT)),
+      truncated,
+    };
+  }
+
+  private async toRecords(
+    documents: Array<WithId<ReservationDocument>>,
+  ): Promise<ReservationRecord[]> {
+    if (documents.length === 0) return [];
+
+    const customerIds = [
+      ...new Map(
+        documents.map((document) => [document.customerId.toHexString(), document.customerId]),
+      ).values(),
+    ];
+    const restaurantIds = [
+      ...new Map(
+        documents.map((document) => [document.restaurantId.toHexString(), document.restaurantId]),
+      ).values(),
+    ];
+    const tableLookups = documents.flatMap((document) =>
+      document.tableId ? [{ _id: document.tableId, restaurantId: document.restaurantId }] : [],
+    );
+    const [customers, tables, restaurants] = await Promise.all([
+      this.customers.find({ _id: { $in: customerIds } }).toArray(),
+      tableLookups.length > 0
+        ? this.tables.find({ $or: tableLookups }).toArray()
+        : Promise.resolve([]),
+      this.restaurants.find({ _id: { $in: restaurantIds } }).toArray(),
+    ]);
+    const customerNames = new Map(
+      customers.map((customer) => [customer._id.toHexString(), customer.displayName]),
+    );
+    const restaurantNames = new Map(
+      restaurants.map((restaurant) => [restaurant._id.toHexString(), restaurant.name]),
+    );
+    const tableNumbers = new Map(
+      tables.map((table) => [table._id.toHexString(), table.tableNumber]),
+    );
+
+    return documents.map((document) => ({
+      id: document._id,
+      restaurantId: document.restaurantId,
+      restaurantName: restaurantNames.get(document.restaurantId.toHexString()) ?? "Restaurant",
+      guestName: customerNames.get(document.customerId.toHexString()) ?? "Guest",
+      partySize: document.partySize,
+      startAt: document.startAt,
+      endAt: document.endAt,
+      tableId: document.tableId ?? null,
+      tableNumber: document.tableId
+        ? (tableNumbers.get(document.tableId.toHexString()) ?? null)
+        : null,
+      status: document.status,
+      ...(document.notes === undefined ? {} : { notes: document.notes }),
+      createdAt: document.createdAt,
+      updatedAt: document.updatedAt,
+    }));
+  }
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
+}
