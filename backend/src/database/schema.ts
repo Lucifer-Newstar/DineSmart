@@ -28,6 +28,7 @@ export type OrderStatus =
   | "Served"
   | "Completed"
   | "Cancelled";
+export type PreparationStatus = "Created" | "Preparing" | "Ready";
 export type IncidentSeverity = "info" | "warning" | "critical";
 
 /** Trim and case-normalize email addresses for the unique login identifier. */
@@ -159,7 +160,7 @@ export interface OrderItemDocument extends TimestampedDocument {
   unitPriceMinor: number;
   quantity: number;
   notes?: string;
-  preparationStatus: string;
+  preparationStatus: PreparationStatus;
 }
 
 export interface InventoryItemDocument extends TimestampedDocument {

@@ -5,8 +5,16 @@ import {
   type MenuItemDocument,
   type OrderDocument,
   type OrderItemDocument,
+  type OrderStatus,
+  type PreparationStatus,
   type RestaurantDocument,
 } from "../database/schema.js";
+import {
+  KITCHEN_QUEUE_LIMIT,
+  KITCHEN_QUEUE_STATUSES,
+  type KitchenQueueResult,
+  type StaffOrderRepository,
+} from "./order.staff.types.js";
 import type {
   ActiveOrderRestaurant,
   NewOrder,
@@ -18,7 +26,7 @@ import type {
 } from "./order.types.js";
 import { ORDER_HISTORY_LIMIT } from "./order.types.js";
 
-export class MongoOrderRepository implements OrderRepository {
+export class MongoOrderRepository implements OrderRepository, StaffOrderRepository {
   private readonly customerProfiles: MongoCustomerProfileRepository;
   private readonly menuItems;
   private readonly orderItems;
@@ -134,6 +142,103 @@ export class MongoOrderRepository implements OrderRepository {
       ),
       truncated,
     };
+  }
+
+  async listKitchenQueue(restaurantId: ObjectId): Promise<KitchenQueueResult> {
+    const documents = await this.orders
+      .find({ restaurantId, status: { $in: [...KITCHEN_QUEUE_STATUSES] } })
+      .sort({ createdAt: 1, _id: 1 })
+      .limit(KITCHEN_QUEUE_LIMIT + 1)
+      .toArray();
+    const truncated = documents.length > KITCHEN_QUEUE_LIMIT;
+    const visibleOrders = documents.slice(0, KITCHEN_QUEUE_LIMIT);
+    if (visibleOrders.length === 0) return { tickets: [], truncated };
+
+    const items = await this.orderItems
+      .find({
+        restaurantId,
+        orderId: { $in: visibleOrders.map((order) => order._id) },
+      })
+      .sort({ createdAt: 1, _id: 1 })
+      .toArray();
+    const itemsByOrder = groupItemsByOrder(items);
+
+    return {
+      tickets: visibleOrders.map((order) => ({
+        id: order._id,
+        status: order.status as (typeof KITCHEN_QUEUE_STATUSES)[number],
+        items: (itemsByOrder.get(order._id.toHexString()) ?? []).map((item) => ({
+          id: item.id,
+          name: item.nameSnapshot,
+          quantity: item.quantity,
+          preparationStatus: item.preparationStatus,
+        })),
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      })),
+      truncated,
+    };
+  }
+
+  async findForRestaurant(orderId: ObjectId, restaurantId: ObjectId): Promise<OrderRecord | null> {
+    const order = await this.orders.findOne({ _id: orderId, restaurantId });
+    if (!order) return null;
+
+    const [items, restaurant] = await Promise.all([
+      this.orderItems
+        .find({ restaurantId, orderId: order._id })
+        .sort({ createdAt: 1, _id: 1 })
+        .toArray(),
+      this.restaurants.findOne({ _id: restaurantId }, { projection: { _id: 1, name: 1 } }),
+    ]);
+    return toOrderRecord(order, restaurant?.name ?? "Restaurant", items.map(toItemRecord));
+  }
+
+  async updateOrderStatusIfCurrent(
+    orderId: ObjectId,
+    restaurantId: ObjectId,
+    expectedStatus: OrderStatus,
+    expectedUpdatedAt: Date,
+    nextStatus: OrderStatus,
+    now: Date,
+  ): Promise<boolean> {
+    const timestampPath = `statusTimestamps.${nextStatus}`;
+    const result = await this.orders.updateOne(
+      { _id: orderId, restaurantId, status: expectedStatus, updatedAt: expectedUpdatedAt },
+      {
+        $set: {
+          status: nextStatus,
+          updatedAt: now,
+          [timestampPath]: now,
+        },
+      },
+    );
+    return result.matchedCount === 1;
+  }
+
+  async updateItemPreparationStatusIfCurrent(
+    orderId: ObjectId,
+    restaurantId: ObjectId,
+    itemId: ObjectId,
+    expectedStatus: PreparationStatus,
+    nextStatus: PreparationStatus,
+    now: Date,
+  ): Promise<boolean> {
+    const result = await this.orderItems.updateOne(
+      { _id: itemId, restaurantId, orderId, preparationStatus: expectedStatus },
+      { $set: { preparationStatus: nextStatus, updatedAt: now } },
+    );
+    return result.matchedCount === 1;
+  }
+
+  async listItemPreparationStatuses(
+    orderId: ObjectId,
+    restaurantId: ObjectId,
+  ): Promise<PreparationStatus[]> {
+    const items = await this.orderItems
+      .find({ restaurantId, orderId }, { projection: { _id: 0, preparationStatus: 1 } })
+      .toArray();
+    return items.map((item) => item.preparationStatus);
   }
 
   async findForCustomer(orderId: ObjectId, customerId: ObjectId): Promise<OrderRecord | null> {

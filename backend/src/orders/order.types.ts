@@ -1,5 +1,5 @@
 import type { ObjectId } from "mongodb";
-import type { OrderStatus } from "../database/schema.js";
+import type { OrderStatus, PreparationStatus } from "../database/schema.js";
 
 export const ORDER_HISTORY_LIMIT = 100;
 
@@ -25,7 +25,7 @@ export interface OrderItemSnapshot {
   nameSnapshot: string;
   unitPriceMinor: number;
   quantity: number;
-  preparationStatus: string;
+  preparationStatus: PreparationStatus;
 }
 
 export interface OrderItemRecord extends OrderItemSnapshot {
