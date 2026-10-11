@@ -38,6 +38,13 @@ function appFor(principal: AuthPrincipal | undefined): express.Express {
   app.get("/manager", requirePermissions("incidents:resolve"), (_request, response) => {
     response.status(200).json({ allowed: true });
   });
+  app.patch(
+    "/notifications/:id/read",
+    requirePermissions("notifications:own:update"),
+    (_request, response) => {
+      response.status(200).json({ allowed: true });
+    },
+  );
   app.post("/restaurants/:restaurantId/orders", requireRestaurantScope(), (_request, response) => {
     response.status(201).json({ allowed: true });
   });
@@ -66,6 +73,10 @@ test("role permission matrix follows the MVP role boundaries", () => {
   assert.ok(ROLE_PERMISSIONS.Reception.includes("orders:write"));
   assert.ok(ROLE_PERMISSIONS["Kitchen Staff"].includes("kitchen:queue:update"));
   assert.ok(ROLE_PERMISSIONS.Customer.includes("orders:own:create"));
+  assert.ok(ROLE_PERMISSIONS.Customer.includes("notifications:own:update"));
+  assert.ok(ROLE_PERMISSIONS.Reception.includes("notifications:own:update"));
+  assert.ok(ROLE_PERMISSIONS.Manager.includes("notifications:own:update"));
+  assert.ok(!ROLE_PERMISSIONS["Kitchen Staff"].includes("notifications:own:update"));
   assert.ok(!ROLE_PERMISSIONS["Kitchen Staff"].includes("inventory:write"));
   assert.ok(!ROLE_PERMISSIONS.Customer.includes("incidents:resolve"));
 });
@@ -93,6 +104,27 @@ test("permission middleware returns 401 without a principal and 403 for an unaut
   await withServer(appFor(manager), async (baseUrl) => {
     const response = await fetch(`${baseUrl}/manager`);
     assert.equal(response.status, 200);
+  });
+});
+
+test("notification read-state permission is limited to notification recipients", async () => {
+  await withServer(appFor(customer), async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/notifications/111111111111111111111111/read`, {
+      method: "PATCH",
+    });
+    assert.equal(response.status, 200);
+  });
+
+  const kitchen: AuthPrincipal = {
+    userId: "kitchen-user",
+    role: "Kitchen Staff",
+    restaurantId: manager.restaurantId,
+  };
+  await withServer(appFor(kitchen), async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/notifications/111111111111111111111111/read`, {
+      method: "PATCH",
+    });
+    assert.equal(response.status, 403);
   });
 });
 

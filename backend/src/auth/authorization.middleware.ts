@@ -38,6 +38,7 @@ export type Permission =
   | "bills:read"
   | "bills:write"
   | "notifications:own:read"
+  | "notifications:own:update"
   | "notifications:restaurant:read";
 
 const MANAGER_PERMISSIONS: readonly Permission[] = [
@@ -68,6 +69,7 @@ const MANAGER_PERMISSIONS: readonly Permission[] = [
   "bills:read",
   "bills:write",
   "notifications:restaurant:read",
+  "notifications:own:update",
 ];
 
 /**
@@ -86,6 +88,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     "orders:own:update",
     "bills:own:read",
     "notifications:own:read",
+    "notifications:own:update",
   ],
   Reception: [
     "menu:read",
@@ -100,6 +103,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     "inventory:availability:read",
     "dashboard:operations:read",
     "notifications:restaurant:read",
+    "notifications:own:update",
   ],
   "Kitchen Staff": [
     "menu:read",
