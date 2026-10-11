@@ -24,6 +24,11 @@ import { HealthScoreService } from "./healthscore/health-score.service.js";
 import { MongoInventoryRepository } from "./inventory/inventory.repository.js";
 import { createInventoryRouter } from "./inventory/inventory.router.js";
 import { InventoryService } from "./inventory/inventory.service.js";
+import { MongoMenuRepository } from "./menu/menu.repository.js";
+import { createMenuRouter } from "./menu/menu.router.js";
+import { MongoOrderRepository } from "./orders/order.repository.js";
+import { createOrderRouter } from "./orders/order.router.js";
+import { OrderService } from "./orders/order.service.js";
 import { MongoReservationRepository } from "./reservations/reservation.repository.js";
 import { createReservationRouter } from "./reservations/reservation.router.js";
 import { ReservationService } from "./reservations/reservation.service.js";
@@ -143,12 +148,33 @@ export function createApp(options: AppOptions = {}) {
   );
 
   app.use(
+    "/api/v1/menu",
+    createMenuRouter({
+      createReader: async () =>
+        new MongoMenuRepository(await (options.getDatabase?.() ?? connectToDatabase())),
+    }),
+  );
+
+  app.use(
     "/api/v1/reservations",
     createReservationRouter({
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
           service: new ReservationService(new MongoReservationRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/orders",
+    createOrderRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new OrderService(new MongoOrderRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
