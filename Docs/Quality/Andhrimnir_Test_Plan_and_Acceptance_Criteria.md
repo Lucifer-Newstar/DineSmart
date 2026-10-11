@@ -154,7 +154,7 @@ S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior w
 
 ## 17. S2-05 Kitchen Queue and Staff Order Progression Verification
 
-S2-05 is **Ready to Push** on local `main`; the selected endpoint details are assistant recommendations, not separate owner approvals. The combined backend lint, typecheck, build, audit, and current 115-test suite pass locally; live MongoDB verification remains outstanding. The Orders and Kitchen dashboard views now consume these routes under S2-07; integration is locally compiled but still needs role-by-role browser/E2E verification.
+S2-05 is **Ready to Push** on local `main`; the selected endpoint details are assistant recommendations, not separate owner approvals. The combined backend lint, typecheck, build, audit, and current 115-test suite pass locally; live MongoDB verification remains outstanding. The Orders and Kitchen dashboard views now consume these routes under S2-07 and the frontend is build-verified. Backend route tests cover role permissions; no manual browser E2E is claimed, and the broader role-focused UX review remains under S2-11.
 
 - Queue repository tests verify a signed-tenant filter on parent and child records, status inclusion limited to `Accepted`, `Preparing`, and `Ready`, oldest-first order, and a 200-order cap with a `truncated` indicator. The service/HTTP serializers omit customer contact details and prices from kitchen responses.
 - Kitchen route tests verify Kitchen Staff/Manager/Administrator access only, exact `{ itemId, preparationStatus }` request keys, valid `Preparing`/`Ready` target values, tenant derivation from the signed principal, and no serialized prices/customer contact data. Cross-tenant order or item IDs must not disclose records.
@@ -183,7 +183,7 @@ S2-10's assistant-recommended contract is locally implemented and **Ready to Pus
 
 ## 20. S2-07 Staff Orders and Kitchen Dashboard Integration
 
-S2-07 remains **In Progress**. The staff order feed plus Orders/Kitchen dashboard integration are implemented and locally verified through backend tests and frontend build checks. The broader dashboard still has sample-only incident/analytics/revenue widgets and requires role-by-role UX review. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
+S2-07 is **Ready to Push** on local `main` after backend/frontend local checks. The assistant-recommended scope covers the dashboard shell and currently available operational flows; analytics/incidents remain previews under S2-09/S2-12, while broader role-specific coverage remains under S2-11. This scope split is not a separate owner approval. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
 
 - Backend repository/service/HTTP tests verify the tenant filter on orders and item snapshots, oldest-first 200-record cap and truncation, server-selected `floor` versus `kitchen` status sets, permission/scope enforcement, Customer denial, strict no-query-filter behavior, and omission of customer IDs, prices, and totals.
 - The authenticated Orders view reads `/api/v1/orders`; Reception/Manager/Administrator may accept, serve, and complete through the guarded status route. Preparation progress is item-level only. Kitchen Staff cannot change order headers.

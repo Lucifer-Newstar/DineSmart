@@ -166,7 +166,7 @@
 
 ### 2026-10-11 — S2-05 kitchen queue integration and contract
 
-- Recorded the assistant-recommended (not separately owner-approved) tenant-scoped kitchen queue, item preparation flow, and front-of-house order lifecycle; documented the standalone-MongoDB cross-document consistency limit and kept dashboard UI wiring as a separate S2-07 task (since partially implemented locally; see the later S2-07 entry).
+- Recorded the assistant-recommended (not separately owner-approved) tenant-scoped kitchen queue, item preparation flow, and front-of-house order lifecycle; documented the standalone-MongoDB cross-document consistency limit and kept dashboard UI wiring as a separate S2-07 task (since locally implemented to Ready to Push status; see the later S2-07 entry).
 - Integrated Jegatheesan's staff-order/kitchen routes in `createApp`, added app mount coverage, and granted Reception `orders:write` to align with the approved role matrix's restaurant-order update capability. The permission change is an implementation recommendation, not a new owner policy selection.
 - Updated the canonical API specification, implementation decisions, acceptance tests, and backlog status. S2-05 is Ready to Push on local `main`, not Complete.
 - **Feature commits:** `bd46f2f` and `dad0024` (Jegatheesan). **Shared app/RBAC integration:** `4e550bc` (Navin). **Contract/status docs:** `ccefeba` (Navin).
@@ -176,6 +176,6 @@
 
 - Recorded S2-06's Ready to Push state, locally verified frontend checks, recommended inventory API details, test coverage, and the explicit deferral of MongoDB/index validation. The synchronized S2-06 status record is in local commit `2c8505e`.
 - Documented the assistant-recommended S2-07 tenant-scoped `GET /api/v1/orders` feed and role-specific status filter (not a separate owner approval). Synchronized the API specification, implementation decisions, test plan, and Jegatheesan/Dhanush work logs with backend `d616080` and frontend `87cb76c`.
-- S2-07 staff Orders/Kitchen views now use the local API feed/queue and item/order update paths; the broader dashboard remains In Progress. Sample analytics/incidents remain labeled, and Kitchen Staff cannot mutate order headers.
+- S2-07 staff Orders/Kitchen views now use the local API feed/queue and item/order update paths; S2-07 is **Ready to Push** on local `main`. Assistant-recommended scope leaves sample analytics/incidents under S2-09/S2-12 and role-specific coverage under S2-11; Kitchen Staff cannot mutate order headers.
 - **Local verification on Node `24.21.0`:** backend Biome, typecheck, build, and 115 tests passed; frontend Biome, typecheck, and Next production build passed; `git diff --check` passes after documentation sync. No browser E2E was run.
 - **Limits:** live MongoDB persistence/index verification and Atlas provisioning remain deferred to the final database/deployment stage. No remote is configured, so no push, GitHub Actions run, or merge verification was made.
