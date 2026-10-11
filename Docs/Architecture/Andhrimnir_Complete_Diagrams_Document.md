@@ -128,13 +128,17 @@ sequenceDiagram
 actor Customer
 participant Frontend
 participant API
-participant Service
-participant AI
-Customer->>Frontend: Place Order
-Frontend->>API: POST /orders
-API->>Service: Create Order
-Service->>AI: Analyze
-AI-->>Frontend: Response
+participant OrderService
+participant MongoDB
+Customer->>Frontend: Choose live menu items and quantities
+Frontend->>API: POST /api/v1/orders
+API->>OrderService: Validate customer, restaurant, and cart
+OrderService->>MongoDB: Recheck availability and authoritative prices
+OrderService->>MongoDB: Insert item snapshots, then visible order header
+MongoDB-->>OrderService: Persisted order with server-calculated subtotal
+OrderService-->>API: Order status Created
+API-->>Frontend: 201 { order }
+Frontend-->>Customer: Show order request; payment/acceptance pending
 ```
 
 ## Component

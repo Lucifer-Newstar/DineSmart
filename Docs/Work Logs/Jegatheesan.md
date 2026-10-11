@@ -53,3 +53,12 @@
 - **Implementation commit:** `02abcb4` (Jegatheesan).
 - **Local validation on Node `24.21.0`:** backend `npm ci`, audit (zero vulnerabilities), Biome, typecheck, production build, and all 58 backend tests passed. Route/repository tests use injected/fake storage; Docker/`mongod` are unavailable, so live Mongo persistence and concurrent booking behavior remain unverified.
 - **Delivery:** implementation committed locally on `main`; no remote push or GitHub Actions run was made. S2-03 is Ready to Push pending live MongoDB persistence/concurrency verification.
+
+### S2-04 — Customer order API
+
+- Added the Mongo-backed order repository and service for active-Customer profile resolution, active restaurant/menu checks, authoritative price/name snapshots, server-calculated integer-minor-unit totals, and bounded customer history across restaurants. New item records are inserted before the visible order header; failures trigger best-effort compensation.
+- Enforced 1–20 distinct lines, 1–20 units per line, 50 total units, duplicate-ID rejection, safe arithmetic, and owner-only cancellation while `Created`. Cancellation conditionally matches order ID, Customer ID, current status, and observed `updatedAt` to avoid overwriting a concurrent acceptance.
+- Added authenticated customer order create/history/cancel routes and service/repository/HTTP tests. Shared Customer profile logic is reused; `orders:own:update` permission and app mounting were integrated by Navin.
+- **Implementation commits:** `f74c728` (repository/snapshots/history), `3b9a0c0` (service/cart validation/cancellation), and `dd169ef` (HTTP endpoints), Jegatheesan.
+- **Local validation on Node `24.21.0`:** all 79 backend tests passed; Biome, TypeScript typecheck, production build, `npm audit --audit-level=high` (zero vulnerabilities), and `git diff --check` passed. Repository tests use fakes; Docker/`mongod` are unavailable, so live MongoDB persistence/index behavior remains unverified.
+- **Status:** S2-04 API work is Ready to Push on local `main`, pending live MongoDB verification and integration E2E. No remote push or GitHub Actions run was made.

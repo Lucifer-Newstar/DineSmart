@@ -154,3 +154,12 @@
 
 - Began the next backlog item on local `main`. Recorded an assistant-recommended public menu/customer-order contract, validation bounds, server-derived pricing, pre-accept cancellation rule, and explicit no-payment/no-auto-stock scope; these technical choices are recommendations, not separate owner approvals.
 - Kept staff order progression in S2-05, and documented the standalone-MongoDB multi-document write limitation. Marked S2-04 In Progress before implementation; no live-service or order persistence claim is made.
+
+### 2026-10-11 — S2-04 shared integration and local verification
+
+- Integrated the public `/api/v1/menu` and authenticated `/api/v1/orders` routers in `createApp`; added the Customer `orders:own:update` permission for cancellation and an app-level test confirming both routers are mounted. The API inventory still identifies the order endpoints as Jegatheesan-owned and the customer UI as Dhanush-owned.
+- Updated the recommended contract and known standalone-MongoDB limitation, API/verification docs, order sequence diagram, frontend README, sprint backlog, and each assigned member's work log. Updated S2-04 to Ready to Push after local implementation checks; this does not claim remote push, live persistence, or completion.
+- **Shared integration commits:** `c7ff928` (Customer cancellation permission) and `e64c2ce` (public menu/order route mounting and app tests), Navin. Order API commits: `f74c728`, `3b9a0c0`, `dd169ef` (Jegatheesan). Customer UI commits: `e3b4ac2`, `a6bebe4` (Dhanush).
+- **Local verification on Node `24.21.0`:** backend Biome, typecheck, production build, audit (zero vulnerabilities), and all 79 backend tests passed. Frontend Biome, typecheck, production build (including `/menu` and `/orders`), and audit (zero vulnerabilities) passed. `git diff --check` passed.
+- **Limits:** Docker/`mongod` are unavailable, so live MongoDB persistence/index and multi-document failure behavior were not tested. The frontend has no automated UI suite; no browser E2E was run. No remote is configured; no push or GitHub Actions run occurred.
+- **Status:** S2-04 is Ready to Push on local `main`, pending live MongoDB/browser E2E and ordinary review/merge. It is not Complete.

@@ -77,3 +77,12 @@
 - **Validation on Node `24.21.0`:** frontend `npm ci`, audit (zero vulnerabilities), Biome, typecheck, and Next.js production build passed. The frontend has no automated test script; no live browser interaction or MongoDB-backed UI flow was verified.
 - **Implementation commit:** `9143697` (Dhanush).
 - **Delivery:** frontend changes are committed locally on `main`; no remote push or GitHub Actions run was made. S2-03 remains Ready to Push pending live MongoDB and end-to-end UI verification.
+
+### S2-04 — Live customer menu, cart, and order history
+
+- Replaced the illustrative `/menu` catalog and preview-only checkout with a same-origin request to `GET /api/v1/menu`. Categories, currency, prices, dietary labels, allergens, and product IDs are now read from the live catalog; an unavailable catalog fails closed and never displays sample products as orderable.
+- Added the bounded cart (20 distinct lines, 20 per item, 50 total units), server-verified `POST /api/v1/orders` submission for signed-in Customers, error handling, and cart restoration through login/registration using session storage containing only the restaurant/menu IDs and quantities. The UI labels new orders `Created` and discloses that payment and acceptance are not included.
+- Added `/orders` customer history with cross-restaurant records, server-reported pre-bill totals, and cancellation only while status is `Created`. Login/register navigation preserves the menu/history continuation path.
+- **Frontend implementation commits:** `e3b4ac2` (live menu/cart/submission) and `a6bebe4` (history/cancellation UI), Dhanush.
+- **Validation on Node `24.21.0`:** frontend Biome, TypeScript typecheck, Next.js production build (including `/menu` and `/orders`), and `npm audit --audit-level=high` passed with zero vulnerabilities. The project has no automated frontend test runner. No live MongoDB-backed browser/E2E flow was verified.
+- **Status:** S2-04 is Ready to Push on local `main`, pending live MongoDB persistence and browser/E2E verification. No remote push or GitHub Actions run was made.
