@@ -28,7 +28,7 @@ test("GET /health reports process liveness", async () => {
   }
 });
 
-test("createApp mounts the public menu and protected order-history routers", async () => {
+test("createApp mounts the public menu and protected order and kitchen routers", async () => {
   const db = { collection: () => ({}) } as unknown as Db;
   const api = createApp({
     getDatabase: async () => db,
@@ -42,10 +42,9 @@ test("createApp mounts the public menu and protected order-history routers", asy
   try {
     const address = server.address();
     assert.ok(address && typeof address !== "string");
+    const baseUrl = `http://127.0.0.1:${address.port}`;
 
-    const menuResponse = await fetch(
-      `http://127.0.0.1:${address.port}/api/v1/menu?restaurantId=not-an-id`,
-    );
+    const menuResponse = await fetch(`${baseUrl}/api/v1/menu?restaurantId=not-an-id`);
     assert.equal(menuResponse.status, 400);
     assert.deepEqual(await menuResponse.json(), {
       error: {
@@ -54,11 +53,20 @@ test("createApp mounts the public menu and protected order-history routers", asy
       },
     });
 
-    const ordersResponse = await fetch(`http://127.0.0.1:${address.port}/api/v1/orders/history`);
+    const ordersResponse = await fetch(`${baseUrl}/api/v1/orders/history`);
     assert.equal(ordersResponse.status, 401);
     assert.deepEqual(await ordersResponse.json(), {
       error: { code: "missing_access_token", message: "A bearer access token is required." },
     });
+
+    const kitchenResponse = await fetch(`${baseUrl}/api/v1/kitchen/queue`);
+    assert.equal(kitchenResponse.status, 401);
+
+    const staffStatusResponse = await fetch(
+      `${baseUrl}/api/v1/orders/111111111111111111111111/status`,
+      { method: "PATCH", headers: { "content-type": "application/json" }, body: "{}" },
+    );
+    assert.equal(staffStatusResponse.status, 401);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));

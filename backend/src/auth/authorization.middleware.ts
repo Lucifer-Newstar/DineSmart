@@ -92,6 +92,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     "reservations:read",
     "reservations:write",
     "orders:read",
+    "orders:write",
     "waitlist:read",
     "waitlist:write",
     "tables:read",

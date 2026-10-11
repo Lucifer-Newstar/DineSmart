@@ -63,6 +63,7 @@ test("role permission matrix follows the MVP role boundaries", () => {
   assert.ok(ROLE_PERMISSIONS.Manager.includes("incidents:resolve"));
   assert.ok(ROLE_PERMISSIONS.Administrator.includes("staff:write"));
   assert.ok(ROLE_PERMISSIONS.Reception.includes("waitlist:write"));
+  assert.ok(ROLE_PERMISSIONS.Reception.includes("orders:write"));
   assert.ok(ROLE_PERMISSIONS["Kitchen Staff"].includes("kitchen:queue:update"));
   assert.ok(ROLE_PERMISSIONS.Customer.includes("orders:own:create"));
   assert.ok(!ROLE_PERMISSIONS["Kitchen Staff"].includes("inventory:write"));
