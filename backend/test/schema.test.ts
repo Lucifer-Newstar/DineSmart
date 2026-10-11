@@ -56,6 +56,29 @@ test("orders and reservations have indexes for tenant and customer history queri
   });
 });
 
+test("notification indexes support recipient-scoped feeds and unread counts", () => {
+  assert.deepEqual(
+    indexFor("notifications", "notifications_restaurant_recipient_read_created")?.key,
+    {
+      restaurantId: 1,
+      recipientUserId: 1,
+      readAt: 1,
+      createdAt: -1,
+    },
+  );
+  assert.deepEqual(indexFor("notifications", "notifications_restaurant_recipient_created")?.key, {
+    restaurantId: 1,
+    recipientUserId: 1,
+    createdAt: -1,
+    _id: -1,
+  });
+  assert.deepEqual(indexFor("notifications", "notifications_recipient_created")?.key, {
+    recipientUserId: 1,
+    createdAt: -1,
+    _id: -1,
+  });
+});
+
 test("identity and one-to-one domain constraints have unique indexes", () => {
   assert.equal(indexFor("users", "users_normalized_email_unique")?.unique, true);
   const googleSubjectIndex = indexFor("users", "users_google_subject_unique");

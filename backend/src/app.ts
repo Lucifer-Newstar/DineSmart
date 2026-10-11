@@ -26,6 +26,9 @@ import { createInventoryRouter } from "./inventory/inventory.router.js";
 import { InventoryService } from "./inventory/inventory.service.js";
 import { MongoMenuRepository } from "./menu/menu.repository.js";
 import { createMenuRouter } from "./menu/menu.router.js";
+import { MongoNotificationRepository } from "./notifications/notification.repository.js";
+import { createNotificationRouter } from "./notifications/notification.router.js";
+import { NotificationService } from "./notifications/notification.service.js";
 import { createKitchenRouter } from "./orders/kitchen.router.js";
 import { MongoOrderRepository } from "./orders/order.repository.js";
 import { createOrderRouter } from "./orders/order.router.js";
@@ -144,6 +147,19 @@ export function createApp(options: AppOptions = {}) {
         const { db, service: authService } = await createAuthRuntime();
         return {
           service: new InventoryService(new MongoInventoryRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/notifications",
+    createNotificationRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new NotificationService(new MongoNotificationRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

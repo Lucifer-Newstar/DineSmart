@@ -52,6 +52,9 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-13 | Database fallback | Disable database after cache is warmed | Menu/dashboard show stale-data banner; writes fail clearly and are not queued | High |
 | TC-14 | JWT sessions | Login, refresh, replay a rotated token, then logout | Access token is short-lived; refresh cookie is HttpOnly; replay revokes the session family; logout revokes | High |
 | TC-15 | Access middleware | Call a protected test route with missing, invalid, and valid bearer tokens | Missing/invalid tokens are rejected; a valid token attaches the authenticated principal | High |
+| TC-16 | Notification API | Persist a trusted in-app notice, retrieve the bounded recipient feed, then mark it read | Only the authenticated recipient can see/mark it; unread count, truncation, and idempotent read timestamp are correct | Medium |
+
+S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior with fake-backed repositories and HTTP tests. It does **not** demonstrate automatic critical-incident dispatch or real-time delivery; TC-11 and acceptance criterion AC-08 remain outstanding until event-to-recipient rules and S2-13 WebSocket delivery are implemented and verified.
 
 ## 5. Non-Functional Testing
 
@@ -155,3 +158,13 @@ S2-05 is **Ready to Push** on local `main`; the selected endpoint details are as
 - Staff lifecycle tests verify Reception/Manager/Administrator may only request `Created → Accepted`, `Ready → Served`, and `Served → Completed`; Kitchen Staff and Customers cannot use this order-header operation. Reception requires the recommended `orders:write` grant, aligning implementation with the approved role matrix's order-update responsibility.
 - Service tests verify item transitions `Created → Preparing → Ready`, header derivation (`Accepted → Preparing` on the first started item and `Preparing → Ready` when every item is ready), rejection of backwards/invalid transitions, and conditional updates using observed header `updatedAt` or item status. Retrying an already-applied item status must re-run header aggregation so it can repair a non-transactional partial update.
 - Backend fakes/HTTP tests cannot prove live MongoDB races or crash recovery. Local standalone MongoDB cannot transact parent and item collections; an interrupted process after the item write may leave the header stale until an idempotent retry. Live MongoDB/index/concurrency verification is required before treating persistence behavior as integration-tested. No staff dashboard E2E is claimed.
+
+## 18. S2-10 Notifications Verification
+
+S2-10's assistant-recommended contract is locally implemented and **Ready to Push** on local `main`. These recommendations are not separate owner approvals. Local service, repository, route, and app-mount tests cover the behavior below; no live MongoDB or remote CI verification was performed.
+
+- Service tests verify trusted notification text trimming/bounds, unread creation, bounded 100-item recipient feeds, total unread counts, idempotent mark-read semantics, and a non-enumerating not-found result.
+- Repository tests verify customer queries use authenticated `recipientUserId` across restaurants, staff queries include both `restaurantId` and recipient ID, unread queries include `readAt: null`, read updates preserve the first timestamp, recipient ID is omitted from safe records, and notification indexes are declared.
+- Route tests verify Customer own-history access, signed-tenant/recipient staff scope, Kitchen Staff denial, client-filter rejection, empty mark-read bodies, invalid-ID handling, safe serialization, and unauthenticated rejection. An app-level test confirms the versioned routes are mounted.
+- Local verification uses in-memory fakes; run schema bootstrap, creation/list/read, and isolation checks against local Compose MongoDB before treating persistence/index behavior as integration-tested. Docker/`mongod` are unavailable in this workspace.
+- Automatic critical-incident notification generation, event-to-recipient mapping, real-time WebSocket delivery/reconnect, retention/TTL, frontend integration, and browser E2E remain outstanding. AC-08 is not claimed as met; those event/transport decisions and S2-13 work are separate.

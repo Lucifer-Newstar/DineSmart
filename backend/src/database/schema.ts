@@ -307,6 +307,14 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
       key: { restaurantId: 1, recipientUserId: 1, readAt: 1, createdAt: -1 },
       name: "notifications_restaurant_recipient_read_created",
     },
+    {
+      key: { restaurantId: 1, recipientUserId: 1, createdAt: -1, _id: -1 },
+      name: "notifications_restaurant_recipient_created",
+    },
+    {
+      key: { recipientUserId: 1, createdAt: -1, _id: -1 },
+      name: "notifications_recipient_created",
+    },
   ],
   bills: [
     { key: { restaurantId: 1, orderId: 1 }, name: "bills_restaurant_order_unique", unique: true },

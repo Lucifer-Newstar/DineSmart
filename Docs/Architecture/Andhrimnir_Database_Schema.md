@@ -31,7 +31,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 | `inventory_items` | `restaurantId`, `name`, `quantity`, `unit`, `lowStockThreshold`, `lastAdjustedAt` | Restaurant-scoped. |
 | `incidents` | `restaurantId`, `type`, `severity`, `status`, `triggerSnapshot`, `affectedEntity`, optional `rootCause` | Restaurant-scoped. |
 | `recommendations` | `restaurantId`, `incidentId`, `summary`, `rootCause`, `priority`, `actions`, `confidence`, `source`, `provider`, `generatedAt` | Restaurant-scoped; one current advisory recommendation per incident, upserted by the generator. |
-| `notifications` | `restaurantId`, `recipientUserId`, `type`, `title`, `body`, optional `relatedEntity`, `deliveredAt`, `readAt` | Restaurant-scoped. |
+| `notifications` | `restaurantId`, `recipientUserId`, `type`, `title`, `body`, optional `relatedEntity`, `deliveredAt`, `readAt` | Persisted per recipient. Customer reads may span restaurants by authenticated user ID; staff reads require both the signed restaurant and recipient IDs. The API omits `recipientUserId`. |
 | `bills` | `restaurantId`, `orderId`, `lineItems`, `subtotalMinor`, `taxMinor`, `adjustmentsMinor`, `totalMinor`, `currency`, `status` | Restaurant-scoped; no payment capture or provider fields. |
 
 The canonical TypeScript contracts are in `backend/src/database/schema.ts`. Registration OTP state is embedded on the pending User document so code consumption and status activation can be a single atomic update; only a domain-separated HMAC is stored, never the raw code. These fields are unset when the account becomes active. `backend/src/database/seed-data.ts` holds deterministic development fixtures; `npm run seed` is restricted to `NODE_ENV=development` and a local MongoDB hostname. Generic objects such as address, operating hours, contact, and thresholds are intentionally not given strict runtime shapes yet; those belong with the corresponding API/workflow contract.
@@ -65,7 +65,7 @@ The named index specifications live alongside the document types in `backend/src
 | `inventory_items` | `(restaurantId, name)`; `(restaurantId, quantity)`. |
 | `incidents` | `(restaurantId, status, createdAt desc)`; `(restaurantId, severity, status)`. |
 | `recommendations` | Unique `(restaurantId, incidentId)` for one current recommendation per incident. |
-| `notifications` | `(restaurantId, recipientUserId, readAt, createdAt desc)`. |
+| `notifications` | `(restaurantId, recipientUserId, readAt, createdAt desc)` for tenant-scoped unread counts; `(restaurantId, recipientUserId, createdAt desc, _id desc)` for staff feeds; `(recipientUserId, createdAt desc, _id desc)` for Customer history and per-recipient unread counts across restaurants. |
 | `bills` | Unique `(restaurantId, orderId)`. |
 
 MongoDB's built-in unique `_id` index is omitted from this table. Query plans and compound-index ordering should be revisited against measured MVP query patterns before adding more indexes.
