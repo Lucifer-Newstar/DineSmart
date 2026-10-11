@@ -54,6 +54,8 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-15 | Access middleware | Call a protected test route with missing, invalid, and valid bearer tokens | Missing/invalid tokens are rejected; a valid token attaches the authenticated principal | High |
 | TC-16 | Notification API | Persist a trusted in-app notice, retrieve the bounded recipient feed, then mark it read | Only the authenticated recipient can see/mark it; unread count, truncation, and idempotent read timestamp are correct | Medium |
 | TC-17 | Inventory API | Read inventory as each staff role and set a manager stock count | Signed-tenant filtering, role-based detail redaction, count/threshold validation, and server timestamps are correct | High |
+| TC-18 | Staff order feed | Retrieve `/orders` as Reception, Manager, Administrator, and Kitchen Staff | Signed tenant scope, server-selected per-role statuses, bounded ordering, safe fields, and Customer denial are correct | High |
+| TC-19 | Staff dashboard order workflow | Exercise the live Orders and Kitchen views by role against a configured API/database | Reads remain tenant-scoped; authorized accept/serve/complete and item preparation updates persist; unsupported/unavailable states remain explicit | High |
 
 S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior with fake-backed repositories and HTTP tests. It does **not** demonstrate automatic critical-incident dispatch or real-time delivery; TC-11 and acceptance criterion AC-08 remain outstanding until event-to-recipient rules and S2-13 WebSocket delivery are implemented and verified. S2-06's TC-17 covers the inventory API; TC-07's low-stock incident generation remains outstanding under S2-12.
 
@@ -152,7 +154,7 @@ S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior w
 
 ## 17. S2-05 Kitchen Queue and Staff Order Progression Verification
 
-S2-05 is **Ready to Push** on local `main`; the selected endpoint details are assistant recommendations, not separate owner approvals. Local backend lint, typecheck, build, audit, and 92 tests pass; live MongoDB verification remains outstanding. The kitchen board remains sample data for S2-07 and must not be represented as connected to these routes yet.
+S2-05 is **Ready to Push** on local `main`; the selected endpoint details are assistant recommendations, not separate owner approvals. The combined backend lint, typecheck, build, audit, and current 115-test suite pass locally; live MongoDB verification remains outstanding. The Orders and Kitchen dashboard views now consume these routes under S2-07; integration is locally compiled but still needs role-by-role browser/E2E verification.
 
 - Queue repository tests verify a signed-tenant filter on parent and child records, status inclusion limited to `Accepted`, `Preparing`, and `Ready`, oldest-first order, and a 200-order cap with a `truncated` indicator. The service/HTTP serializers omit customer contact details and prices from kitchen responses.
 - Kitchen route tests verify Kitchen Staff/Manager/Administrator access only, exact `{ itemId, preparationStatus }` request keys, valid `Preparing`/`Ready` target values, tenant derivation from the signed principal, and no serialized prices/customer contact data. Cross-tenant order or item IDs must not disclose records.
@@ -166,7 +168,7 @@ S2-06 is locally implemented and **Ready to Push** on local `main`; only live Mo
 
 - Backend service/repository/HTTP tests verify signed-restaurant filtering, non-negative stock/threshold validation, role-specific response redaction, server-stamped adjustments, and bounded/sorted results.
 - The dashboard loads live inventory for restaurant roles, supports retry and empty/truncated/unavailable states, and permits only Manager/Administrator adjustments. Preview edits remain explicitly unsaved; supplier integration and order-driven stock deduction are excluded.
-- Node 24.21.0 frontend Biome, typecheck, production build, dependency audit, and backend lint/typecheck/build plus 111 backend tests passed locally. No frontend automated test runner or browser E2E is configured.
+- Node 24.21.0 frontend Biome, typecheck, production build, dependency audit, and backend lint/typecheck/build plus the current 115 backend tests passed locally. No frontend automated test runner or browser E2E is configured.
 - Docker/`mongod` are unavailable here; live MongoDB persistence/index creation will be checked in the final database/deployment stage. Automatic low-stock incident generation belongs to S2-12 and remains unverified.
 
 ## 19. S2-10 Notifications Verification
@@ -177,4 +179,14 @@ S2-10's assistant-recommended contract is locally implemented and **Ready to Pus
 - Repository tests verify customer queries use authenticated `recipientUserId` across restaurants, staff queries include both `restaurantId` and recipient ID, unread queries include `readAt: null`, read updates preserve the first timestamp, recipient ID is omitted from safe records, and notification indexes are declared.
 - Route tests verify Customer own-history access, signed-tenant/recipient staff scope, Kitchen Staff denial, client-filter rejection, empty mark-read bodies, invalid-ID handling, safe serialization, and unauthenticated rejection. An app-level test confirms the versioned routes are mounted.
 - Local verification uses in-memory fakes; run schema bootstrap, creation/list/read, and isolation checks against local Compose MongoDB before treating persistence/index behavior as integration-tested. Docker/`mongod` are unavailable in this workspace.
-- Automatic critical-incident notification generation, event-to-recipient mapping, real-time WebSocket delivery/reconnect, retention/TTL, frontend integration, and browser E2E remain outstanding. AC-08 is not claimed as met; those event/transport decisions and S2-13 work are separate.
+- Automatic critical-incident notification generation, event-to-recipient mapping, real-time WebSocket delivery/reconnect, retention/TTL, frontend notification integration, and browser E2E remain outstanding. AC-08 is not claimed as met; those event/transport decisions and S2-13 work are separate.
+
+## 20. S2-07 Staff Orders and Kitchen Dashboard Integration
+
+S2-07 remains **In Progress**. The staff order feed plus Orders/Kitchen dashboard integration are implemented and locally verified through backend tests and frontend build checks. The broader dashboard still has sample-only incident/analytics/revenue widgets and requires role-by-role UX review. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
+
+- Backend repository/service/HTTP tests verify the tenant filter on orders and item snapshots, oldest-first 200-record cap and truncation, server-selected `floor` versus `kitchen` status sets, permission/scope enforcement, Customer denial, strict no-query-filter behavior, and omission of customer IDs, prices, and totals.
+- The authenticated Orders view reads `/api/v1/orders`; Reception/Manager/Administrator may accept, serve, and complete through the guarded status route. Preparation progress is item-level only. Kitchen Staff cannot change order headers.
+- The Kitchen view reads `/api/v1/kitchen/queue`, displays only ticket/item data, and saves `Created → Preparing → Ready` item transitions through the existing queue route. Refresh/retry, loading/unavailable/preview labels, and unsaved local-preview actions are explicit.
+- Node `24.21.0` local verification: backend Biome lint, typecheck, production build, and all 115 backend tests passed; frontend Biome, typecheck, and Next production build passed. The frontend has no automated test runner; TC-19 remains a manual/live-service check.
+- No Docker/`mongod`, live database, browser E2E, remote CI, push, or merge verification occurred. The live persistence/index validation remains deferred with Atlas/deployment at the end.

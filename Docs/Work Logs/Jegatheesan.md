@@ -67,8 +67,16 @@
 ### S2-05 — Kitchen Queue and staff order progression
 
 - Implemented a tenant-scoped, oldest-first kitchen queue limited to 200 active tickets with `truncated`, item-only preparation data, and no customer contacts/prices. Added conditional item `Created → Preparing → Ready` updates and parent-header derivation (`Accepted → Preparing → Ready`); idempotent retries re-run header synchronization across the separate MongoDB documents.
-- Added tenant-scoped staff order progression (`Created → Accepted`, `Ready → Served`, `Served → Completed`) with status/`updatedAt` compare-and-set. Direct staff cancellation, payment/tax, fulfillment/table assignment, auto-stock deductions, and dashboard UI integration remain out of scope.
+- Added tenant-scoped staff order progression (`Created → Accepted`, `Ready → Served`, `Served → Completed`) with status/`updatedAt` compare-and-set. Direct staff cancellation, payment/tax, fulfillment/table assignment, and auto-stock deductions remain out of scope; dashboard wiring is a separate S2-07 story and has since been implemented locally.
 - Recorded detailed endpoint rules as assistant recommendations, not separate owner approvals. Identified Reception's missing `orders:write` grant despite the approved order-update matrix; Navin integrated the recommended permission and regression coverage.
 - **Implementation commits:** `bd46f2f` (tenant-scoped repository/service/types) and `dad0024` (staff HTTP routes), Jegatheesan. **App/RBAC integration commit:** `4e550bc`; **contract/status documentation commit:** `ccefeba`, Navin.
 - **Validation on Node `24.21.0`:** backend Biome lint, TypeScript typecheck, production build, `npm audit --audit-level=high` (zero vulnerabilities), all 92 tests, and `git diff --check` passed. Tests use fakes; Docker/`mongod` are unavailable, so live MongoDB persistence/index/concurrency/crash recovery is not verified. No browser/dashboard E2E was run.
 - **Status:** S2-05 is Ready to Push on local `main`, not Complete. No remote is configured; no push, GitHub Actions run, or merge occurred.
+
+### S2-07 — Tenant-scoped staff order feed API
+
+- Closed the missing staff list-route gap with `GET /api/v1/orders`, separate from Customer `/orders/history`. The route uses `orders:read` plus signed tenant scope, ignores no client filter silently (query parameters are rejected), and returns up to 200 oldest-first active orders with `truncated`.
+- The service selects statuses server-side: Reception/Manager/Administrator receive `Created`, `Accepted`, `Preparing`, `Ready`, and `Served`; Kitchen Staff receive only `Accepted`, `Preparing`, and `Ready`. Parent and child reads include `restaurantId`. The response omits customer identity/contact data, prices, and totals.
+- **Implementation commit:** `d616080` (Jegatheesan). Added repository/service/router tests for tenant/status filtering, role-specific status sets, result caps, query rejection, unauthenticated/Customer denial, and safe serialization.
+- **Local validation on Node `24.21.0`:** backend Biome lint, TypeScript typecheck, production build, and all 115 backend tests passed. Tests use fakes; no live MongoDB/index validation occurred.
+- **Status:** S2-07 remains **In Progress** because the overall dashboard scope and browser workflow review are unfinished. Live MongoDB validation is deferred to the final database/deployment stage; no remote push, CI run, or merge occurred.
