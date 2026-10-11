@@ -8,6 +8,7 @@ import {
   type AuthSession,
 } from "./auth.service.js";
 import type { EmailOtpService } from "./email-otp.service.js";
+import type { PasswordResetService } from "./password-reset.service.js";
 
 export const REFRESH_COOKIE_NAME = "andhrimnir_refresh";
 const AUTH_COOKIE_PATH = "/api/v1/auth";
@@ -16,6 +17,7 @@ const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1_000;
 export interface AuthRouterOptions {
   createService: () => Promise<AuthService>;
   createEmailOtpService?: () => Promise<EmailOtpService>;
+  createPasswordResetService?: () => Promise<PasswordResetService>;
   googleSession?: (idToken: string) => Promise<AuthSession>;
   webOrigin: string;
   nodeEnvironment: string;
@@ -23,6 +25,11 @@ export interface AuthRouterOptions {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
+  const keys = new Set(allowed);
+  return Object.keys(value).every((key) => keys.has(key));
 }
 
 function handleAuthError(error: unknown, response: Response): void {
@@ -122,6 +129,30 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       error: { code: "rate_limited", message: "Too many verification attempts. Try again later." },
     },
   });
+  const passwordResetRequestRateLimit = rateLimit({
+    windowMs: LOGIN_RATE_WINDOW_MS,
+    limit: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: {
+        code: "rate_limited",
+        message: "Too many password reset requests. Try again later.",
+      },
+    },
+  });
+  const passwordResetConfirmRateLimit = rateLimit({
+    windowMs: LOGIN_RATE_WINDOW_MS,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: {
+        code: "rate_limited",
+        message: "Too many password reset attempts. Try again later.",
+      },
+    },
+  });
   const refreshRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
     limit: 30,
@@ -206,6 +237,72 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       handleAuthError(error, response);
     }
   });
+
+  router.post(
+    "/reset-password/request",
+    passwordResetRequestRateLimit,
+    async (request: Request, response: Response) => {
+      const body: unknown = request.body;
+      if (
+        Object.keys(request.query).length > 0 ||
+        !isRecord(body) ||
+        !hasOnlyKeys(body, ["email"]) ||
+        typeof body.email !== "string"
+      ) {
+        response.status(400).json({
+          error: { code: "invalid_request", message: "Provide only a valid email address." },
+        });
+        return;
+      }
+
+      try {
+        if (!options.createPasswordResetService) throw new AuthConfigurationError();
+        const result = await (await options.createPasswordResetService()).requestReset(body.email);
+        response.set("Cache-Control", "no-store");
+        response.status(202).json(result);
+      } catch (error) {
+        handleAuthError(error, response);
+      }
+    },
+  );
+
+  router.post(
+    "/reset-password/confirm",
+    passwordResetConfirmRateLimit,
+    async (request: Request, response: Response) => {
+      const body: unknown = request.body;
+      if (
+        Object.keys(request.query).length > 0 ||
+        !isRecord(body) ||
+        !hasOnlyKeys(body, ["email", "code", "newPassword"]) ||
+        typeof body.email !== "string" ||
+        typeof body.code !== "string" ||
+        typeof body.newPassword !== "string"
+      ) {
+        response.status(400).json({
+          error: {
+            code: "invalid_request",
+            message: "Provide only an email, six-digit code, and new password.",
+          },
+        });
+        return;
+      }
+
+      try {
+        if (!options.createPasswordResetService) throw new AuthConfigurationError();
+        await (await options.createPasswordResetService()).confirmReset(
+          body.email,
+          body.code,
+          body.newPassword,
+        );
+        clearRefreshCookie(response, options.nodeEnvironment);
+        response.set("Cache-Control", "no-store");
+        response.status(204).end();
+      } catch (error) {
+        handleAuthError(error, response);
+      }
+    },
+  );
 
   router.post("/login", loginRateLimit, async (request: Request, response: Response) => {
     const body: unknown = request.body;
