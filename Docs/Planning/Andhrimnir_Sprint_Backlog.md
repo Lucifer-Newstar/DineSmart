@@ -71,7 +71,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-10 | Notification Module | Gokul | Medium | 2 | Ready to Push |
 | S2-11 | Role-based Dashboards | Navin | Medium | 2 | Ready to Push |
 | S2-12 | Incident Detection Rules | Navin | High | 12 | Ready to Push |
-| S2-13 | WebSocket Implementation | Navin | High | 3 | In Progress |
+| S2-13 | WebSocket Implementation | Navin | High | 3 | Ready to Push |
 | S2-14 | Billing APIs | Jegatheesan | High | 3 | To Do |
 | S2-15 | Password Reset API | Dhanush | High | 2 | To Do |
 | S2-16 | Staff Management APIs | Jegatheesan | Medium | 3 | To Do |
