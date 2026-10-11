@@ -147,4 +147,5 @@
 - Mounted the reservation router in the shared Express app and completed the cross-feature review. Updated the canonical API inventory, assistant-recommended contract and verification notes, test plan, S2-03 backlog status, and assigned work logs. Technical defaults remain explicitly separate from owner-approved policy.
 - **Local verification on Node `24.21.0`:** backend Biome, typecheck, production build, audit (zero vulnerabilities), and all 58 tests passed; frontend Biome, typecheck, Next.js production build, and audit (zero vulnerabilities) passed. `git diff --check` passed.
 - **Limits:** frontend has no automated UI test; there was no live browser/E2E run. Docker/`mongod` are unavailable, so MongoDB persistence, index bootstrap, and concurrent table-booking behavior remain unverified. Table-overlap checks are read-before-write and not atomic across API processes.
+- **Integration/documentation commit:** `88caef3` (Navin).
 - **Status:** S2-03 is Ready to Push on local `main`, pending live MongoDB/E2E validation. No remote push or GitHub Actions run was made.
