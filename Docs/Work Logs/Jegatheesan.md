@@ -88,3 +88,10 @@
 - **Implementation commit:** `bb8d8dd` (Jegatheesan). **API mount/test commit:** `d9f2e3b` (Navin).
 - **Local validation on Node `24.21.0`:** backend Biome checked 96 files; TypeScript typecheck and production build passed; all 131 backend tests passed; backend `npm audit --audit-level=high` reported zero vulnerabilities; `git diff --check` passed. Mongo repositories were tested with fakes; no Docker/`mongod` or live MongoDB/Atlas verification was available.
 - **Status:** S2-09 is **Ready to Push** on local `main`, not Complete. Live MongoDB/Atlas/index checks, deployment, browser E2E, remote CI, push, and merge remain unverified/deferred to their proper stages.
+
+### 2026-10-11 — S2-14 Billing APIs started
+
+- S2-14 is now In Progress on local `main`. No new branch was created; the configured repository has no remote or upstream, so a pull could not be completed.
+- Reviewed the existing `BillDocument`, unique `(restaurantId, orderId)` index, Manager/Administrator `bills:write` and `bills:read`, Customer `bills:own:read`, endpoint inventory, and order/item snapshot model.
+- Implement the billing module and fake-backed service/repository/HTTP tests under my Git identity. Use the documented recommendation only: signed tenant for staff; own-order checks for Customers; idempotent one-bill-per-order generation from persisted snapshots; tax/adjustments zero; no payment or settlement lifecycle. These specifics are not separate owner approvals.
+- Live MongoDB/Atlas persistence and index verification remain deferred; no credentials, deployment, push, or remote CI are part of this local item.
