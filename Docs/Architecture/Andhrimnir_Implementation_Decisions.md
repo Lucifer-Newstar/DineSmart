@@ -255,9 +255,20 @@ These details implement the owner-approved Gemini/advisory/fallback baseline; th
 - If `GEMINI_API_KEY` is absent, the provider times out, quota is reached, or JSON validation fails, persist a deterministic incident-specific fallback and mark `source=fallback`. The fallback is advisory and never writes an operational state change.
 - Provide `POST /api/v1/incidents/{incidentId}/recommendations` for authorized manager/admin generation and `GET /api/v1/recommendations` for tenant-scoped retrieval. Keep API key and all provider calls server-side.
 
+### S2-10 notification API and read-state recommendation (assistant-selected 2026-10-11)
+
+These details fill gaps for the locally verifiable S2-10 API. They are assistant recommendations made under the instruction to choose and document unspecified module details; they are not separate owner approvals.
+
+- Keep notification creation server-side. A trusted producer may persist a notification with its restaurant, recipient, type, title, body, optional related entity, and timestamps; there is no public create endpoint. Do not invent an automatic event-to-recipient mapping before that policy is agreed.
+- `GET /notifications` accepts no client-selected tenant or recipient filter. A Customer sees only notifications addressed to the authenticated user across restaurants. Reception, Manager, and Administrator see only notifications addressed to that same authenticated user and scoped to the restaurant in the signed principal. This interprets the existing `notifications:restaurant:read` permission conservatively; it does not expose other staff members' notification records. Kitchen Staff have no notification permission until the role matrix is deliberately extended.
+- Return the newest 100 records ordered by `createdAt` then `_id` descending, plus `truncated` and the total unread count for the authenticated user's scope. Do not serialize `recipientUserId`.
+- `PATCH /notifications/{id}/read` accepts no mutable fields, sets `readAt` once, and is idempotent. A Customer can mark only their own record across restaurants; restaurant staff can mark only their own record within their signed tenant. Return 404 for absent or out-of-scope records to avoid resource enumeration. No mark-all operation is included.
+- Validate trusted create inputs as non-empty after trimming, with `type` and related-entity type capped at 80 characters, `title` at 160, and `body` at 2,000. Store new notifications unread; leave `deliveredAt` unset until a delivery transport is implemented.
+- Do not add TTL cleanup until retention is decided. Automatic critical-incident notification creation, WebSocket delivery/replay, and provider delivery are not part of this API-only implementation; WebSocket work remains S2-13 and external SMS/push/non-auth email remain deferred under the approved baseline.
+
 ### Pending real-time/AI details
 
-Reconnect/replay guarantees, event-level authorization, and notification retention/read-state rules remain pending. The selected Gemini model/API key still require a live credential check. No API keys or provider secrets are to be committed.
+Reconnect/replay guarantees, event-level authorization, producer-to-recipient event mapping, and notification retention remain pending. The read-state behavior above is an assistant-selected S2-10 recommendation rather than an owner-approved product decision. The selected Gemini model/API key still require a live credential check. No API keys or provider secrets are to be committed.
 
 ## 9. Database-fallback scope — approved for MVP
 

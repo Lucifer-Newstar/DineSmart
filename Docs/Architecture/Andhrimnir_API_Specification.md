@@ -41,7 +41,8 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | PUT | /staff/{id} | Update staff | Jegatheesan |
 | PUT | /thresholds | Configure thresholds | Navin |
 | PUT | /tables/{id}/status | Update table status | Jegatheesan |
-| GET | /notifications | Get notifications | Gokul |
+| GET | /notifications | List the authenticated recipient's notifications; customer history spans restaurants, staff is scoped to its signed restaurant and own recipient ID | Gokul |
+| PATCH | /notifications/{id}/read | Idempotently mark the authenticated recipient's own notification as read | Gokul |
 
 ## S2-03 Reservations — locally implemented contract
 

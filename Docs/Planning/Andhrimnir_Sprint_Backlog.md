@@ -68,7 +68,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-07 | Dashboard UI | Dhanush | High | 5 | In Progress |
 | S2-08 | Restaurant Health Score | Navin | High | 3 | In Progress |
 | S2-09 | Analytics Charts | Jegatheesan | Medium | 3 | To Do |
-| S2-10 | Notification Module | Gokul | Medium | 2 | To Do |
+| S2-10 | Notification Module | Gokul | Medium | 2 | In Progress |
 | S2-11 | Role-based Dashboards | Navin | Medium | 2 | In Progress |
 | S2-12 | Incident Detection Rules | Navin | High | 12 | To Do |
 | S2-13 | WebSocket Implementation | Navin | High | 3 | To Do |
