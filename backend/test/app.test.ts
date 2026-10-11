@@ -71,6 +71,12 @@ test("createApp mounts the public menu and protected analytics, order, kitchen, 
     const notificationsResponse = await fetch(`${baseUrl}/api/v1/notifications`);
     assert.equal(notificationsResponse.status, 401);
 
+    const socketTicketResponse = await fetch(`${baseUrl}/api/v1/notifications/socket-ticket`, {
+      method: "POST",
+      headers: { origin: "http://localhost:3000" },
+    });
+    assert.equal(socketTicketResponse.status, 401);
+
     const notificationReadResponse = await fetch(
       `${baseUrl}/api/v1/notifications/111111111111111111111111/read`,
       { method: "PATCH" },

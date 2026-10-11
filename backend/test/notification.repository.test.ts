@@ -61,7 +61,9 @@ function harness(
     ) {
       calls.updateFilter = filter;
       calls.update = update;
-      if (current && current.readAt == null) {
+      const readStateMatches = filter.readAt !== null || current?.readAt == null;
+      const deliveryStateMatches = filter.deliveredAt !== null || current?.deliveredAt == null;
+      if (current && readStateMatches && deliveryStateMatches) {
         current = { ...current, ...update.$set } as NotificationDocument & { _id: ObjectId };
         return { acknowledged: true, matchedCount: 1, modifiedCount: 1 };
       }
@@ -118,7 +120,7 @@ test("Mongo repository inserts server-created notifications as unread", async ()
   assert.ok(calls.inserted?._id instanceof ObjectId);
   assert.equal(calls.inserted?.readAt, null);
   assert.equal(calls.inserted?.createdAt, createdAt);
-  assert.equal(calls.inserted?.deliveredAt, undefined);
+  assert.equal(calls.inserted?.deliveredAt, null);
   assert.equal(result.readAt, null);
   assert.equal("recipientUserId" in result, false);
 });
@@ -187,6 +189,35 @@ test("Mongo repository marks a scoped record read once and preserves the first t
   const secondReadAt = new Date("2026-10-11T09:06:00.000Z");
   const repeated = await repository.markRead(scope, document._id, secondReadAt);
   assert.equal(repeated?.readAt, firstReadAt);
+});
+
+test("Mongo repository records the first authenticated delivery acknowledgement once", async () => {
+  const userId = new ObjectId();
+  const restaurantId = new ObjectId();
+  const document = notificationDocument(userId, restaurantId);
+  const { repository, calls } = harness(document);
+  const scope: NotificationRecipientScope = { kind: "staff", userId, restaurantId };
+  const firstDeliveryAt = new Date("2026-10-11T09:07:00.000Z");
+
+  const result = await repository.markDelivered(scope, document._id, firstDeliveryAt);
+
+  assert.deepEqual(calls.updateFilter, {
+    recipientUserId: userId,
+    restaurantId,
+    _id: document._id,
+    deliveredAt: null,
+  });
+  assert.deepEqual(calls.update, {
+    $set: { deliveredAt: firstDeliveryAt, updatedAt: firstDeliveryAt },
+  });
+  assert.equal(result?.deliveredAt, firstDeliveryAt);
+
+  const repeated = await repository.markDelivered(
+    scope,
+    document._id,
+    new Date("2026-10-11T09:08:00.000Z"),
+  );
+  assert.equal(repeated?.deliveredAt, firstDeliveryAt);
 });
 
 test("Mongo repository returns null rather than revealing a missing or out-of-scope record", async () => {

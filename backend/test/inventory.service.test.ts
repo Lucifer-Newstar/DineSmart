@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import { InventoryError, InventoryService } from "../src/inventory/inventory.service.js";
 import type { InventoryRepository } from "../src/inventory/inventory.types.js";
+import type { RestaurantRealtimeEvent } from "../src/realtime/realtime.types.js";
 
 test("inventory service validates manual stock counts and stamps adjustments", async () => {
   const restaurantId = new ObjectId();
@@ -25,11 +26,15 @@ test("inventory service validates manual stock counts and stamps adjustments", a
       };
     },
   };
+  const healthRequests: ObjectId[] = [];
   const incidentRequests: ObjectId[] = [];
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const service = new InventoryService(
     repository,
     () => now,
+    (tenantId) => healthRequests.push(tenantId),
     (tenantId) => incidentRequests.push(tenantId),
+    (event) => realtimeEvents.push(event),
   );
 
   await assert.rejects(
@@ -40,7 +45,15 @@ test("inventory service validates manual stock counts and stamps adjustments", a
 
   assert.equal(result.quantity, 8);
   assert.deepEqual(receivedAdjustment, { quantity: 8, lowStockThreshold: 5, adjustedAt: now });
+  assert.deepEqual(healthRequests, [restaurantId]);
   assert.deepEqual(incidentRequests, [restaurantId]);
+  assert.deepEqual(realtimeEvents, [
+    {
+      restaurantId,
+      event: "inventory.updated",
+      data: { inventoryItemId: itemId.toHexString() },
+    },
+  ]);
 });
 
 test("inventory service reports a scoped missing item as not found", async () => {

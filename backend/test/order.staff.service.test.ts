@@ -11,6 +11,7 @@ import {
   type StaffOrderRepository,
 } from "../src/orders/order.staff.types.js";
 import type { OrderRecord } from "../src/orders/order.types.js";
+import type { RestaurantRealtimeEvent } from "../src/realtime/realtime.types.js";
 
 const at = new Date("2026-10-11T06:00:00.000Z");
 const restaurantId = new ObjectId();
@@ -156,6 +157,7 @@ function serviceWith(
   repository = new FakeStaffOrderRepository(),
   notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
   notifyIncidentDetection?: (tenantId: ObjectId) => void,
+  publishRealtime?: (event: RestaurantRealtimeEvent) => void,
 ) {
   let tick = 0;
   const service = new StaffOrderService(
@@ -163,6 +165,7 @@ function serviceWith(
     () => new Date(at.getTime() + ++tick * 1_000),
     notifyHealthScoreRefresh,
     notifyIncidentDetection,
+    publishRealtime,
   );
   return { repository, service };
 }
@@ -196,10 +199,12 @@ test("staff order feed uses tenant scope and role-specific server status sets", 
 test("kitchen item progress derives order status and requests health-score and incident refreshes", async () => {
   const healthRefreshes: ObjectId[] = [];
   const incidentRequests: ObjectId[] = [];
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const { repository, service } = serviceWith(
     new FakeStaffOrderRepository(),
     (tenantId) => healthRefreshes.push(tenantId),
     (tenantId) => incidentRequests.push(tenantId),
+    (event) => realtimeEvents.push(event),
   );
 
   let updated = await service.updateItemPreparationStatus(
@@ -235,6 +240,15 @@ test("kitchen item progress derives order status and requests health-score and i
     incidentRequests,
     Array.from({ length: 4 }, () => restaurantId),
   );
+  assert.deepEqual(
+    realtimeEvents.map((event) => event.data),
+    [
+      { orderId: orderId.toHexString(), status: "Preparing" },
+      { orderId: orderId.toHexString(), status: "Preparing" },
+      { orderId: orderId.toHexString(), status: "Preparing" },
+      { orderId: orderId.toHexString(), status: "Ready" },
+    ],
+  );
 });
 
 test("idempotent item retry reconciles an order header after a partial write", async () => {
@@ -262,10 +276,12 @@ test("staff order lifecycle permits accept, serve, and complete with tenant refr
   const repository = new FakeStaffOrderRepository();
   const healthRefreshes: ObjectId[] = [];
   const incidentRequests: ObjectId[] = [];
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const { service } = serviceWith(
     repository,
     (tenantId) => healthRefreshes.push(tenantId),
     (tenantId) => incidentRequests.push(tenantId),
+    (event) => realtimeEvents.push(event),
   );
   repository.order = makeOrder("Created");
   assert.equal(
@@ -298,6 +314,14 @@ test("staff order lifecycle permits accept, serve, and complete with tenant refr
   assert.deepEqual(
     incidentRequests,
     Array.from({ length: 3 }, () => restaurantId),
+  );
+  assert.deepEqual(
+    realtimeEvents.map((event) => event.data),
+    [
+      { orderId: orderId.toHexString(), status: "Accepted" },
+      { orderId: orderId.toHexString(), status: "Served" },
+      { orderId: orderId.toHexString(), status: "Completed" },
+    ],
   );
 });
 

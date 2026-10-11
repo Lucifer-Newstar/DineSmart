@@ -37,6 +37,7 @@ function fakeRepository() {
     list?: { scope: NotificationRecipientScope; limit: number };
     count?: NotificationRecipientScope;
     mark?: { scope: NotificationRecipientScope; notificationId: ObjectId; readAt: Date };
+    deliver?: { scope: NotificationRecipientScope; notificationId: ObjectId; deliveredAt: Date };
   } = {};
   const repository: NotificationRepository = {
     create: async (notification, at) => {
@@ -55,13 +56,26 @@ function fakeRepository() {
       calls.mark = { scope, notificationId: id, readAt: at };
       return record({ readAt: at });
     },
+    markDelivered: async (scope, id, at) => {
+      calls.deliver = { scope, notificationId: id, deliveredAt: at };
+      return record({ deliveredAt: at });
+    },
   };
   return { repository, calls };
 }
 
 test("notification creation trims trusted text, stores unread, and uses the injected clock", async () => {
   const { repository, calls } = fakeRepository();
-  const service = new NotificationService(repository, () => now);
+  let publishedRecipient: ObjectId | undefined;
+  const service = new NotificationService(
+    repository,
+    () => now,
+    (recipient, stored) => {
+      assert.ok(calls.create, "notification must be persisted before it is published");
+      publishedRecipient = recipient;
+      assert.equal(stored.id, notificationId);
+    },
+  );
   const request: NewNotification = {
     restaurantId,
     recipientUserId: userId,
@@ -72,6 +86,7 @@ test("notification creation trims trusted text, stores unread, and uses the inje
   };
 
   await service.create(request);
+  assert.equal(publishedRecipient, userId);
 
   assert.deepEqual(calls.create, {
     notification: {
@@ -84,6 +99,27 @@ test("notification creation trims trusted text, stores unread, and uses the inje
     },
     now,
   });
+});
+
+test("notification creation stays successful when best-effort realtime fanout throws", async () => {
+  const { repository, calls } = fakeRepository();
+  const service = new NotificationService(
+    repository,
+    () => now,
+    () => {
+      throw new Error("simulated socket failure");
+    },
+  );
+
+  await service.create({
+    restaurantId,
+    recipientUserId: userId,
+    type: "incident.warning",
+    title: "Review inventory",
+    body: "A quantity is below its threshold.",
+  });
+
+  assert.ok(calls.create, "the notification must remain persisted despite a push failure");
 });
 
 test("notification creation rejects blank and over-limit text before persistence", async () => {

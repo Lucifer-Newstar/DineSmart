@@ -84,7 +84,8 @@ test("startup sweep evaluates active restaurants and schedules the next timed th
   await scheduler.startHourlyRefresh();
   assert.equal(evaluations, 1);
   assert.equal([...timers.intervals.values()][0].delay, INCIDENT_SWEEP_INTERVAL_MS);
-  assert.equal([...timers.timeouts.values()][0].delay, 5_000);
+  assert.ok([...timers.timeouts.values()][0].delay > 0);
+  assert.ok([...timers.timeouts.values()][0].delay <= 5_000);
 
   scheduler.stopHourlyRefresh();
   assert.equal(timers.intervals.size, 0);

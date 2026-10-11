@@ -10,6 +10,7 @@ import {
   type IncidentRecord,
   incidentIdentityKey,
 } from "../src/incidents/incident.types.js";
+import type { RestaurantRealtimeEvent } from "../src/realtime/realtime.types.js";
 
 const restaurantId = new ObjectId();
 const itemId = new ObjectId();
@@ -111,12 +112,14 @@ test("incident evaluation updates one active record, auto-resolves it, and creat
     { id: itemId, quantity: 3, lowStockThreshold: 5, unit: "kg" },
   ];
   const healthRefreshes: ObjectId[] = [];
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const service = new IncidentDetectionService(
     repository,
     () => now,
     (tenantId) => {
       healthRefreshes.push(tenantId);
     },
+    (event) => realtimeEvents.push(event),
   );
 
   const created = await service.evaluateRestaurant(restaurantId);
@@ -148,6 +151,10 @@ test("incident evaluation updates one active record, auto-resolves it, and creat
   assert.deepEqual(
     healthRefreshes,
     Array.from({ length: 4 }, () => restaurantId),
+  );
+  assert.deepEqual(
+    realtimeEvents.map((event) => event.data),
+    [{ changedCount: 1 }, { changedCount: 1 }, { changedCount: 1 }, { changedCount: 1 }],
   );
 });
 

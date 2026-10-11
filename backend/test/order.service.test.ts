@@ -9,6 +9,7 @@ import type {
   OrderRecord,
   OrderRepository,
 } from "../src/orders/order.types.js";
+import type { RestaurantRealtimeEvent } from "../src/realtime/realtime.types.js";
 
 const now = new Date("2026-10-11T06:00:00.000Z");
 const restaurantId = new ObjectId();
@@ -86,10 +87,17 @@ function serviceWith(
   clock = () => now,
   notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
   notifyIncidentDetection?: (tenantId: ObjectId) => void,
+  publishRealtime?: (event: RestaurantRealtimeEvent) => void,
 ) {
   return {
     repository,
-    service: new OrderService(repository, clock, notifyHealthScoreRefresh, notifyIncidentDetection),
+    service: new OrderService(
+      repository,
+      clock,
+      notifyHealthScoreRefresh,
+      notifyIncidentDetection,
+      publishRealtime,
+    ),
   };
 }
 
@@ -130,11 +138,13 @@ test("customer order uses available database prices and stores integer-minor-uni
 test("successful order creation and cancellation request health-score and incident refreshes", async () => {
   const healthRefreshes: ObjectId[] = [];
   const incidentRequests: ObjectId[] = [];
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const { service } = serviceWith(
     new FakeOrderRepository(),
     () => now,
     (tenantId) => healthRefreshes.push(tenantId),
     (tenantId) => incidentRequests.push(tenantId),
+    (event) => realtimeEvents.push(event),
   );
 
   await service.createForCustomer({
@@ -146,6 +156,18 @@ test("successful order creation and cancellation request health-score and incide
 
   assert.deepEqual(healthRefreshes, [restaurantId, restaurantId]);
   assert.deepEqual(incidentRequests, [restaurantId, restaurantId]);
+  assert.deepEqual(realtimeEvents, [
+    {
+      restaurantId,
+      event: "order.updated",
+      data: { orderId: orderId.toHexString(), status: "Created" },
+    },
+    {
+      restaurantId,
+      event: "order.updated",
+      data: { orderId: orderId.toHexString(), status: "Cancelled" },
+    },
+  ]);
 });
 
 test("order creation rejects invalid quantities, repeated items, excessive units, and unavailable IDs", async () => {

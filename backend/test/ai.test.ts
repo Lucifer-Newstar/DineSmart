@@ -26,6 +26,7 @@ import type {
   ReservationDocument,
   RestaurantDocument,
 } from "../src/database/schema.js";
+import type { RestaurantRealtimeEvent } from "../src/realtime/realtime.types.js";
 
 const FIXED_NOW = new Date("2026-10-10T12:00:00.000Z");
 const RESTAURANT_ID = new ObjectId("720000000000000000000001");
@@ -325,16 +326,25 @@ test("recommendation service persists Gemini results and uses deterministic fall
       };
     },
   };
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const onlineService = new RecommendationService(
     builder,
     repository,
     provider,
     () => new Date(FIXED_NOW),
+    (event) => realtimeEvents.push(event),
   );
   const generated = await onlineService.generate(RESTAURANT_HEX, INCIDENT_HEX);
   assert.equal(generated.source, "gemini");
   assert.equal(generated.provider, "test-model");
   assert.equal(generated.priority, "critical");
+  assert.deepEqual(realtimeEvents, [
+    {
+      restaurantId: RESTAURANT_ID,
+      event: "recommendation.updated",
+      data: { incidentId: INCIDENT_ID.toHexString() },
+    },
+  ]);
 });
 
 test("AI HTTP endpoints require a manager permission and return advisory fallback source", async () => {

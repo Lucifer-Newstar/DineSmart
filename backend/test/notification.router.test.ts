@@ -9,6 +9,7 @@ import type {
   NotificationRecipientScope,
   NotificationRecord,
 } from "../src/notifications/notification.types.js";
+import type { RealtimeIdentity } from "../src/realtime/realtime.types.js";
 
 const userId = new ObjectId();
 const restaurantId = new ObjectId();
@@ -36,16 +37,18 @@ function principal(role: AuthPrincipal["role"] = "Manager"): AuthPrincipal {
 }
 
 async function request(input: {
-  method?: "GET" | "PATCH";
+  method?: "GET" | "POST" | "PATCH";
   path: string;
   body?: unknown;
   token?: string;
+  origin?: string;
   principal?: AuthPrincipal;
 }) {
   const calls: {
     listScopes: NotificationRecipientScope[];
     markReads: Array<{ scope: NotificationRecipientScope; notificationId: ObjectId }>;
-  } = { listScopes: [], markReads: [] };
+    socketTickets: RealtimeIdentity[];
+  } = { listScopes: [], markReads: [], socketTickets: [] };
   const app = express();
   app.use(express.json());
   app.use(
@@ -63,11 +66,19 @@ async function request(input: {
             return { ...notification, readAt: createdAt };
           },
         },
+        issueSocketTicket: (identity) => {
+          calls.socketTickets.push(identity);
+          return {
+            ticket: "A".repeat(43),
+            expiresAt: new Date("2026-10-11T09:00:30.000Z"),
+          };
+        },
         verifyAccessToken: async (token) => {
           if (token !== "valid-notification-token") throw new Error("invalid token");
           return input.principal ?? principal();
         },
       }),
+      webOrigin: "https://app.example",
     }),
   );
   const server = app.listen(0, "127.0.0.1");
@@ -80,6 +91,7 @@ async function request(input: {
       method: input.method ?? "GET",
       headers: {
         ...(input.token ? { authorization: `Bearer ${input.token}` } : {}),
+        ...(input.origin ? { origin: input.origin } : {}),
         ...(input.body === undefined ? {} : { "content-type": "application/json" }),
       },
       ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) }),
@@ -91,6 +103,134 @@ async function request(input: {
     });
   }
 }
+
+test("POST socket-ticket issues a short-lived ticket for the authenticated restaurant identity", async () => {
+  const { response, calls } = await request({
+    method: "POST",
+    path: "/api/v1/notifications/socket-ticket",
+    body: {},
+    token: "valid-notification-token",
+    origin: "https://app.example",
+    principal: principal("Manager"),
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(calls.socketTickets, [{ userId, role: "Manager", restaurantId }]);
+  assert.deepEqual(await response.json(), {
+    ticket: "A".repeat(43),
+    expiresAt: "2026-10-11T09:00:30.000Z",
+    socketPath: "/api/v1/notifications/socket",
+    protocol: "andhrimnir.events.v1",
+  });
+});
+
+test("socket-ticket retains cross-restaurant Customer identity but does not accept an untrusted origin", async () => {
+  const customer = await request({
+    method: "POST",
+    path: "/api/v1/notifications/socket-ticket",
+    token: "valid-notification-token",
+    origin: "https://app.example",
+    principal: principal("Customer"),
+  });
+  assert.equal(customer.response.status, 201);
+  assert.deepEqual(customer.calls.socketTickets, [
+    { userId, role: "Customer", restaurantId: null },
+  ]);
+
+  const badOrigin = await request({
+    method: "POST",
+    path: "/api/v1/notifications/socket-ticket",
+    token: "valid-notification-token",
+    origin: "https://evil.example",
+    principal: principal("Manager"),
+  });
+  assert.equal(badOrigin.response.status, 403);
+  assert.deepEqual(badOrigin.calls.socketTickets, []);
+});
+
+test("socket-ticket rejects client parameters and roles without notification permission", async () => {
+  const query = await request({
+    method: "POST",
+    path: `/api/v1/notifications/socket-ticket?restaurantId=${otherRestaurantId.toHexString()}`,
+    token: "valid-notification-token",
+    origin: "https://app.example",
+  });
+  assert.equal(query.response.status, 400);
+  assert.deepEqual(query.calls.socketTickets, []);
+
+  const body = await request({
+    method: "POST",
+    path: "/api/v1/notifications/socket-ticket",
+    body: { restaurantId: otherRestaurantId.toHexString() },
+    token: "valid-notification-token",
+    origin: "https://app.example",
+  });
+  assert.equal(body.response.status, 400);
+  assert.deepEqual(body.calls.socketTickets, []);
+
+  const kitchen = await request({
+    method: "POST",
+    path: "/api/v1/notifications/socket-ticket",
+    token: "valid-notification-token",
+    origin: "https://app.example",
+    principal: principal("Kitchen Staff"),
+  });
+  assert.equal(kitchen.response.status, 403);
+  assert.deepEqual(kitchen.calls.socketTickets, []);
+});
+
+test("socket-ticket requests are limited to ten per minute and IP", async () => {
+  let issuedTickets = 0;
+  const app = express();
+  app.use(express.json());
+  app.use(
+    "/api/v1/notifications",
+    createNotificationRouter({
+      createRuntime: async () => ({
+        service: {
+          create: async () => notification,
+          list: async () => ({ notifications: [], unreadCount: 0, truncated: false }),
+          markRead: async () => notification,
+        },
+        verifyAccessToken: async () => principal("Manager"),
+        issueSocketTicket: () => {
+          issuedTickets += 1;
+          return { ticket: "B".repeat(43), expiresAt: new Date(Date.now() + 30_000) };
+        },
+      }),
+      webOrigin: "https://app.example",
+    }),
+  );
+  const server = app.listen(0, "127.0.0.1");
+  await once(server, "listening");
+
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < 11; attempt += 1) {
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}/api/v1/notifications/socket-ticket`,
+        {
+          method: "POST",
+          headers: {
+            authorization: "Bearer valid-notification-token",
+            origin: "https://app.example",
+          },
+        },
+      );
+      statuses.push(response.status);
+      await response.arrayBuffer();
+    }
+    assert.deepEqual(statuses, [...Array.from({ length: 10 }, () => 201), 429]);
+    assert.equal(issuedTickets, 10);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});
 
 test("Customer GET returns own cross-restaurant feed and omits recipient identity", async () => {
   const customer = principal("Customer");

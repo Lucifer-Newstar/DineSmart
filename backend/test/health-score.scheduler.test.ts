@@ -57,6 +57,27 @@ test("health-score scheduler caches for an hour and operational events refresh i
   assert.equal(refreshed.calculatedAt, currentTime.toISOString());
 });
 
+test("successful score refreshes publish only a tenant ID and the minimal score snapshot", async () => {
+  const restaurantId = new ObjectId();
+  const repository = new FakeHealthScoreRepository();
+  const events: Array<{ restaurantId: ObjectId; score: number; calculatedAt: string }> = [];
+  const scheduler = new HealthScoreRefreshScheduler(async () => repository, {
+    clock: () => new Date("2026-10-11T12:00:00.000Z"),
+    onRefreshed: (tenantId, result) =>
+      events.push({
+        restaurantId: tenantId,
+        score: result.score,
+        calculatedAt: result.calculatedAt,
+      }),
+  });
+
+  const result = await scheduler.getScore(restaurantId);
+
+  assert.deepEqual(events, [
+    { restaurantId, score: result.score, calculatedAt: result.calculatedAt },
+  ]);
+});
+
 test("an operational event during a refresh schedules one follow-up calculation", async () => {
   const restaurantId = new ObjectId();
   let reads = 0;

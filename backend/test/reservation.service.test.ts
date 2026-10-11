@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
+import type { RestaurantRealtimeEvent } from "../src/realtime/realtime.types.js";
 import {
   RESERVATION_DURATION_MS,
   ReservationError,
@@ -134,6 +135,7 @@ function serviceWith(
   clock = () => now,
   notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
   notifyIncidentDetection?: (tenantId: ObjectId) => void,
+  publishRealtime?: (event: RestaurantRealtimeEvent) => void,
 ) {
   return {
     repository,
@@ -142,6 +144,7 @@ function serviceWith(
       clock,
       notifyHealthScoreRefresh,
       notifyIncidentDetection,
+      publishRealtime,
     ),
   };
 }
@@ -167,11 +170,13 @@ test("customer requests create an unassigned reservation with a server-derived 9
 test("reservation writes request tenant health-score and incident refreshes", async () => {
   const healthRefreshes: ObjectId[] = [];
   const incidentRequests: ObjectId[] = [];
+  const realtimeEvents: RestaurantRealtimeEvent[] = [];
   const { service } = serviceWith(
     new FakeReservationRepository(),
     () => now,
     (tenantId) => healthRefreshes.push(tenantId),
     (tenantId) => incidentRequests.push(tenantId),
+    (event) => realtimeEvents.push(event),
   );
 
   await service.createForCustomer({ userId, restaurantId, partySize: 2, startAt });
@@ -179,6 +184,18 @@ test("reservation writes request tenant health-score and incident refreshes", as
 
   assert.deepEqual(healthRefreshes, [restaurantId, restaurantId]);
   assert.deepEqual(incidentRequests, [restaurantId, restaurantId]);
+  assert.deepEqual(realtimeEvents, [
+    {
+      restaurantId,
+      event: "reservation.updated",
+      data: { reservationId: reservationId.toHexString(), status: "Awaiting" },
+    },
+    {
+      restaurantId,
+      event: "reservation.updated",
+      data: { reservationId: reservationId.toHexString(), status: "Cancelled" },
+    },
+  ]);
 });
 
 test("reservation requests enforce party size, 30-minute slots, future time, opening hours, and note bounds", async () => {
