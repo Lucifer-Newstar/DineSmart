@@ -442,7 +442,7 @@ test("auth HTTP routes keep refresh credentials in HttpOnly cookies and reject u
 class PasswordChangedAuthRepository extends FakeAuthRepository {
   readonly userId = new ObjectId();
   readonly sessionId = new ObjectId();
-  readonly activeUser: WithId<UserDocument> = {
+  activeUser: WithId<UserDocument> = {
     _id: this.userId,
     name: "Test Customer",
     email: "test.customer@example.com",
@@ -483,6 +483,22 @@ class PasswordChangedAuthRepository extends FakeAuthRepository {
 
 test("refresh rejects and revokes a session created before passwordChangedAt", async () => {
   const repository = new PasswordChangedAuthRepository();
+  const service = new AuthService(repository, JWT_SECRET, () => new Date(FIXED_NOW));
+
+  await assert.rejects(
+    service.refresh("R".repeat(43)),
+    (error: unknown) => error instanceof AuthError && error.code === "invalid_refresh_token",
+  );
+  assert.equal(repository.revokedSessionId, repository.sessionId);
+});
+
+test("refresh rejects and revokes a session created before refreshSessionsInvalidBefore", async () => {
+  const repository = new PasswordChangedAuthRepository();
+  repository.activeUser = {
+    ...repository.activeUser,
+    passwordChangedAt: new Date(FIXED_NOW.getTime() - 2_000),
+    refreshSessionsInvalidBefore: FIXED_NOW,
+  };
   const service = new AuthService(repository, JWT_SECRET, () => new Date(FIXED_NOW));
 
   await assert.rejects(

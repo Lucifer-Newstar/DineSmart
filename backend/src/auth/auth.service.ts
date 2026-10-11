@@ -197,7 +197,10 @@ export class AuthService {
       await this.repository.revokeRefreshSession(rotated._id, now);
       throw new AuthError(401, "invalid_refresh_token", "A valid refresh session is required.");
     }
-    if (user.passwordChangedAt && rotated.createdAt < user.passwordChangedAt) {
+    if (
+      (user.passwordChangedAt && rotated.createdAt < user.passwordChangedAt) ||
+      (user.refreshSessionsInvalidBefore && rotated.createdAt < user.refreshSessionsInvalidBefore)
+    ) {
       await this.repository.revokeRefreshSession(rotated._id, now);
       throw new AuthError(401, "invalid_refresh_token", "A valid refresh session is required.");
     }

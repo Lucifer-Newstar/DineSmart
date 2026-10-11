@@ -60,6 +60,7 @@ interface UserBaseDocument extends TimestampedDocument {
   passwordResetResendAt?: Date;
   passwordResetAttempts?: number;
   passwordChangedAt?: Date;
+  refreshSessionsInvalidBefore?: Date;
 }
 
 export interface CustomerUserDocument extends UserBaseDocument {
