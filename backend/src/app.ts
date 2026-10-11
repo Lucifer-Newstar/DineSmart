@@ -20,6 +20,9 @@ import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
 import { EmailOtpService } from "./auth/email-otp.service.js";
 import { GoogleIdTokenVerifier, GoogleOAuthService } from "./auth/google-oauth.service.js";
 import { MongoRegistrationOtpRepository } from "./auth/registration.repository.js";
+import { MongoBillRepository } from "./bills/bill.repository.js";
+import { createBillRouter } from "./bills/bill.router.js";
+import { BillService } from "./bills/bill.service.js";
 import { connectToDatabase } from "./database.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
@@ -266,6 +269,19 @@ export function createApp(options: AppOptions = {}) {
             incidentDetectionScheduler.notifyOperationalEvent,
             realtimeHub.publishRestaurantEvent,
           ),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/bills",
+    createBillRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new BillService(new MongoBillRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

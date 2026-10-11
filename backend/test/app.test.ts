@@ -28,7 +28,7 @@ test("GET /health reports process liveness", async () => {
   }
 });
 
-test("createApp mounts the public menu and protected analytics, order, kitchen, incident, and notification routers", async () => {
+test("createApp mounts the public menu and protected analytics, billing, order, kitchen, incident, and notification routers", async () => {
   const db = { collection: () => ({}) } as unknown as Db;
   const api = createApp({
     getDatabase: async () => db,
@@ -61,6 +61,9 @@ test("createApp mounts the public menu and protected analytics, order, kitchen, 
     assert.deepEqual(await ordersResponse.json(), {
       error: { code: "missing_access_token", message: "A bearer access token is required." },
     });
+
+    const billsResponse = await fetch(`${baseUrl}/api/v1/bills/111111111111111111111111`);
+    assert.equal(billsResponse.status, 401);
 
     const kitchenResponse = await fetch(`${baseUrl}/api/v1/kitchen/queue`);
     assert.equal(kitchenResponse.status, 401);
