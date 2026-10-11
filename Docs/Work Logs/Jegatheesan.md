@@ -105,3 +105,11 @@
 - **Local verification via Node `24.21.0`:** clean `npm ci` installed 160 packages with zero vulnerabilities; Biome checked 122 backend files; typecheck and production build passed; all 194 backend tests passed, including 22 new billing tests; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed. The base shell Node remains `20.20.2`; commands explicitly used `npm exec --yes --package=node@24.21.0`.
 - Tests use fakes and do not prove live MongoDB persistence, unique-index enforcement, Atlas, or cross-process race behavior. Docker/`mongod` are unavailable in this workspace; live DB/index verification remains deferred to the final database/deployment stage. No remote CI, push, or merge occurred.
 - **Status:** S2-14 is **Ready to Push** on local `main`, not Complete. No remote/upstream is configured; the preceding `git pull --ff-only` attempt could not fetch updates. Deployment and Atlas work remain deferred until the project's other work is finished.
+
+### 2026-10-11 — S2-16 Staff Management API started
+
+- Continued sequentially on local `main` after S2-15's Ready to Push checkpoint; S2-16 is In Progress and remains assigned to Jegatheesan.
+- Reviewed the sparse `GET /staff` and `PUT /staff/{id}` inventory, existing `StaffDocument`, auth `UserDocument`, Manager/Administrator `staff:read`/`staff:write` permissions, and 15-minute access-token/refresh-session rules.
+- Implement a tenant-scoped bounded roster and safe role/active-state updates for existing staff only; no invitation/creation, shift/scheduling, payroll, contact editing, or staff deletion. The two-document update and session-watermark choices are recommendations, not separate owner approvals.
+- Gokul is assigned a real sub-scope: the HTTP/security test suite for route validation, role gates, signed-tenant isolation, and safe responses. Shared endpoint/architecture docs and app composition remain Navin-owned.
+- Live MongoDB/Atlas verification, deployment, push, and remote CI remain deferred/unavailable; tests will use repository fakes.
