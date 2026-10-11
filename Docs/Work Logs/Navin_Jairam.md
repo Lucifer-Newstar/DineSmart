@@ -299,3 +299,10 @@
 - Began the assistant-recommended table status contract and updated the API inventory, implementation decisions, schema note, backlog, and TC-26 test plan. The transition graph and linked-record cleanup are not separate owner approvals.
 - Shared API/architecture/test documentation and Express app composition remain Navin-owned; feature repository/service/router work remains assigned to Jegatheesan.
 - Live MongoDB/index, browser, remote CI, deployment, push, and merge checks remain unverified/deferred.
+
+### 2026-10-11 — S2-18 shared integration and closeout
+
+- Integrated the protected table status router into Express, injecting the native-driver repository plus health-score, incident, and realtime hooks. Added an app-mount test.
+- Closed the S2-18 API/schema/implementation-decision/test-plan/backlog documentation. The lowercase state graph and link-release policy remain explicitly assistant-selected recommendations, not owner approvals.
+- Local Node `24.21.0` verification passed: Biome (149 backend files), typecheck, production build, all 272 backend tests, zero high-severity npm audit findings, and `git diff --check`.
+- S2-18 is Ready to Push on local `main`, not Complete. Live MongoDB/Atlas reference consistency, browser workflow, remote CI, deployment, push, and merge are not claimed.
