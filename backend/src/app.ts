@@ -56,6 +56,9 @@ import { ReservationService } from "./reservations/reservation.service.js";
 import { MongoStaffRepository } from "./staff/staff.repository.js";
 import { createStaffRouter } from "./staff/staff.router.js";
 import { StaffService } from "./staff/staff.service.js";
+import { MongoTableStatusRepository } from "./tables/table-status.repository.js";
+import { createTableStatusRouter } from "./tables/table-status.router.js";
+import { TableStatusService } from "./tables/table-status.service.js";
 import { MongoWaitlistRepository } from "./waitlist/waitlist.repository.js";
 import { createWaitlistRouter } from "./waitlist/waitlist.router.js";
 import { WaitlistService } from "./waitlist/waitlist.service.js";
@@ -328,6 +331,25 @@ export function createApp(options: AppOptions = {}) {
         return {
           service: new WaitlistService(
             new MongoWaitlistRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
+          ),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/tables",
+    createTableStatusRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new TableStatusService(
+            new MongoTableStatusRepository(db),
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
