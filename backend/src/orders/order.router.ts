@@ -206,7 +206,6 @@ function toJson(order: Awaited<ReturnType<OrderServiceReader["createForCustomer"
       name: item.nameSnapshot,
       unitPriceMinor: item.unitPriceMinor,
       quantity: item.quantity,
-      preparationStatus: item.preparationStatus,
     })),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),

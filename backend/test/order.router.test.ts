@@ -140,7 +140,6 @@ test("customer creates an order using only submitted restaurant and item selecti
       name: "Ghee podi dosa",
       unitPriceMinor: 28_500,
       quantity: 1,
-      preparationStatus: "Created",
     },
   ]);
   assert.equal(calls.create?.userId.toHexString(), userId.toHexString());
