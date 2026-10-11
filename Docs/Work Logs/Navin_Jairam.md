@@ -237,3 +237,10 @@
 - **Implementation commits:** `bffa15a` (ticketed transport, ACK persistence, app/server wiring and event publishers); `901b72e` (route, repository, hub, gateway, and operational-event tests). Documentation/backlog/work-log closeout is committed separately.
 - **Local verification via Node `24.21.0`:** `npm ci` installed the locked dependencies and reported zero vulnerabilities; Biome checked 115 files with no findings; TypeScript typecheck, production build, all 172 backend tests, and `npm audit --audit-level=moderate` passed; `git diff --check` passed. Base shell Node remains `20.20.2`; the checks explicitly used `npm exec --yes --package=node@24.21.0`.
 - **Status:** S2-13 is **Ready to Push** on local `main`, not Complete. Tests use fakes and an in-process WebSocket handshake; live MongoDB/Atlas persistence/index behavior, browser reconnect/UI, multi-replica operation, load/p95, deployment, remote CI, push, and merge remain unverified or deferred. Atlas provisioning and deployment remain for after the project's other work is finished.
+
+### 2026-10-11 — S2-14 billing contract and shared integration started
+
+- Continued the backlog in order on local `main`; S2-14 is **In Progress**. No remote/upstream is configured, so `git pull --ff-only` could not fetch updates.
+- Documented a conservative bill-generation/retrieval contract: use immutable order snapshots and the existing per-restaurant/order uniqueness index, scope staff by signed tenant and Customers by their own order, keep tax/adjustments at zero, and leave payment/settlement outside scope. These details are recommendations, not additional owner approvals.
+- Shared integration ownership covers API/architecture documentation and later app composition/mounting; Jegatheesan owns the S2-14 billing module and feature tests.
+- Continue locally without deployment, live Atlas work, credentials, push, or remote CI. Record live MongoDB/index and remote verification limits explicitly.
