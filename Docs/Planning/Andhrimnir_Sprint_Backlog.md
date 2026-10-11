@@ -63,7 +63,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-02 | Digital Menu | Dhanush | High | 3 | In Progress |
 | S2-03 | Reservation Module | Jegatheesan | High | 3 | Ready to Push |
 | S2-04 | Order Placement | Dhanush | High | 5 | Ready to Push |
-| S2-05 | Kitchen Queue | Jegatheesan | High | 3 | To Do |
+| S2-05 | Kitchen Queue | Jegatheesan | High | 3 | Ready to Push |
 | S2-06 | Inventory Module | Jegatheesan | High | 3 | In Progress |
 | S2-07 | Dashboard UI | Dhanush | High | 5 | In Progress |
 | S2-08 | Restaurant Health Score | Navin | High | 3 | In Progress |
