@@ -163,3 +163,11 @@
 - **Local verification on Node `24.21.0`:** backend Biome, typecheck, production build, audit (zero vulnerabilities), and all 79 backend tests passed. Frontend Biome, typecheck, production build (including `/menu` and `/orders`), and audit (zero vulnerabilities) passed. `git diff --check` passed.
 - **Limits:** Docker/`mongod` are unavailable, so live MongoDB persistence/index and multi-document failure behavior were not tested. The frontend has no automated UI suite; no browser E2E was run. No remote is configured; no push or GitHub Actions run occurred.
 - **Status:** S2-04 is Ready to Push on local `main`, pending live MongoDB/browser E2E and ordinary review/merge. It is not Complete.
+
+### 2026-10-11 — S2-05 kitchen queue integration and contract
+
+- Recorded the assistant-recommended (not separately owner-approved) tenant-scoped kitchen queue, item preparation flow, and front-of-house order lifecycle; documented the standalone-MongoDB cross-document consistency limit and retained the dashboard UI as separate S2-07 sample-data work.
+- Integrated Jegatheesan's staff-order/kitchen routes in `createApp`, added app mount coverage, and granted Reception `orders:write` to align with the approved role matrix's restaurant-order update capability. The permission change is an implementation recommendation, not a new owner policy selection.
+- Updated the canonical API specification, implementation decisions, acceptance tests, and backlog status. S2-05 is Ready to Push on local `main`, not Complete.
+- **Feature commits:** `bd46f2f` and `dad0024` (Jegatheesan). **Shared app/RBAC integration:** `4e550bc` (Navin). **Contract/status docs:** `ccefeba` (Navin).
+- **Local verification on Node `24.21.0`:** backend Biome lint, typecheck, build, `npm audit --audit-level=high` (zero vulnerabilities), 92/92 tests, and `git diff --check` passed. Fakes do not prove live MongoDB persistence, index bootstrap, concurrency, or crash recovery. Docker/`mongod` are unavailable; staff dashboard/browser E2E was not run. No remote push or GitHub Actions run occurred.
