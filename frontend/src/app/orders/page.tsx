@@ -15,7 +15,6 @@ interface OrderItem {
   name: string;
   unitPriceMinor: number;
   quantity: number;
-  preparationStatus: string;
 }
 
 interface CustomerOrder {
@@ -76,8 +75,7 @@ function parseOrder(value: unknown): CustomerOrder | null {
       entry.unitPriceMinor < 0 ||
       typeof entry.quantity !== "number" ||
       !Number.isInteger(entry.quantity) ||
-      entry.quantity < 1 ||
-      typeof entry.preparationStatus !== "string"
+      entry.quantity < 1
     ) {
       return null;
     }
@@ -87,7 +85,6 @@ function parseOrder(value: unknown): CustomerOrder | null {
       name: entry.name,
       unitPriceMinor: entry.unitPriceMinor,
       quantity: entry.quantity,
-      preparationStatus: entry.preparationStatus,
     });
   }
 
