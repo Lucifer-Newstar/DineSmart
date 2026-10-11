@@ -257,3 +257,10 @@
 - Continued backlog order on local `main`; S2-15 is In Progress and assigned implementation to Dhanush.
 - Added an assistant-recommended two-step reset request/confirm contract consistent with approved OTP limits, generic account-enumeration-safe request behavior, mock-only development email, single-use HMAC verification, Argon2id replacement, refresh-session revocation, and stateless access-token expiry. These implementation details are not additional owner approvals.
 - Shared architecture/API/test-plan documentation remains Navin-owned. Production email-provider credentials and live reset-mail delivery are not available; do not claim them.
+
+### 2026-10-11 — S2-15 shared integration and documentation closeout
+
+- Mounted the Mongo-backed password-reset service and auth runtime in `createApp`; added the protected/public auth-router mount assertion. **Shared integration commit:** `1415eea`.
+- Updated the canonical API spec, implementation recommendations, schema/test acceptance notes, and backlog. Documented the assistant-recommended two-step endpoints, approved OTP limits, 5/10 per-IP limits, mock-provider boundary, generic response/timing caveat, stale-refresh fallback, and all remaining live-service blockers without implying owner approval.
+- S2-15 is recorded as **Ready to Push** on local `main`, not Complete. Local Node `24.21.0` backend validation: Biome checked 128 files, typecheck/build passed, all 216 tests passed, audit found zero high-severity vulnerabilities, and `git diff --check` passed.
+- No live MongoDB/Atlas behavior, real provider delivery, remote CI, deployment, push, or merge is claimed. Atlas provisioning/live checks and deployment remain deferred until the project's remaining work is finished.

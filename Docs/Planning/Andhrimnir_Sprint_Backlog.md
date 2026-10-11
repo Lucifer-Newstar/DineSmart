@@ -73,7 +73,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-12 | Incident Detection Rules | Navin | High | 12 | Ready to Push |
 | S2-13 | WebSocket Implementation | Navin | High | 3 | Ready to Push |
 | S2-14 | Billing APIs | Jegatheesan | High | 3 | Ready to Push |
-| S2-15 | Password Reset API | Dhanush | High | 2 | In Progress |
+| S2-15 | Password Reset API | Dhanush | High | 2 | Ready to Push |
 | S2-16 | Staff Management APIs | Jegatheesan | Medium | 3 | To Do |
 | S2-17 | Waitlist Management APIs | Jegatheesan | Medium | 2 | To Do |
 | S2-18 | Table Status APIs | Jegatheesan | Medium | 2 | To Do |
