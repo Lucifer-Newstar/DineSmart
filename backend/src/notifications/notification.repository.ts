@@ -38,6 +38,7 @@ export class MongoNotificationRepository implements NotificationRepository {
     const document: NotificationDocument & { _id: ObjectId } = {
       ...notification,
       _id: new ObjectId(),
+      deliveredAt: null,
       readAt: null,
       createdAt: now,
       updatedAt: now,
@@ -74,6 +75,20 @@ export class MongoNotificationRepository implements NotificationRepository {
     await this.notifications.updateOne(
       { ...filter, readAt: null },
       { $set: { readAt, updatedAt: readAt } },
+    );
+    const document = await this.notifications.findOne(filter);
+    return document ? toRecord(document) : null;
+  }
+
+  async markDelivered(
+    scope: NotificationRecipientScope,
+    notificationId: ObjectId,
+    deliveredAt: Date,
+  ): Promise<NotificationRecord | null> {
+    const filter = { ...recipientFilter(scope), _id: notificationId };
+    await this.notifications.updateOne(
+      { ...filter, deliveredAt: null },
+      { $set: { deliveredAt, updatedAt: deliveredAt } },
     );
     const document = await this.notifications.findOne(filter);
     return document ? toRecord(document) : null;

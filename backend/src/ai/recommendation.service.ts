@@ -1,5 +1,6 @@
 import { ObjectId, type WithId } from "mongodb";
 import type { RecommendationDocument } from "../database/schema.js";
+import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import type {
   IncidentRecommendationContext,
   RecommendationResult,
@@ -18,6 +19,7 @@ export class RecommendationService {
     private readonly repository: RecommendationRepository,
     private readonly provider?: RecommendationProvider,
     private readonly clock: () => Date = () => new Date(),
+    private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
   ) {}
 
   async generate(
@@ -33,11 +35,19 @@ export class RecommendationService {
       generatedAt: this.clock(),
     };
 
-    return this.repository.save(
-      new ObjectId(restaurantIdText),
-      new ObjectId(incidentIdText),
-      recommendation,
-    );
+    const restaurantId = new ObjectId(restaurantIdText);
+    const incidentId = new ObjectId(incidentIdText);
+    const saved = await this.repository.save(restaurantId, incidentId, recommendation);
+    try {
+      this.publishRealtime({
+        restaurantId,
+        event: "recommendation.updated",
+        data: { incidentId: incidentId.toHexString() },
+      });
+    } catch {
+      // The persisted recommendation remains usable if push delivery is unavailable.
+    }
+    return saved;
   }
 
   async list(

@@ -206,7 +206,7 @@ export interface NotificationDocument extends TimestampedDocument {
   title: string;
   body: string;
   relatedEntity?: { type: string; id: ObjectId };
-  deliveredAt?: Date;
+  deliveredAt?: Date | null;
   readAt?: Date | null;
 }
 

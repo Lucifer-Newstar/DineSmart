@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
+import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import type {
   NewCustomerOrderRequest,
   OrderItemSnapshot,
@@ -31,6 +32,7 @@ export class OrderService implements OrderServiceReader {
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
     private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
+    private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
   ) {}
 
   async createForCustomer(request: NewCustomerOrderRequest): Promise<OrderRecord> {
@@ -114,6 +116,11 @@ export class OrderService implements OrderServiceReader {
     );
     this.notifyHealthScoreRefresh(request.restaurantId);
     this.notifyIncidentDetection(request.restaurantId);
+    this.publishRealtime({
+      restaurantId: request.restaurantId,
+      event: "order.updated",
+      data: { orderId: created.id.toHexString(), status: created.status },
+    });
     return { ...created, restaurantName: restaurant.name };
   }
 
@@ -151,6 +158,11 @@ export class OrderService implements OrderServiceReader {
     }
     this.notifyHealthScoreRefresh(current.restaurantId);
     this.notifyIncidentDetection(current.restaurantId);
+    this.publishRealtime({
+      restaurantId: current.restaurantId,
+      event: "order.updated",
+      data: { orderId: cancelled.id.toHexString(), status: cancelled.status },
+    });
     return cancelled;
   }
 

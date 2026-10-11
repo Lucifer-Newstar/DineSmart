@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
+import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import type {
   CustomerReservationRequest,
   CustomerReservationUpdate,
@@ -46,6 +47,7 @@ export class ReservationService implements ReservationServiceReader {
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
     private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
+    private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
   ) {}
 
   async listForCustomer(userId: ObjectId) {
@@ -77,6 +79,11 @@ export class ReservationService implements ReservationServiceReader {
     const created = await this.repository.createReservation(reservation, now);
     this.notifyHealthScoreRefresh(request.restaurantId);
     this.notifyIncidentDetection(request.restaurantId);
+    this.publishRealtime({
+      restaurantId: request.restaurantId,
+      event: "reservation.updated",
+      data: { reservationId: created.id.toHexString(), status: created.status },
+    });
     return created;
   }
 
@@ -113,6 +120,11 @@ export class ReservationService implements ReservationServiceReader {
     const created = await this.repository.createReservation(reservation, now);
     this.notifyHealthScoreRefresh(request.restaurantId);
     this.notifyIncidentDetection(request.restaurantId);
+    this.publishRealtime({
+      restaurantId: request.restaurantId,
+      event: "reservation.updated",
+      data: { reservationId: created.id.toHexString(), status: created.status },
+    });
     return created;
   }
 
@@ -142,6 +154,11 @@ export class ReservationService implements ReservationServiceReader {
     if (!updated) throw changedReservationError();
     this.notifyHealthScoreRefresh(current.restaurantId);
     this.notifyIncidentDetection(current.restaurantId);
+    this.publishRealtime({
+      restaurantId: current.restaurantId,
+      event: "reservation.updated",
+      data: { reservationId: updated.id.toHexString(), status: updated.status },
+    });
     return updated;
   }
 
@@ -201,6 +218,11 @@ export class ReservationService implements ReservationServiceReader {
     if (!updated) throw changedReservationError();
     this.notifyHealthScoreRefresh(request.restaurantId);
     this.notifyIncidentDetection(request.restaurantId);
+    this.publishRealtime({
+      restaurantId: request.restaurantId,
+      event: "reservation.updated",
+      data: { reservationId: updated.id.toHexString(), status: updated.status },
+    });
     return updated;
   }
 

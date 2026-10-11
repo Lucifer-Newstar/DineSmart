@@ -52,6 +52,11 @@ export interface NotificationRepository {
     notificationId: ObjectId,
     readAt: Date,
   ): Promise<NotificationRecord | null>;
+  markDelivered(
+    scope: NotificationRecipientScope,
+    notificationId: ObjectId,
+    deliveredAt: Date,
+  ): Promise<NotificationRecord | null>;
 }
 
 export interface NotificationServiceReader {

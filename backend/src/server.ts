@@ -5,6 +5,7 @@ import { initializeDatabaseSchema } from "./database/schema.js";
 import { closeDatabase, connectToDatabase } from "./database.js";
 import type { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 import type { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
+import type { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
 
 const port = Number(process.env.PORT ?? 3001);
 
@@ -38,9 +39,12 @@ const healthScoreRefreshScheduler = app.locals
   .healthScoreRefreshScheduler as HealthScoreRefreshScheduler;
 const incidentDetectionScheduler = app.locals
   .incidentDetectionScheduler as IncidentDetectionScheduler;
+const notificationRealtimeGateway = app.locals
+  .notificationRealtimeGateway as NotificationRealtimeGateway;
 const server = app.listen(port, "0.0.0.0", () => {
   console.info(`Andhrímnir API server listening on port ${port}.`);
 });
+notificationRealtimeGateway.attach(server);
 
 if (process.env.MONGODB_URI) {
   void getSchemaReadyDatabase()
@@ -70,6 +74,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     healthScoreRefreshScheduler.stopHourlyRefresh();
     incidentDetectionScheduler.stopHourlyRefresh();
+    notificationRealtimeGateway.close();
     server.close((error) => {
       if (error) {
         console.error("The API server did not shut down cleanly.", error);

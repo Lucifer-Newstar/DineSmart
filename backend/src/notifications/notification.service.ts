@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import type { NotificationRealtimePublisher } from "../realtime/realtime.types.js";
 import {
   type NewNotification,
   NOTIFICATION_LIST_LIMIT,
@@ -85,10 +86,18 @@ export class NotificationService implements NotificationServiceReader {
   constructor(
     private readonly repository: NotificationRepository,
     private readonly clock: () => Date = () => new Date(),
+    private readonly publishRealtime: NotificationRealtimePublisher = () => undefined,
   ) {}
 
   async create(notification: NewNotification): Promise<NotificationRecord> {
-    return this.repository.create(normalizeNewNotification(notification), this.clock());
+    const normalized = normalizeNewNotification(notification);
+    const record = await this.repository.create(normalized, this.clock());
+    try {
+      this.publishRealtime(normalized.recipientUserId, record);
+    } catch {
+      // Persistence succeeds independently of transient push-delivery failures.
+    }
+    return record;
   }
 
   async list(scope: NotificationRecipientScope) {

@@ -15,6 +15,7 @@ type CancelInterval = (handle: IntervalHandle) => void;
 export interface HealthScoreSchedulerOptions {
   clock?: () => Date;
   onError?: (error: unknown) => void;
+  onRefreshed?: (restaurantId: ObjectId, result: HealthScoreResult) => void;
   scheduleInterval?: ScheduleInterval;
   cancelInterval?: CancelInterval;
 }
@@ -34,6 +35,7 @@ export class HealthScoreRefreshScheduler {
   private readonly refreshAgain = new Set<string>();
   private readonly clock: () => Date;
   private readonly onError: (error: unknown) => void;
+  private readonly onRefreshed: HealthScoreSchedulerOptions["onRefreshed"];
   private readonly scheduleInterval: ScheduleInterval;
   private readonly cancelInterval: CancelInterval;
   private interval: IntervalHandle | undefined;
@@ -45,6 +47,7 @@ export class HealthScoreRefreshScheduler {
   ) {
     this.clock = options.clock ?? (() => new Date());
     this.onError = options.onError ?? (() => undefined);
+    this.onRefreshed = options.onRefreshed;
     this.scheduleInterval = options.scheduleInterval ?? setInterval;
     this.cancelInterval = options.cancelInterval ?? clearInterval;
   }
@@ -88,6 +91,11 @@ export class HealthScoreRefreshScheduler {
       } while (this.refreshAgain.delete(key));
 
       this.cache.set(key, { result, refreshedAt: this.clock().getTime() });
+      try {
+        this.onRefreshed?.(restaurantId, result);
+      } catch (error) {
+        this.onError(error);
+      }
       return result;
     })();
     this.inFlight.set(key, refresh);

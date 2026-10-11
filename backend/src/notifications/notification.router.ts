@@ -5,6 +5,7 @@ import {
   type Response,
   Router,
 } from "express";
+import rateLimit from "express-rate-limit";
 import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
@@ -13,6 +14,12 @@ import {
   requirePermissions,
   requireRestaurantScope,
 } from "../auth/authorization.middleware.js";
+import {
+  REALTIME_SOCKET_PATH,
+  REALTIME_SOCKET_PROTOCOL,
+  type RealtimeIdentity,
+  type SocketTicket,
+} from "../realtime/realtime.types.js";
 import { NotificationError } from "./notification.service.js";
 import type {
   NotificationRecipientScope,
@@ -27,10 +34,12 @@ type NotificationOperation = "read" | "update";
 export interface NotificationRuntime {
   service: NotificationServiceReader;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
+  issueSocketTicket: (identity: RealtimeIdentity) => SocketTicket;
 }
 
 export interface NotificationRouterOptions {
   createRuntime: () => Promise<NotificationRuntime>;
+  webOrigin: string;
 }
 
 function sendUnavailable(response: Response): void {
@@ -81,6 +90,35 @@ const requireNotificationTenantScope: RequestHandler = (request, response, next)
   requireRestaurantScope()(request, response, next);
 };
 
+const requireEmptySocketTicketQuery: RequestHandler = (request, response, next) => {
+  if (Object.keys(request.query).length > 0) {
+    response.status(400).json({
+      error: {
+        code: "invalid_notification_query",
+        message: "WebSocket ticket requests do not accept query parameters.",
+      },
+    });
+    return;
+  }
+  next();
+};
+
+const requireEmptySocketTicketBody: RequestHandler = (request, response, next) => {
+  if (
+    request.body !== undefined &&
+    (!isRecord(request.body) || Object.keys(request.body).length > 0)
+  ) {
+    response.status(400).json({
+      error: {
+        code: "invalid_notification_request",
+        message: "A WebSocket ticket request does not accept a body.",
+      },
+    });
+    return;
+  }
+  next();
+};
+
 function recipientScope(principal: AuthPrincipal | undefined): NotificationRecipientScope | null {
   if (!principal) return null;
   const userId = objectId(principal.userId);
@@ -122,6 +160,26 @@ function sendInvalidPrincipal(response: Response): void {
 export function createNotificationRouter(options: NotificationRouterOptions): Router {
   const router = Router();
   const runtimes = new WeakMap<Request, NotificationRuntime>();
+  const socketTicketRateLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: {
+        code: "rate_limited",
+        message: "Too many real-time connection tickets. Try again later.",
+      },
+    },
+  });
+
+  router.use((request: Request, response: Response, next: NextFunction) => {
+    if (request.method === "POST" && request.path === "/socket-ticket") {
+      socketTicketRateLimit(request, response, next);
+      return;
+    }
+    next();
+  });
 
   router.use(async (request: Request, response: Response, next: NextFunction) => {
     try {
@@ -132,6 +190,57 @@ export function createNotificationRouter(options: NotificationRouterOptions): Ro
       sendUnavailable(response);
     }
   });
+
+  router.post(
+    "/socket-ticket",
+    requireEmptySocketTicketQuery,
+    requireEmptySocketTicketBody,
+    notificationPermission("read"),
+    requireNotificationTenantScope,
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const scope = recipientScope(request.auth);
+      if (!runtime) {
+        sendUnavailable(response);
+        return;
+      }
+      if (!scope || !request.auth) {
+        sendInvalidPrincipal(response);
+        return;
+      }
+      if (request.get("origin") !== options.webOrigin) {
+        response.status(403).json({
+          error: {
+            code: "untrusted_origin",
+            message: "A request from the configured web application is required.",
+          },
+        });
+        return;
+      }
+      const identity: RealtimeIdentity = {
+        userId: scope.userId,
+        role: request.auth.role,
+        restaurantId: scope.kind === "staff" ? scope.restaurantId : null,
+      };
+      try {
+        const ticket = runtime.issueSocketTicket(identity);
+        response.set("Cache-Control", "no-store");
+        response.status(201).json({
+          ticket: ticket.ticket,
+          expiresAt: ticket.expiresAt.toISOString(),
+          socketPath: REALTIME_SOCKET_PATH,
+          protocol: REALTIME_SOCKET_PROTOCOL,
+        });
+      } catch {
+        response.status(503).json({
+          error: {
+            code: "notification_socket_unavailable",
+            message: "A real-time connection ticket is temporarily unavailable.",
+          },
+        });
+      }
+    },
+  );
 
   router.get(
     "/",

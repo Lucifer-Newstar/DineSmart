@@ -42,6 +42,9 @@ import { createOrderRouter } from "./orders/order.router.js";
 import { OrderService } from "./orders/order.service.js";
 import { createStaffOrderRouter } from "./orders/order.staff.router.js";
 import { StaffOrderService } from "./orders/order.staff.service.js";
+import { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
+import { RealtimeHub } from "./realtime/realtime-hub.js";
+import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
 import { MongoReservationRepository } from "./reservations/reservation.repository.js";
 import { createReservationRouter } from "./reservations/reservation.router.js";
 import { ReservationService } from "./reservations/reservation.service.js";
@@ -56,10 +59,22 @@ export interface AppOptions {
 
 export function createApp(options: AppOptions = {}) {
   const app = express();
+  const realtimeHub = new RealtimeHub({
+    onError: () => console.error("A real-time event could not be sent."),
+  });
+  app.locals.realtimeHub = realtimeHub;
   const healthScoreRefreshScheduler = new HealthScoreRefreshScheduler(
     async () =>
       new MongoHealthScoreRepository(await (options.getDatabase?.() ?? connectToDatabase())),
-    { onError: () => console.error("A background health-score refresh failed.") },
+    {
+      onError: () => console.error("A background health-score refresh failed."),
+      onRefreshed: (restaurantId, result) =>
+        realtimeHub.publishRestaurantEvent({
+          restaurantId,
+          event: "healthscore.updated",
+          data: { score: result.score, calculatedAt: result.calculatedAt },
+        }),
+    },
   );
   app.locals.healthScoreRefreshScheduler = healthScoreRefreshScheduler;
   const incidentDetectionScheduler = new IncidentDetectionScheduler(
@@ -69,6 +84,7 @@ export function createApp(options: AppOptions = {}) {
         new MongoIncidentDetectionRepository(db),
         undefined,
         healthScoreRefreshScheduler.notifyOperationalEvent,
+        realtimeHub.publishRestaurantEvent,
       );
     },
     { onError: () => console.error("A background incident-detection evaluation failed.") },
@@ -90,6 +106,19 @@ export function createApp(options: AppOptions = {}) {
       throw new Error("WEB_ORIGIN must be a canonical HTTP(S) origin without a path.");
     }
   }
+
+  const socketTicketStore = new SocketTicketStore();
+  const notificationRealtimeGateway = new NotificationRealtimeGateway({
+    allowedOrigin: webOrigin,
+    ticketStore: socketTicketStore,
+    hub: realtimeHub,
+    markDelivered: async (scope, notificationId, deliveredAt) => {
+      const db = await (options.getDatabase?.() ?? connectToDatabase());
+      return new MongoNotificationRepository(db).markDelivered(scope, notificationId, deliveredAt);
+    },
+    onError: () => console.error("A notification acknowledgement could not be persisted."),
+  });
+  app.locals.notificationRealtimeGateway = notificationRealtimeGateway;
 
   async function createAuthRuntime() {
     const secret = options.getJwtSecret?.() ?? process.env.JWT_SECRET;
@@ -189,6 +218,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -202,10 +232,16 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new NotificationService(new MongoNotificationRepository(db)),
+          service: new NotificationService(
+            new MongoNotificationRepository(db),
+            undefined,
+            realtimeHub.publishNotification,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
+          issueSocketTicket: (identity) => socketTicketStore.issue(identity),
         };
       },
+      webOrigin,
     }),
   );
 
@@ -228,6 +264,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -246,6 +283,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -264,6 +302,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -282,6 +321,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -318,6 +358,8 @@ export function createApp(options: AppOptions = {}) {
           contextBuilder,
           new MongoRecommendationRepository(db),
           provider,
+          undefined,
+          realtimeHub.publishRestaurantEvent,
         );
       },
     }),

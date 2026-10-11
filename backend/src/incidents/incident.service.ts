@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
+import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import { evaluateIncidentRules } from "./incident.rules.js";
 import type {
   IncidentDetectionRepository,
@@ -17,6 +18,7 @@ export class IncidentDetectionService implements IncidentServiceReader {
     private readonly repository: IncidentDetectionRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
+    private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
   ) {}
 
   listActiveRestaurantIds(): Promise<ObjectId[]> {
@@ -60,6 +62,11 @@ export class IncidentDetectionService implements IncidentServiceReader {
 
     if (upsertedCount > 0 || resolvedCount > 0) {
       this.notifyHealthScoreRefresh(restaurantId);
+      this.publishRealtime({
+        restaurantId,
+        event: "incident.updated",
+        data: { changedCount: upsertedCount + resolvedCount },
+      });
     }
 
     return {
