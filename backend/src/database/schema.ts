@@ -55,6 +55,11 @@ interface UserBaseDocument extends TimestampedDocument {
   emailOtpExpiresAt?: Date;
   emailOtpResendAt?: Date;
   emailOtpAttempts?: number;
+  passwordResetCodeHash?: string;
+  passwordResetExpiresAt?: Date;
+  passwordResetResendAt?: Date;
+  passwordResetAttempts?: number;
+  passwordChangedAt?: Date;
 }
 
 export interface CustomerUserDocument extends UserBaseDocument {
