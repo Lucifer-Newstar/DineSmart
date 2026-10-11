@@ -141,3 +141,10 @@
 - **Integration merge commits:** `92604f7` and `b324460` (Navin).
 - **Validation on Node `24.21.0`, following `.github/workflows/ci.yml`:** frontend and backend `npm ci`, `npm audit` (zero vulnerabilities each), Biome lint, TypeScript typechecks, and production builds passed. Backend tests: 45 passed. Frontend has no configured test script. `git diff --check` passed.
 - **Limits:** this is a local CI-equivalent run, not a GitHub Actions result. Live MongoDB/Compose and Gemini credential verification remain unavailable.
+
+### 2026-10-11 — S2-03 reservation contract and local integration
+
+- Mounted the reservation router in the shared Express app and completed the cross-feature review. Updated the canonical API inventory, assistant-recommended contract and verification notes, test plan, S2-03 backlog status, and assigned work logs. Technical defaults remain explicitly separate from owner-approved policy.
+- **Local verification on Node `24.21.0`:** backend Biome, typecheck, production build, audit (zero vulnerabilities), and all 58 tests passed; frontend Biome, typecheck, Next.js production build, and audit (zero vulnerabilities) passed. `git diff --check` passed.
+- **Limits:** frontend has no automated UI test; there was no live browser/E2E run. Docker/`mongod` are unavailable, so MongoDB persistence, index bootstrap, and concurrent table-booking behavior remain unverified. Table-overlap checks are read-before-write and not atomic across API processes.
+- **Status:** S2-03 is Ready to Push on local `main`, pending live MongoDB/E2E validation. No remote push or GitHub Actions run was made.

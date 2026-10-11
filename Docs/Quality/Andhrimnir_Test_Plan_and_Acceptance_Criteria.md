@@ -117,7 +117,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 
 - Unit/HTTP tests verify unauthenticated rejection, allow/deny behavior for the approved MVP role matrix, manager-only incident resolution, kitchen queue access, and customer-owner checks.
 - Operational middleware rejects a client-supplied `restaurantId` from path, query, or body when it differs from the signed principal; Customer principals cannot use restaurant-scoped routes. Repository methods must still filter every operational read/write by `restaurantId`, and customer services must apply owner conditions.
-- Product routes do not yet exist in this backend. As each operations route is added, confirm it applies both permission and tenant/owner checks; RBAC is not considered integrated based only on the middleware tests.
+- Locally tested product routes now include inventory, health score, AI recommendations, and reservations. Their route/repository tests verify role permissions and tenant/owner filters; service-specific workflow checks are recorded below. Other operations routes remain pending. Each new route must apply both permission and tenant/owner checks; RBAC is not integrated based only on the middleware tests.
 
 ## 13. S1-13 Seed Data Verification
 
@@ -130,3 +130,10 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 - Prompt/provider tests validate the structured JSON schema, locally validate output fields/ranges, require priority to match incident severity, and reject malformed/escalated output.
 - Failure-path tests verify deterministic incident-specific recommendations when the API key is absent or provider errors/timeouts/invalid output occur. Fallback responses are persisted with `source=fallback` and remain advisory.
 - HTTP tests verify Manager-only generation, tenant-scoped retrieval, and no direct browser-to-Gemini integration. The production SDK call is not live-tested because no Gemini API key is configured; MongoDB persistence/index and live route verification remain pending.
+
+## 15. S2-03 Reservation Verification
+
+- Backend service tests cover Customer-profile resolution, 90-minute duration, 30-minute slot validation, future-time and operating-hour checks, party-size/notes bounds, capacity and overlapping table conflicts, ownership-only cancellation, status transitions, and the 15-minute no-show grace period.
+- HTTP tests cover Customer and staff permissions, signed-tenant scoping, cross-restaurant Customer identity, malformed timezone-qualified timestamps, IDs, and forged `customerId` rejection. Repository tests verify the tenant/owner filters, profile upsert, overlap query, and optimistic `updatedAt` update condition.
+- Frontend booking requires an authenticated Customer, derives identity from the session, sends requests to the API, displays success only after an API response, and returns to `/book` after login/registration. Customer and staff dashboards distinguish live API data from sample/unavailable states; preview mutations are explicitly not saved.
+- Current verification is local unit/HTTP testing plus frontend lint, typecheck, and production build. Run the booking/list/cancellation/assignment flows against live local MongoDB before treating persistence and concurrency behavior as integration-tested. This workspace has no Docker/`mongod`; table-overlap reads are not atomic across multiple API processes.

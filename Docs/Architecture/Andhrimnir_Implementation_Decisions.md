@@ -121,11 +121,11 @@ See the [S1-08 Database Schema](Andhrimnir_Database_Schema.md) for collections, 
 
 ### Pending API contract and schema decisions
 
-- Success/error response envelope, pagination/filter conventions, and validation/error codes.
-- Missing endpoint operations (OTP request/verify, reservation cancellation/table assignment, order detail/cancel, inventory creation, table listing, staff creation/deactivation, notification read state).
-- Exact runtime/document validation rules, optionality for unresolved workflow fields, restaurant onboarding, and remaining workflow constraints.
+- Global success/error envelopes, pagination/filter conventions, and validation/error codes remain draft for routes that are not implemented. S2-03 defines a locally tested reservation contract below; this is an assistant recommendation, not a separate owner approval.
+- Remaining endpoint operations include order detail/cancel, inventory creation, table listing, staff creation/deactivation, and notification read state. OTP request/verify and reservation cancellation/table assignment have local implementations.
+- Exact runtime/document validation rules, optionality for unresolved workflow fields, restaurant onboarding, and remaining workflow constraints still require definition as their APIs are implemented.
 
-The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Specification.md). The S1-08 field list is a persistence baseline, not a substitute for finalizing the API payloads and domain validation before those workflows are implemented.
+The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Specification.md). The S1-08 field list is a persistence baseline, not a substitute for finalizing API payloads and domain validation before the remaining workflows are implemented.
 
 ## 5. Restaurant workflow defaults — approved baseline
 
@@ -144,7 +144,20 @@ The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Sp
 
 ### Pending workflow details
 
-Exact opening-hour representation, party-size limits, no-show resolution, actor allowed to accept orders, and remaining per-status transition permissions need to be recorded before the corresponding reservation/order APIs are implemented.
+- Reservation day-specific/holiday hours, table combinations, automatic no-show jobs, and advanced recurrence rules remain outside S2-03. The local reservation contract below uses the current static `opensAt`/`closesAt` shape when present; unconfigured hours do not impose an opening-window check.
+- Order acceptance actors and remaining order-status transition permissions still need to be recorded before the corresponding order APIs are implemented.
+
+### S2-03 reservation endpoint recommendation
+
+The following S2-03 contract was selected by the assistant on the owner's direction to choose and document unspecified module decisions. It is **not a separate owner approval**. Backend routes have local unit/HTTP coverage; the frontend passes lint, typecheck, and production build but has no automated UI test. Live MongoDB persistence is not verified.
+
+- `POST /api/v1/reservations`: an authenticated Customer sends `restaurantId`, `partySize`, timezone-qualified `startAt`, and optional `notes`. The API accepts only an active restaurant, derives/creates the caller's global Customer profile from the active Customer user, computes `endAt` as 90 minutes later, and creates an unassigned `Awaiting` request. The customer cannot supply `customerId`, status, or table assignment. Restaurant selection is from the public demo configuration for now; general restaurant discovery remains a separate endpoint decision.
+- Party size is recommended at 1–12 people; notes are trimmed and capped at 500 characters. `startAt` must be in the future, align to a 30-minute wall-clock slot in the restaurant time zone, and fit within the configured static daily opening window when both `opensAt` and `closesAt` are present. This limit is a recommendation; no owner-specific party-size maximum was selected.
+- Reception, Manager, and Administrator can also create for an existing Customer profile, with tenant ID derived from the signed principal. Staff may optionally assign one same-restaurant table; table capacity and overlapping non-cancelled reservation checks apply. A table assignment yields `Confirmed`; without one, status is `Awaiting`. Table combinations are not modeled.
+- `GET /api/v1/reservations`: Customers see only their own records across restaurants; Reception, Manager, and Administrator see records for their signed restaurant. Results are sorted by start time, capped at 500, and include `truncated`. Responses include restaurant name, guest display name, and table number so cross-restaurant Customers can identify each visit; customer email/phone are omitted.
+- `PUT /api/v1/reservations/{id}`: Customers may only cancel their own reservation before start. Restaurant staff may update time, party size, notes, table assignment, or status, subject to signed tenant scope, table capacity/conflict checks, and the transition map `Awaiting → Confirmed/Cancelled`, `Confirmed → Seated/Cancelled/NoShow`, `Seated → Completed`. Staff may mark NoShow only after the approved 15-minute grace period; automatic no-show processing is not implemented.
+- Responses use `{ reservation }` or `{ reservations, truncated }`; errors use `{ error: { code, message } }`. Reservation writes use an optimistic `updatedAt` check. Overlap detection remains a read-before-write application check and is not atomic across multiple API processes; production requires an atomic reservation lock/transaction strategy before promising race-free seating.
+- The frontend booking form requires a signed-in Customer, returns to `/book` after login/registration, posts to the API, and displays the saved status without claiming a confirmed table. Customer and staff dashboards read persisted reservation records; fallback sample data is explicitly labeled and cannot masquerade as saved updates.
 
 ### S2-06 inventory endpoint recommendation
 
