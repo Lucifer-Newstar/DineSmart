@@ -165,6 +165,21 @@ test("PATCH marks only the authenticated recipient's notification as read", asyn
   });
 });
 
+test("restaurant staff mark-read stays within the signed tenant and own recipient scope", async () => {
+  const { response, calls } = await request({
+    method: "PATCH",
+    path: `/api/v1/notifications/${notificationId.toHexString()}/read`,
+    body: {},
+    token: "valid-notification-token",
+    principal: principal("Manager"),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls.markReads, [
+    { scope: { kind: "staff", userId, restaurantId }, notificationId },
+  ]);
+});
+
 test("mark-read rejects malformed IDs and attempts to change notification fields", async () => {
   const invalidId = await request({
     method: "PATCH",

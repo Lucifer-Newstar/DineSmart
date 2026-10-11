@@ -11,7 +11,10 @@ interface TestCursor {
   toArray(): Promise<Array<NotificationDocument & { _id: ObjectId }>>;
 }
 
-function harness(seed: (NotificationDocument & { _id: ObjectId }) | null = null) {
+function harness(
+  seed: (NotificationDocument & { _id: ObjectId }) | null = null,
+  rows: Array<NotificationDocument & { _id: ObjectId }> = seed ? [seed] : [],
+) {
   const calls: {
     collectionName?: string;
     inserted?: NotificationDocument & { _id: ObjectId };
@@ -34,7 +37,7 @@ function harness(seed: (NotificationDocument & { _id: ObjectId }) | null = null)
       return cursor;
     },
     async toArray() {
-      return current ? [current] : [];
+      return rows;
     },
   };
 
@@ -135,6 +138,19 @@ test("Mongo repository scopes customer history by recipient across restaurants",
   assert.equal(result.notifications.length, 1);
   assert.equal(result.notifications[0]?.id, document._id);
   assert.equal(result.truncated, false);
+});
+
+test("Mongo repository trims a 101st result and exposes truncation", async () => {
+  const userId = new ObjectId();
+  const restaurantId = new ObjectId();
+  const rows = Array.from({ length: 101 }, () => notificationDocument(userId, restaurantId));
+  const { repository, calls } = harness(rows[0] ?? null, rows);
+
+  const result = await repository.listForRecipient({ kind: "customer", userId }, 100);
+
+  assert.equal(calls.limit, 101);
+  assert.equal(result.notifications.length, 100);
+  assert.equal(result.truncated, true);
 });
 
 test("Mongo repository scopes restaurant staff reads and unread count to the signed recipient", async () => {
