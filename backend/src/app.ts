@@ -24,6 +24,10 @@ import { connectToDatabase } from "./database.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
+import { MongoIncidentDetectionRepository } from "./incidents/incident.repository.js";
+import { createIncidentRouter } from "./incidents/incident.router.js";
+import { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
+import { IncidentDetectionService } from "./incidents/incident.service.js";
 import { MongoInventoryRepository } from "./inventory/inventory.repository.js";
 import { createInventoryRouter } from "./inventory/inventory.router.js";
 import { InventoryService } from "./inventory/inventory.service.js";
@@ -58,6 +62,18 @@ export function createApp(options: AppOptions = {}) {
     { onError: () => console.error("A background health-score refresh failed.") },
   );
   app.locals.healthScoreRefreshScheduler = healthScoreRefreshScheduler;
+  const incidentDetectionScheduler = new IncidentDetectionScheduler(
+    async () => {
+      const db = await (options.getDatabase?.() ?? connectToDatabase());
+      return new IncidentDetectionService(
+        new MongoIncidentDetectionRepository(db),
+        undefined,
+        healthScoreRefreshScheduler.notifyOperationalEvent,
+      );
+    },
+    { onError: () => console.error("A background incident-detection evaluation failed.") },
+  );
+  app.locals.incidentDetectionScheduler = incidentDetectionScheduler;
   const nodeEnvironment = options.nodeEnvironment ?? process.env.NODE_ENV ?? "development";
   const configuredWebOrigin = options.webOrigin ?? process.env.WEB_ORIGIN;
   const webOrigin =
@@ -172,6 +188,7 @@ export function createApp(options: AppOptions = {}) {
             new MongoInventoryRepository(db),
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -210,6 +227,7 @@ export function createApp(options: AppOptions = {}) {
             new MongoReservationRepository(db),
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -227,6 +245,7 @@ export function createApp(options: AppOptions = {}) {
             new MongoOrderRepository(db),
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -244,6 +263,7 @@ export function createApp(options: AppOptions = {}) {
             new MongoOrderRepository(db),
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -261,7 +281,21 @@ export function createApp(options: AppOptions = {}) {
             new MongoOrderRepository(db),
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
           ),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/incidents",
+    createIncidentRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new IncidentDetectionService(new MongoIncidentDetectionRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

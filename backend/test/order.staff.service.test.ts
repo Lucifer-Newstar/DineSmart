@@ -155,12 +155,14 @@ class FakeStaffOrderRepository implements StaffOrderRepository {
 function serviceWith(
   repository = new FakeStaffOrderRepository(),
   notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
+  notifyIncidentDetection?: (tenantId: ObjectId) => void,
 ) {
   let tick = 0;
   const service = new StaffOrderService(
     repository,
     () => new Date(at.getTime() + ++tick * 1_000),
     notifyHealthScoreRefresh,
+    notifyIncidentDetection,
   );
   return { repository, service };
 }
@@ -191,10 +193,13 @@ test("staff order feed uses tenant scope and role-specific server status sets", 
   assert.ok(!kitchenStatuses.includes("Served"));
 });
 
-test("kitchen item progress derives Preparing and Ready from all order items", async () => {
-  const notifications: ObjectId[] = [];
-  const { repository, service } = serviceWith(new FakeStaffOrderRepository(), (tenantId) =>
-    notifications.push(tenantId),
+test("kitchen item progress derives order status and requests health-score and incident refreshes", async () => {
+  const healthRefreshes: ObjectId[] = [];
+  const incidentRequests: ObjectId[] = [];
+  const { repository, service } = serviceWith(
+    new FakeStaffOrderRepository(),
+    (tenantId) => healthRefreshes.push(tenantId),
+    (tenantId) => incidentRequests.push(tenantId),
   );
 
   let updated = await service.updateItemPreparationStatus(
@@ -223,7 +228,11 @@ test("kitchen item progress derives Preparing and Ready from all order items", a
   ]);
   assert.ok(updated.items.every((item) => item.preparationStatus === "Ready"));
   assert.deepEqual(
-    notifications,
+    healthRefreshes,
+    Array.from({ length: 4 }, () => restaurantId),
+  );
+  assert.deepEqual(
+    incidentRequests,
     Array.from({ length: 4 }, () => restaurantId),
   );
 });
@@ -249,10 +258,15 @@ test("idempotent item retry reconciles an order header after a partial write", a
   assert.deepEqual(repository.headerTransitions, [{ from: "Accepted", to: "Preparing" }]);
 });
 
-test("staff order lifecycle permits only accept, serve, and complete transitions", async () => {
+test("staff order lifecycle permits accept, serve, and complete with tenant refresh requests", async () => {
   const repository = new FakeStaffOrderRepository();
-  const notifications: ObjectId[] = [];
-  const { service } = serviceWith(repository, (tenantId) => notifications.push(tenantId));
+  const healthRefreshes: ObjectId[] = [];
+  const incidentRequests: ObjectId[] = [];
+  const { service } = serviceWith(
+    repository,
+    (tenantId) => healthRefreshes.push(tenantId),
+    (tenantId) => incidentRequests.push(tenantId),
+  );
   repository.order = makeOrder("Created");
   assert.equal(
     (await service.updateOrderStatus(restaurantId, orderId, "Accepted")).status,
@@ -278,7 +292,11 @@ test("staff order lifecycle permits only accept, serve, and complete transitions
     (error: unknown) => error instanceof OrderError && error.code === "invalid_order_transition",
   );
   assert.deepEqual(
-    notifications,
+    healthRefreshes,
+    Array.from({ length: 3 }, () => restaurantId),
+  );
+  assert.deepEqual(
+    incidentRequests,
     Array.from({ length: 3 }, () => restaurantId),
   );
 });

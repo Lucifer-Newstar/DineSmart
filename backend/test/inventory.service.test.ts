@@ -25,11 +25,11 @@ test("inventory service validates manual stock counts and stamps adjustments", a
       };
     },
   };
-  const notifications: ObjectId[] = [];
+  const incidentRequests: ObjectId[] = [];
   const service = new InventoryService(
     repository,
     () => now,
-    (tenantId) => notifications.push(tenantId),
+    (tenantId) => incidentRequests.push(tenantId),
   );
 
   await assert.rejects(
@@ -40,7 +40,7 @@ test("inventory service validates manual stock counts and stamps adjustments", a
 
   assert.equal(result.quantity, 8);
   assert.deepEqual(receivedAdjustment, { quantity: 8, lowStockThreshold: 5, adjustedAt: now });
-  assert.deepEqual(notifications, [restaurantId]);
+  assert.deepEqual(incidentRequests, [restaurantId]);
 });
 
 test("inventory service reports a scoped missing item as not found", async () => {

@@ -4,6 +4,7 @@ import { createApp } from "./app.js";
 import { initializeDatabaseSchema } from "./database/schema.js";
 import { closeDatabase, connectToDatabase } from "./database.js";
 import type { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
+import type { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
 
 const port = Number(process.env.PORT ?? 3001);
 
@@ -35,6 +36,8 @@ function getSchemaReadyDatabase(): Promise<Db> {
 const app = createApp({ getDatabase: getSchemaReadyDatabase });
 const healthScoreRefreshScheduler = app.locals
   .healthScoreRefreshScheduler as HealthScoreRefreshScheduler;
+const incidentDetectionScheduler = app.locals
+  .incidentDetectionScheduler as IncidentDetectionScheduler;
 const server = app.listen(port, "0.0.0.0", () => {
   console.info(`Andhrímnir API server listening on port ${port}.`);
 });
@@ -46,6 +49,11 @@ if (process.env.MONGODB_URI) {
       void healthScoreRefreshScheduler.startHourlyRefresh().catch(() => {
         console.error(
           "The initial health-score refresh failed; the hourly retry remains scheduled.",
+        );
+      });
+      void incidentDetectionScheduler.startHourlyRefresh().catch(() => {
+        console.error(
+          "The initial incident-detection sweep failed; the hourly retry remains scheduled.",
         );
       });
     })
@@ -61,6 +69,7 @@ if (process.env.MONGODB_URI) {
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     healthScoreRefreshScheduler.stopHourlyRefresh();
+    incidentDetectionScheduler.stopHourlyRefresh();
     server.close((error) => {
       if (error) {
         console.error("The API server did not shut down cleanly.", error);

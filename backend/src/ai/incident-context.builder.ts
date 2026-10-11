@@ -20,6 +20,8 @@ const SAFE_TRIGGER_FIELDS = new Set([
   "estimatedWaitMinutes",
   "conflictCount",
   "unit",
+  "capacity",
+  "tableStatus",
 ]);
 
 const ALLOWED_INCIDENT_TYPES = new Set([

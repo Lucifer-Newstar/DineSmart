@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
+import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
 import type {
   InventoryAdjustment,
   InventoryItemRecord,
@@ -50,6 +51,7 @@ export class InventoryService implements InventoryServiceReader {
     private readonly repository: InventoryRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
+    private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
   ) {}
 
   list(restaurantId: ObjectId): Promise<InventoryListResult> {
@@ -74,6 +76,7 @@ export class InventoryService implements InventoryServiceReader {
       );
     }
     this.notifyHealthScoreRefresh(restaurantId);
+    this.notifyIncidentDetection(restaurantId);
     return item;
   }
 }

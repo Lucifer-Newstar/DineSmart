@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
+import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
 import type {
   NewCustomerOrderRequest,
   OrderItemSnapshot,
@@ -29,6 +30,7 @@ export class OrderService implements OrderServiceReader {
     private readonly repository: OrderRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
+    private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
   ) {}
 
   async createForCustomer(request: NewCustomerOrderRequest): Promise<OrderRecord> {
@@ -111,6 +113,7 @@ export class OrderService implements OrderServiceReader {
       now,
     );
     this.notifyHealthScoreRefresh(request.restaurantId);
+    this.notifyIncidentDetection(request.restaurantId);
     return { ...created, restaurantName: restaurant.name };
   }
 
@@ -147,6 +150,7 @@ export class OrderService implements OrderServiceReader {
       );
     }
     this.notifyHealthScoreRefresh(current.restaurantId);
+    this.notifyIncidentDetection(current.restaurantId);
     return cancelled;
   }
 

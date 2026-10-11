@@ -85,8 +85,12 @@ function serviceWith(
   repository = new FakeOrderRepository(),
   clock = () => now,
   notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
+  notifyIncidentDetection?: (tenantId: ObjectId) => void,
 ) {
-  return { repository, service: new OrderService(repository, clock, notifyHealthScoreRefresh) };
+  return {
+    repository,
+    service: new OrderService(repository, clock, notifyHealthScoreRefresh, notifyIncidentDetection),
+  };
 }
 
 test("customer order uses available database prices and stores integer-minor-unit snapshots", async () => {
@@ -123,12 +127,14 @@ test("customer order uses available database prices and stores integer-minor-uni
   ]);
 });
 
-test("successful order creation and cancellation notify the tenant health-score refresher", async () => {
-  const notifications: ObjectId[] = [];
+test("successful order creation and cancellation request health-score and incident refreshes", async () => {
+  const healthRefreshes: ObjectId[] = [];
+  const incidentRequests: ObjectId[] = [];
   const { service } = serviceWith(
     new FakeOrderRepository(),
     () => now,
-    (tenantId) => notifications.push(tenantId),
+    (tenantId) => healthRefreshes.push(tenantId),
+    (tenantId) => incidentRequests.push(tenantId),
   );
 
   await service.createForCustomer({
@@ -138,7 +144,8 @@ test("successful order creation and cancellation notify the tenant health-score 
   });
   await service.cancelForCustomer(userId, orderId);
 
-  assert.deepEqual(notifications, [restaurantId, restaurantId]);
+  assert.deepEqual(healthRefreshes, [restaurantId, restaurantId]);
+  assert.deepEqual(incidentRequests, [restaurantId, restaurantId]);
 });
 
 test("order creation rejects invalid quantities, repeated items, excessive units, and unavailable IDs", async () => {

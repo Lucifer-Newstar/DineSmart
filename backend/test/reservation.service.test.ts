@@ -133,10 +133,16 @@ function serviceWith(
   repository = new FakeReservationRepository(),
   clock = () => now,
   notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
+  notifyIncidentDetection?: (tenantId: ObjectId) => void,
 ) {
   return {
     repository,
-    service: new ReservationService(repository, clock, notifyHealthScoreRefresh),
+    service: new ReservationService(
+      repository,
+      clock,
+      notifyHealthScoreRefresh,
+      notifyIncidentDetection,
+    ),
   };
 }
 
@@ -158,18 +164,21 @@ test("customer requests create an unassigned reservation with a server-derived 9
   assert.equal(repository.created?.customerId, customerId);
 });
 
-test("reservation creation and status changes request tenant health-score refreshes", async () => {
-  const notifications: ObjectId[] = [];
+test("reservation writes request tenant health-score and incident refreshes", async () => {
+  const healthRefreshes: ObjectId[] = [];
+  const incidentRequests: ObjectId[] = [];
   const { service } = serviceWith(
     new FakeReservationRepository(),
     () => now,
-    (tenantId) => notifications.push(tenantId),
+    (tenantId) => healthRefreshes.push(tenantId),
+    (tenantId) => incidentRequests.push(tenantId),
   );
 
   await service.createForCustomer({ userId, restaurantId, partySize: 2, startAt });
   await service.updateForCustomer({ userId, reservationId, status: "Cancelled" });
 
-  assert.deepEqual(notifications, [restaurantId, restaurantId]);
+  assert.deepEqual(healthRefreshes, [restaurantId, restaurantId]);
+  assert.deepEqual(incidentRequests, [restaurantId, restaurantId]);
 });
 
 test("reservation requests enforce party size, 30-minute slots, future time, opening hours, and note bounds", async () => {

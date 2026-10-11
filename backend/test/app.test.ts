@@ -28,7 +28,7 @@ test("GET /health reports process liveness", async () => {
   }
 });
 
-test("createApp mounts the public menu and protected analytics, order, kitchen, and notification routers", async () => {
+test("createApp mounts the public menu and protected analytics, order, kitchen, incident, and notification routers", async () => {
   const db = { collection: () => ({}) } as unknown as Db;
   const api = createApp({
     getDatabase: async () => db,
@@ -64,6 +64,9 @@ test("createApp mounts the public menu and protected analytics, order, kitchen, 
 
     const kitchenResponse = await fetch(`${baseUrl}/api/v1/kitchen/queue`);
     assert.equal(kitchenResponse.status, 401);
+
+    const incidentsResponse = await fetch(`${baseUrl}/api/v1/incidents`);
+    assert.equal(incidentsResponse.status, 401);
 
     const notificationsResponse = await fetch(`${baseUrl}/api/v1/notifications`);
     assert.equal(notificationsResponse.status, 401);

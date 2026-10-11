@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { OrderStatus, PreparationStatus } from "../database/schema.js";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
+import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
 import { OrderError } from "./order.service.js";
 import type {
   KitchenPreparationUpdate,
@@ -30,6 +31,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
     private readonly repository: StaffOrderRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
+    private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
   ) {}
 
   listRestaurantOrders(restaurantId: ObjectId, view: StaffOrderView) {
@@ -72,6 +74,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
     }
 
     this.notifyHealthScoreRefresh(restaurantId);
+    this.notifyIncidentDetection(restaurantId);
     return this.findOrder(orderId, restaurantId);
   }
 
@@ -90,6 +93,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
     if (item.preparationStatus === nextStatus) {
       const reconciled = await this.synchronizeHeader(orderId, restaurantId);
       this.notifyHealthScoreRefresh(restaurantId);
+      this.notifyIncidentDetection(restaurantId);
       return reconciled;
     }
 
@@ -124,6 +128,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
     }
 
     this.notifyHealthScoreRefresh(restaurantId);
+    this.notifyIncidentDetection(restaurantId);
     return this.synchronizeHeader(orderId, restaurantId);
   }
 
