@@ -46,7 +46,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-07 | Inventory | Low stock condition | Alert generated | High |
 | TC-08 | Incident Engine | Kitchen delay simulation | Incident created with severity | High |
 | TC-09 | AI | Generate recommendation | Explainable recommendation returned | High |
-| TC-10 | Health Score | Operational changes | Score recalculated | Medium |
+| TC-10 | Health Score | Successful order, kitchen, inventory, or reservation write; hourly active-tenant sweep; GET after cache expiry | A tenant refresh is requested after writes, the hourly sweep recalculates active restaurants, and a cache miss/expiry recalculates on GET without persisting a score | Medium |
 | TC-11 | Notifications | Critical incident | Manager notified | Medium |
 | TC-12 | Analytics | View reports | Charts load correctly | Medium |
 | TC-13 | Database fallback | Disable database after cache is warmed | Menu/dashboard show stale-data banner; writes fail clearly and are not queued | High |
@@ -57,7 +57,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-18 | Staff order feed | Retrieve `/orders` as Reception, Manager, Administrator, and Kitchen Staff | Signed tenant scope, server-selected per-role statuses, bounded ordering, safe fields, and Customer denial are correct | High |
 | TC-19 | Staff dashboard order workflow | Exercise the live Orders and Kitchen views by role against a configured API/database | Reads remain tenant-scoped; authorized accept/serve/complete and item preparation updates persist; unsupported/unavailable states remain explicit | High |
 
-S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior with fake-backed repositories and HTTP tests. It does **not** demonstrate automatic critical-incident dispatch or real-time delivery; TC-11 and acceptance criterion AC-08 remain outstanding until event-to-recipient rules and S2-13 WebSocket delivery are implemented and verified. S2-06's TC-17 covers the inventory API; TC-07's low-stock incident generation remains outstanding under S2-12.
+S2-08's local TC-10 coverage uses fake-backed scheduler/repository/service tests to verify one-hour expiry, operational-event invalidation, active-tenant sweeps, and tenant-scoped API behavior. It does not demonstrate live MongoDB/Atlas behavior; those checks are deferred to the final database/deployment stage. Scores are held only in process memory, not persisted. S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior with fake-backed repositories and HTTP tests. It does **not** demonstrate automatic critical-incident dispatch or real-time delivery; TC-11 and acceptance criterion AC-08 remain outstanding until event-to-recipient rules and S2-13 WebSocket delivery are implemented and verified. S2-06's TC-17 covers the inventory API; TC-07's low-stock incident generation remains outstanding under S2-12.
 
 ## 5. Non-Functional Testing
 

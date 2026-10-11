@@ -66,7 +66,7 @@ Goal: Complete customer workflows and dashboard.
 | S2-05 | Kitchen Queue | Jegatheesan | High | 3 | Ready to Push |
 | S2-06 | Inventory Module | Jegatheesan | High | 3 | Ready to Push |
 | S2-07 | Dashboard UI | Dhanush | High | 5 | Ready to Push |
-| S2-08 | Restaurant Health Score | Navin | High | 3 | In Progress |
+| S2-08 | Restaurant Health Score | Navin | High | 3 | Ready to Push |
 | S2-09 | Analytics Charts | Jegatheesan | Medium | 3 | To Do |
 | S2-10 | Notification Module | Gokul | Medium | 2 | Ready to Push |
 | S2-11 | Role-based Dashboards | Navin | Medium | 2 | In Progress |

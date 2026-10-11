@@ -56,9 +56,9 @@
 
 - Wired the Overview health card to `GET /api/v1/healthscore` with the in-memory bearer token for Reception, Manager, and Administrator. It shows API component scores, insufficient-data markers, partial-sample notes, loading/unavailable states, and an on-demand retry. Signed-out mode keeps a clearly labeled sample value; no fake historical trend is shown.
 - Restricted the restaurant-wide score from Kitchen Staff, hid commercial metrics outside Manager/Administrator views, and changed non-manager inventory displays to availability-only with no restock controls. A persistent preview banner now clarifies that most dashboard metrics and operations are sample-only and not persisted.
-- **Frontend implementation commit:** `5d83355` (Dhanush). The companion backend route is `77ccd7c` on local `feature/backend`; the area branches have not yet been restacked after that backend commit.
+- **Frontend implementation commit:** `5d83355` (Dhanush). The companion backend route originated in `77ccd7c` and was integrated into local `main` at `70f5fb4`; the temporary area branches were later deleted at the owner's direction.
 - **Validation on Node `24.21.0`:** frontend Biome, TypeScript typecheck, production build (all six app routes prerendered), and `npm audit --audit-level=high` passed; zero vulnerabilities. Live API/MongoDB testing is unavailable without Docker/MongoDB credentials.
-- **Status:** S2-08 remains **In Progress** pending MongoDB validation and the event/hourly recalculation cadence. S2-11 remains **In Progress** pending full role-by-role workflow review. No remote push or merge was made.
+- **Status:** S2-08 is now **Ready to Push** on local `main`: Navin completed the event/hourly recalculation cadence in the 2026-10-11 backend closeout. Live MongoDB/Atlas validation and browser E2E remain deferred. S2-11 remains **In Progress** pending full role-by-role workflow review. No remote push or merge was made.
 
 ### S2-06 — Inventory UI integration
 
