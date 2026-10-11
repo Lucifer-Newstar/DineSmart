@@ -204,6 +204,8 @@ These details fill gaps in the billing story under the instruction to choose and
 - `GET /api/v1/bills/{id}` and `GET /api/v1/bills/order/{orderId}` are available to Manager/Administrator within the signed tenant and to Customers only for orders owned by their active global Customer profile. Customer reads may span restaurants only through their own orders. Return 404 for absent and out-of-scope records; do not accept tenant or recipient filters.
 - Do not add public bill listing, bill editing/deletion/voiding, payment capture, payment-provider integration, tax calculation, discount/adjustment entry, or order status mutation. Preserve the existing bill schema/index unless implementation evidence requires a documented migration.
 
+The S2-14 repository, service, and protected routes are locally implemented with fake-backed tests and mounted in the application. S2-14 is **Ready to Push** on local `main`, not Complete. Live MongoDB/Atlas persistence and index behavior remain unverified and deferred to the final DB/deployment stage; no remote CI, push, or merge is claimed.
+
 ## 6. Incident detection — approved thresholds
 
 All thresholds below are configurable per restaurant. Severity values are `info`, `warning`, and `critical`.

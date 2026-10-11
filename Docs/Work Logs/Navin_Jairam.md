@@ -244,3 +244,10 @@
 - Documented a conservative bill-generation/retrieval contract: use immutable order snapshots and the existing per-restaurant/order uniqueness index, scope staff by signed tenant and Customers by their own order, keep tax/adjustments at zero, and leave payment/settlement outside scope. These details are recommendations, not additional owner approvals.
 - Shared integration ownership covers API/architecture documentation and later app composition/mounting; Jegatheesan owns the S2-14 billing module and feature tests.
 - Continue locally without deployment, live Atlas work, credentials, push, or remote CI. Record live MongoDB/index and remote verification limits explicitly.
+
+### 2026-10-11 — S2-14 shared integration and documentation closeout
+
+- Mounted the authenticated billing runtime at `/api/v1/bills` and added a protected-route application test. **Shared integration commit:** `bd34229` (Navin).
+- Documented the S2-14 API/authorization contract and assistant-recommended bill eligibility, snapshot arithmetic, idempotency, and scope decisions without implying owner approval for tax/payment/settlement policy. Added TC-22 and billing API verification scope; marked the backlog item Ready to Push.
+- Final local backend verification ran explicitly with Node `24.21.0`: Biome checked 122 files, TypeScript typecheck and production build passed, all 194 tests passed, `npm audit --audit-level=high` found zero vulnerabilities, and `git diff --check` passed. Base shell Node remains `20.20.2`.
+- S2-14 is **Ready to Push**, not Complete. Tests use fakes; live MongoDB/Atlas persistence/index enforcement, remote CI, deployment, push, and merge remain unverified/deferred. No remote/upstream was configured for the attempted pull. Atlas and deployment remain scheduled after the remaining project work.

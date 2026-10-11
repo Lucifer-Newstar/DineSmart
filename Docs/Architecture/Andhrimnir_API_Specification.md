@@ -161,7 +161,7 @@ The only application message accepted from a client is `{ "type": "notification.
 
 Operational writes and successful incident/recommendation/health-score updates publish best-effort restaurant events. S2-12 incident detection does not automatically create a notification, and no mapping from event/incident type to a recipient is invented. Local verification on Node `24.21.0`: Biome checked 115 files, TypeScript typecheck and production build passed, all 172 backend tests passed, and `npm audit --audit-level=moderate` reported zero vulnerabilities. WebSocket integration tests use a local in-process handshake and fake repositories; live MongoDB/Atlas persistence, browser reconnect/UI, load/p95, multi-replica, deployment, remote CI, push, and merge checks remain outstanding/deferred.
 
-## S2-14 Billing APIs — assistant-recommended contract; implementation in progress
+## S2-14 Billing APIs — local backend implementation; assistant-recommended contract
 
 The following details are assistant-selected recommendations made to proceed with unspecified module decisions; they are not separate owner approvals. Payment capture/provider integration, tax calculation, and an accounting/settlement lifecycle remain out of scope.
 
