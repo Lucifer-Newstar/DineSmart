@@ -141,7 +141,7 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 | Inventory | Item, Stock, Threshold, Supplier, Status |
 | Incidents | Type, Severity, Trigger, Root Cause, Status |
 | Recommendations | Priority, Explanation, Impact, Confidence |
-| Analytics | Revenue, Orders, Wait Time, Peak Hours, Trends |
+| Analytics | Orders, Reservations, Prep Time, Peak Hours, Stock; any synthetic demo values must be labeled as samples, and revenue/average check is excluded until billing and payments are verified |
 | Health Score | Kitchen, Inventory, Orders, Reservations, Incidents |
 
 The SRS role list above is canonical for the MVP. Owner maps to Manager; Waiter and Inventory Manager are responsibilities, not additional MVP roles. The approved permission matrix is in the [Implementation Decisions](../Architecture/Andhrimnir_Implementation_Decisions.md).

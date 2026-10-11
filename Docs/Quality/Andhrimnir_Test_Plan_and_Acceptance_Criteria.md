@@ -48,7 +48,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-09 | AI | Generate recommendation | Explainable recommendation returned | High |
 | TC-10 | Health Score | Successful order, kitchen, inventory, or reservation write; hourly active-tenant sweep; GET after cache expiry | A tenant refresh is requested after writes, the hourly sweep recalculates active restaurants, and a cache miss/expiry recalculates on GET without persisting a score | Medium |
 | TC-11 | Notifications | Critical incident | Manager notified | Medium |
-| TC-12 | Analytics | View reports | Charts load correctly | Medium |
+| TC-12 | Analytics | Request 7/30-day operational reports as authorized and unauthorized roles; view live, empty, and unavailable UI states | Signed-tenant scope and role gate hold; local-time charts/summaries match API data, capped samples are disclosed, and failures never become fabricated/live revenue figures | Medium |
 | TC-13 | Database fallback | Disable database after cache is warmed | Menu/dashboard show stale-data banner; writes fail clearly and are not queued | High |
 | TC-14 | JWT sessions | Login, refresh, replay a rotated token, then logout | Access token is short-lived; refresh cookie is HttpOnly; replay revokes the session family; logout revokes | High |
 | TC-15 | Access middleware | Call a protected test route with missing, invalid, and valid bearer tokens | Missing/invalid tokens are rejected; a valid token attaches the authenticated principal | High |
@@ -57,7 +57,7 @@ Purpose: Define the testing strategy, test scope, test cases, and acceptance cri
 | TC-18 | Staff order feed | Retrieve `/orders` as Reception, Manager, Administrator, and Kitchen Staff | Signed tenant scope, server-selected per-role statuses, bounded ordering, safe fields, and Customer denial are correct | High |
 | TC-19 | Staff dashboard order workflow | Exercise the live Orders and Kitchen views by role against a configured API/database | Reads remain tenant-scoped; authorized accept/serve/complete and item preparation updates persist; unsupported/unavailable states remain explicit | High |
 
-S2-08's local TC-10 coverage uses fake-backed scheduler/repository/service tests to verify one-hour expiry, operational-event invalidation, active-tenant sweeps, and tenant-scoped API behavior. It does not demonstrate live MongoDB/Atlas behavior; those checks are deferred to the final database/deployment stage. Scores are held only in process memory, not persisted. S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior with fake-backed repositories and HTTP tests. It does **not** demonstrate automatic critical-incident dispatch or real-time delivery; TC-11 and acceptance criterion AC-08 remain outstanding until event-to-recipient rules and S2-13 WebSocket delivery are implemented and verified. S2-06's TC-17 covers the inventory API; TC-07's low-stock incident generation remains outstanding under S2-12.
+S2-08's local TC-10 coverage uses fake-backed scheduler/repository/service tests to verify one-hour expiry, operational-event invalidation, active-tenant sweeps, and tenant-scoped API behavior. It does not demonstrate live MongoDB/Atlas behavior; those checks are deferred to the final database/deployment stage. Scores are held only in process memory, not persisted. S2-10's local TC-16 coverage validates persisted retrieval/read-state behavior with fake-backed repositories and HTTP tests. It does **not** demonstrate automatic critical-incident dispatch or real-time delivery; TC-11 and acceptance criterion AC-08 remain outstanding until event-to-recipient rules and S2-13 WebSocket delivery are implemented and verified. S2-06's TC-17 covers the inventory API; TC-07's low-stock incident generation remains outstanding under S2-12. S2-09's local TC-12 verification now covers the protected tenant-scoped analytics API and live operational chart states, but it is not a browser E2E or MongoDB integration run.
 
 ## 5. Non-Functional Testing
 
@@ -84,6 +84,8 @@ S2-08's local TC-10 coverage uses fake-backed scheduler/repository/service tests
 | AC-11 | All critical defects resolved before submission. |
 | AC-12 | README, documentation and presentation are complete. |
 | AC-13 | Database failure produces cached read-only behavior; writes are not accepted or queued, and normal operation resumes after recovery. |
+
+S2-09 locally covers the analytics portion of AC-09 with live operational counts and charts; incident reporting/rules and full acceptance demonstration remain outstanding. AC-09 is not claimed complete.
 
 ## 7. Exit Criteria
 
@@ -183,10 +185,19 @@ S2-10's assistant-recommended contract is locally implemented and **Ready to Pus
 
 ## 20. S2-07 Staff Orders and Kitchen Dashboard Integration
 
-S2-07 is **Ready to Push** on local `main` after backend/frontend local checks. The assistant-recommended scope covers the dashboard shell and currently available operational flows; analytics/incidents remain previews under S2-09/S2-12, while broader role-specific coverage remains under S2-11. This scope split is not a separate owner approval. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
+S2-07 is **Ready to Push** on local `main` after backend/frontend local checks. The assistant-recommended scope covers the dashboard shell and currently available operational flows; S2-09 analytics now reads real tenant-scoped operational data, incident reporting/rules remain under S2-12, and broader role-specific coverage remains under S2-11. This scope split is not a separate owner approval. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
 
 - Backend repository/service/HTTP tests verify the tenant filter on orders and item snapshots, oldest-first 200-record cap and truncation, server-selected `floor` versus `kitchen` status sets, permission/scope enforcement, Customer denial, strict no-query-filter behavior, and omission of customer IDs, prices, and totals.
 - The authenticated Orders view reads `/api/v1/orders`; Reception/Manager/Administrator may accept, serve, and complete through the guarded status route. Preparation progress is item-level only. Kitchen Staff cannot change order headers.
 - The Kitchen view reads `/api/v1/kitchen/queue`, displays only ticket/item data, and saves `Created → Preparing → Ready` item transitions through the existing queue route. Refresh/retry, loading/unavailable/preview labels, and unsaved local-preview actions are explicit.
 - Node `24.21.0` local verification: backend Biome lint, typecheck, production build, and all 115 backend tests passed; frontend Biome, typecheck, and Next production build passed. The frontend has no automated test runner; TC-19 remains a manual/live-service check.
 - No Docker/`mongod`, live database, browser E2E, remote CI, push, or merge verification occurred. The live persistence/index validation remains deferred with Atlas/deployment at the end.
+
+## 21. S2-09 Analytics Charts Verification
+
+S2-09 is locally implemented and **Ready to Push** on `main`; the assistant-selected contract is a recommendation, not separate owner approval. The implementation distinguishes live API results from loading, zero-data, and unavailable states and does not represent sample order subtotals as revenue. AC-09 as a whole remains open pending incident reporting and the full acceptance demonstration.
+
+- Backend tests verify Manager/Administrator permission enforcement, signed restaurant scope (including rejection of client-selected tenants), range validation/default, per-collection query bounds/truncation, timezone-local date/hour buckets and UTC fallback, preparation-time calculation, empty/repository failure behavior, and protected app mounting.
+- Frontend `parseAnalyticsData` defensively validates the API response shape before rendering. The dashboard supports 7- and 30-day views, local-time daily/hourly order charts, order outcomes, preparation and reservation summaries, current low/out-of-stock counts, retry, and a visible partial-sample note.
+- Backend Biome, typecheck, build, audit and full tests plus frontend Biome, typecheck, build, and audit are recorded in the S2-09 work log. The frontend has no automated UI test runner; no browser E2E or live MongoDB/Atlas result is claimed.
+- Docker/`mongod`, Atlas credentials, deployment, remote CI, push, and merge verification are unavailable/deferred. Complete AC-09 and any database integration claims only after the corresponding remaining work is executed.

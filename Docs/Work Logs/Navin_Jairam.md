@@ -176,7 +176,7 @@
 
 - Recorded S2-06's Ready to Push state, locally verified frontend checks, recommended inventory API details, test coverage, and the explicit deferral of MongoDB/index validation. The synchronized S2-06 status record is in local commit `2c8505e`.
 - Documented the assistant-recommended S2-07 tenant-scoped `GET /api/v1/orders` feed and role-specific status filter (not a separate owner approval). Synchronized the API specification, implementation decisions, test plan, and Jegatheesan/Dhanush work logs with backend `d616080` and frontend `87cb76c`.
-- S2-07 staff Orders/Kitchen views now use the local API feed/queue and item/order update paths; S2-07 is **Ready to Push** on local `main`. Assistant-recommended scope leaves sample analytics/incidents under S2-09/S2-12 and role-specific coverage under S2-11; Kitchen Staff cannot mutate order headers.
+- S2-07 staff Orders/Kitchen views now use the local API feed/queue and item/order update paths; S2-07 is **Ready to Push** on local `main`. S2-09 operational analytics is now implemented separately; incident reporting/rules remain under S2-12 and role-specific coverage under S2-11. Kitchen Staff cannot mutate order headers.
 - **Local verification on Node `24.21.0`:** backend Biome, typecheck, build, and 115 tests passed; frontend Biome, typecheck, and Next production build passed; `git diff --check` passes after documentation sync. No browser E2E was run.
 - **Limits:** live MongoDB persistence/index verification and Atlas provisioning remain deferred to the final database/deployment stage. No remote is configured, so no push, GitHub Actions run, or merge verification was made.
 
@@ -187,3 +187,11 @@
 - Documented the assistant-recommended per-process cache and its multi-replica limitation; incident/table write APIs must wire the notifier when those modules are implemented. Updated the API specification and backlog. These choices implement the owner-approved cadence without claiming separate owner approval for the cache architecture.
 - **Local verification on Node `24.21.0`:** backend Biome, TypeScript typecheck, production build, and all 123 backend tests passed. `git diff --check` passed. Frontend files were unchanged; no browser E2E or live database test was run.
 - **Status:** S2-08 is **Ready to Push** on local `main`. Live MongoDB persistence/index checks and Atlas validation remain deferred to the final database/deployment stage. No remote is configured, so no push, CI run, or merge verification was made.
+
+### 2026-10-11 — S2-09 analytics integration and documentation
+
+- Began S2-09 by recording an assistant-selected reporting recommendation and moving the backlog item to In Progress in `e5fe593`. The detailed contract remains a recommendation, not separate owner approval.
+- Mounted the protected analytics router in `createApp` and added an app-level unauthenticated-route assertion in `d9f2e3b`. Synchronized the API specification, implementation decisions, test plan, demo/mock-data guidance, README, sprint backlog, and Jegatheesan/Dhanush work logs. S2-09 is now Ready to Push locally; incident reporting/rules remain under S2-12 and AC-09 is not claimed complete.
+- The recommendation deliberately reports restaurant-scoped operational orders, reservations, preparation observations, and current inventory; it does not label pre-bill order subtotals as revenue or infer service mix. Live/loading/empty/unavailable behavior and capped-sample disclosure are documented.
+- **Full local verification on Node `24.21.0`:** backend Biome checked 96 files, typecheck and production build passed, all 131 tests passed, and audit reported zero vulnerabilities. Frontend Biome checked 21 files, typecheck and Next production build passed, and audit reported zero vulnerabilities. `git diff --check` passed.
+- **Limits/status:** tests use fake repositories. Docker/`mongod`, Atlas credentials, live database/index validation, browser E2E, deployment, remote CI, push, and merge verification remain unavailable or deferred to the final deployment stage. S2-09 is **Ready to Push**, not Complete.
