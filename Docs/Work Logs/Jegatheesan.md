@@ -137,3 +137,10 @@
 - Added repository, service, and HTTP tests for tenant/role gates, FIFO/cap, body/path/query validation, capacity and table state, stale/conflicting writes, compensation, and safe errors. Schema/index and seed fixtures are covered locally.
 - Verification on Node `24.21.0`: Biome checked 142 backend files; typecheck and production build passed; all 257 backend tests passed; high-severity `npm audit` found zero vulnerabilities; `git diff --check` passed. S2-17 is Ready to Push on local `main`, not Complete.
 - Live MongoDB/Atlas index/write behavior, multi-process table allocation, browser workflow, remote CI, deployment, push, and merge remain outstanding/deferred.
+
+### 2026-10-11 — S2-18 Table Status API started
+
+- Continued sequentially after committing S2-17 as Ready to Push on local `main`; S2-18 is In Progress and remains assigned to Jegatheesan.
+- Reviewed the endpoint inventory (`PUT /tables/{id}/status` only), existing `tables:write` permissions, seeded lowercase table states, reservation/order assignment pointers, S2-17's `currentWaitlistId`, and S2-08/S2-12 table-change hooks.
+- The assistant-recommended contract uses an explicit status transition graph, signed-tenant `PUT`, and safe release rules for terminal reservation/order links and verified seated waitlist links. These details are recommendations, not separate owner approval.
+- Feature repository/service/router tests are next. Live MongoDB/Atlas and cross-collection consistency remain unverified; no deployment, push, or remote CI is planned.
