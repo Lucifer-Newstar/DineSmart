@@ -149,3 +149,8 @@
 - **Limits:** frontend has no automated UI test; there was no live browser/E2E run. Docker/`mongod` are unavailable, so MongoDB persistence, index bootstrap, and concurrent table-booking behavior remain unverified. Table-overlap checks are read-before-write and not atomic across API processes.
 - **Integration/documentation commit:** `88caef3` (Navin).
 - **Status:** S2-03 is Ready to Push on local `main`, pending live MongoDB/E2E validation. No remote push or GitHub Actions run was made.
+
+### 2026-10-11 — S2-04 order-placement contract
+
+- Began the next backlog item on local `main`. Recorded an assistant-recommended public menu/customer-order contract, validation bounds, server-derived pricing, pre-accept cancellation rule, and explicit no-payment/no-auto-stock scope; these technical choices are recommendations, not separate owner approvals.
+- Kept staff order progression in S2-05, and documented the standalone-MongoDB multi-document write limitation. Marked S2-04 In Progress before implementation; no live-service or order persistence claim is made.
