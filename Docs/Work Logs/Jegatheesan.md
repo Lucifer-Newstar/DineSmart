@@ -49,6 +49,7 @@
 
 - Implemented authenticated `POST`, `GET`, and `PUT /api/v1/reservations` with customer-owned cross-restaurant reads/cancellation and tenant-scoped Reception/Manager/Administrator operations. Customer identity is derived from the active user; the request cannot forge `customerId` or status.
 - Applied the approved 90-minute duration, 30-minute slots, table overlap/capacity checks, customer cancellation-before-start rule, and 15-minute no-show grace. Selected and documented additional assistant recommendations (party size 1–12, `Awaiting` request status, staff-confirmed table assignment, bounded notes, status transitions, response shape, and concurrency limitation) without describing them as separate owner approvals.
-- Added a customer reservation-history index, Mongo repository/service/router, app mounting, and service/HTTP/repository/schema tests. The table-overlap check is application-level and not atomic across API processes.
+- Added a customer reservation-history index, Mongo repository/service/router, and service/HTTP/repository/schema tests. The table-overlap check is application-level and not atomic across API processes.
+- **Implementation commit:** `02abcb4` (Jegatheesan).
 - **Local validation on Node `24.21.0`:** backend `npm ci`, audit (zero vulnerabilities), Biome, typecheck, production build, and all 58 backend tests passed. Route/repository tests use injected/fake storage; Docker/`mongod` are unavailable, so live Mongo persistence and concurrent booking behavior remain unverified.
 - **Delivery:** implementation committed locally on `main`; no remote push or GitHub Actions run was made. S2-03 is Ready to Push pending live MongoDB persistence/concurrency verification.
