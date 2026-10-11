@@ -56,6 +56,9 @@ import { ReservationService } from "./reservations/reservation.service.js";
 import { MongoStaffRepository } from "./staff/staff.repository.js";
 import { createStaffRouter } from "./staff/staff.router.js";
 import { StaffService } from "./staff/staff.service.js";
+import { MongoWaitlistRepository } from "./waitlist/waitlist.repository.js";
+import { createWaitlistRouter } from "./waitlist/waitlist.router.js";
+import { WaitlistService } from "./waitlist/waitlist.service.js";
 
 export interface AppOptions {
   getDatabase?: () => Promise<Db>;
@@ -311,6 +314,25 @@ export function createApp(options: AppOptions = {}) {
         const { db, service: authService } = await createAuthRuntime();
         return {
           service: new StaffService(new MongoStaffRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/waitlist",
+    createWaitlistRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new WaitlistService(
+            new MongoWaitlistRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+            incidentDetectionScheduler.notifyOperationalEvent,
+            realtimeHub.publishRestaurantEvent,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
