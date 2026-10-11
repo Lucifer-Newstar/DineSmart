@@ -12,6 +12,7 @@ export type Permission =
   | "reservations:write"
   | "orders:own:create"
   | "orders:own:read"
+  | "orders:own:update"
   | "orders:read"
   | "orders:write"
   | "kitchen:queue:read"
@@ -82,6 +83,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     "reservations:own:update",
     "orders:own:create",
     "orders:own:read",
+    "orders:own:update",
     "bills:own:read",
     "notifications:own:read",
   ],
