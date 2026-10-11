@@ -285,9 +285,19 @@ These details fill gaps for the locally verifiable S2-10 API. They are assistant
 - Validate trusted create inputs as non-empty after trimming, with `type` and related-entity type capped at 80 characters, `title` at 160, and `body` at 2,000. Store new notifications unread; leave `deliveredAt` unset until a delivery transport is implemented.
 - Do not add TTL cleanup until retention is decided. Automatic critical-incident notification creation, WebSocket delivery/replay, and provider delivery are not part of this API-only implementation; WebSocket work remains S2-13 and external SMS/push/non-auth email remain deferred under the approved baseline.
 
+### S2-13 WebSocket implementation recommendations (assistant-selected 2026-10-11)
+
+These transport details fill S2-13 gaps and are recommendations, not additional owner approvals. They preserve the existing security and recipient-scope decisions; they do not define automatic business-event-to-notification recipients.
+
+- Use the lightweight `ws` RFC 6455 server on `GET /api/v1/notifications/socket`; add a protected `POST /api/v1/notifications/socket-ticket` that issues a one-use 256-bit ticket expiring in 30 seconds. Authenticate ticket issuance with the existing bearer access token and notification-read permission. Send the ticket only in the WebSocket subprotocol header, never a query string, and echo only the public `andhrimnir.events.v1` protocol. Require the exact configured `WEB_ORIGIN` on ticket issuance and upgrade.
+- Bind every connection to the ticket's authenticated user, role, and restaurant. Do not accept client-selected tenant IDs, rooms, or subscriptions. For restaurant events, enforce both signed-tenant equality and the corresponding existing read permission (orders, reservations, inventory availability, incidents, recommendations, or operations dashboard). Send notification-created events only to the stored recipient: a Customer may receive their own cross-restaurant feed; staff must match both their user ID and signed restaurant. Never include recipient IDs or unrestricted domain documents in event payloads.
+- Use a small JSON envelope `{ eventId, event, occurredAt, restaurantId, data }` with named `*.updated` invalidation events and `notification.created`. Keep payloads minimal and role-safe; the REST APIs remain authoritative. Do not automatically create incident notifications or choose event recipients until that policy is approved.
+- Prefer best-effort live delivery with no server-side replay queue. After connect/reconnect, clients refetch the persisted notification feed; persistence remains the source of truth. Set `deliveredAt` only after an explicit client ACK of a notification event, not merely after a socket write. Retention/TTL remains undecided. Unknown client messages close the connection; the only application message is a notification ACK.
+- Recommend a 10-ticket/minute IP limit, at most five concurrent sockets per authenticated user, 8 KiB maximum payload, and 30-second ping/pong heartbeat. Ticket store, active sockets, and event fanout remain process-local; multiple API replicas require a shared ticket/broker design before deployment.
+
 ### Pending real-time/AI details
 
-Reconnect/replay guarantees, event-level authorization, producer-to-recipient event mapping, and notification retention remain pending. The read-state behavior above is an assistant-selected S2-10 recommendation rather than an owner-approved product decision. The selected Gemini model/API key still require a live credential check. No API keys or provider secrets are to be committed.
+S2-13 now has an assistant-recommended transport/auth/reconnect policy, but automatic producer-to-recipient notification mapping and retention remain pending and are not implemented. The read-state behavior above is an assistant-selected S2-10 recommendation rather than an owner-approved product decision. The selected Gemini model/API key still require a live credential check. No API keys or provider secrets are to be committed.
 
 ## 9. Database-fallback scope — approved for MVP
 

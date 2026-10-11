@@ -221,3 +221,10 @@
 - **Commits:** engine/lifecycle `ad278de`; API/event integration `a056607`; API/test-plan/architecture contract `c661164`. The backlog and this work-log closeout are committed separately.
 - **Local validation:** selected Node `24.21.0` explicitly through `npm exec --yes --package=node@24.21.0` (the base shell runtime remains Node `20.20.2`); backend Biome checked 107 files with no findings, typecheck passed, all 154 tests passed, and production build passed. `git diff --check` passed after documentation sync. `npm ci` installed 159 packages and reported zero audit vulnerabilities.
 - **Status:** S2-12 is **Ready to Push** on local `main`, not Complete. Live Docker Compose/MongoDB and Atlas persistence/index checks, multi-replica behavior, load/p95 tests, browser E2E, notifications/WebSocket delivery, deployment, remote CI, push, and merge verification remain unperformed or deferred. Atlas provisioning/live checks and deployment remain scheduled for after the project's remaining work is finished.
+
+### 2026-10-11 — S2-13 WebSocket implementation started
+
+- Continued sequentially on local `main` after S2-12's Ready to Push checkpoint; moved S2-13 to **In Progress**.
+- Reviewed the approved real-time baseline and S2-10 notification/API decisions. Preserve recipient-scoped persisted notifications; do not invent automatic incident-to-recipient notification mapping.
+- Recorded assistant recommendations for authenticated one-use socket tickets, exact-origin checks, a role/tenant-authorized event envelope, best-effort delivery with REST refetch on reconnect, and explicit notification acknowledgements. These details are recommendations, not new owner approvals; retention and automatic notification mapping remain open.
+- Work remains local. No deployment, live database, remote CI, push, or merge is planned in this item checkpoint.
