@@ -292,3 +292,10 @@
 - Integrated the waitlist router/service into the Express app and added tenant/read-permission filtered `waitlist.updated` and `table.updated` invalidation events, preserving existing roles and signed tenant boundaries.
 - Added app-mount and realtime authorization tests. Local Node `24.21.0` verification passed: Biome (142 backend files), typecheck, production build, all 257 backend tests, zero high-severity npm audit findings, and `git diff --check`.
 - S2-17 is Ready to Push on local `main`, not Complete. Live MongoDB/Atlas index/write behavior, cross-process allocation, browser workflow, remote CI, deployment, push, and merge are not claimed.
+
+### 2026-10-11 — S2-18 shared contract started
+
+- Marked S2-18 In Progress after the locally committed S2-17 Ready to Push checkpoint.
+- Began the assistant-recommended table status contract and updated the API inventory, implementation decisions, schema note, backlog, and TC-26 test plan. The transition graph and linked-record cleanup are not separate owner approvals.
+- Shared API/architecture/test documentation and Express app composition remain Navin-owned; feature repository/service/router work remains assigned to Jegatheesan.
+- Live MongoDB/index, browser, remote CI, deployment, push, and merge checks remain unverified/deferred.
