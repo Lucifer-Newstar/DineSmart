@@ -7,7 +7,9 @@ import type { AuthPrincipal } from "../src/auth/auth.service.js";
 import { createStaffOrderRouter } from "../src/orders/order.staff.router.js";
 import type {
   KitchenQueueResult,
+  StaffOrderListResult,
   StaffOrderServiceReader,
+  StaffOrderView,
 } from "../src/orders/order.staff.types.js";
 import type { OrderRecord } from "../src/orders/order.types.js";
 
@@ -50,9 +52,16 @@ async function request(input: {
   token?: string;
   role?: AuthPrincipal["role"];
   scopeRestaurantId?: ObjectId;
+  method?: "GET" | "PATCH";
+  path?: string;
 }) {
   const calls: Array<{ restaurantId: ObjectId; orderId: ObjectId; status: string }> = [];
+  const listCalls: Array<{ restaurantId: ObjectId; view: StaffOrderView }> = [];
   const service: StaffOrderServiceReader = {
+    listRestaurantOrders: async (tenant, view): Promise<StaffOrderListResult> => {
+      listCalls.push({ restaurantId: tenant, view });
+      return { orders: [{ ...order, restaurantId: tenant }], truncated: false };
+    },
     listKitchenQueue: async (): Promise<KitchenQueueResult> => ({ tickets: [], truncated: false }),
     updateOrderStatus: async (tenant, id, status) => {
       calls.push({ restaurantId: tenant, orderId: id, status });
@@ -81,9 +90,9 @@ async function request(input: {
     const address = server.address();
     assert.ok(address && typeof address !== "string");
     const response = await fetch(
-      `http://127.0.0.1:${address.port}/api/v1/orders/${orderId.toHexString()}/status`,
+      `http://127.0.0.1:${address.port}${input.path ?? `/api/v1/orders/${orderId.toHexString()}/status`}`,
       {
-        method: "PATCH",
+        method: input.method ?? "PATCH",
         headers: {
           ...(input.token ? { authorization: `Bearer ${input.token}` } : {}),
           ...(input.body === undefined ? {} : { "content-type": "application/json" }),
@@ -91,13 +100,69 @@ async function request(input: {
         ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) }),
       },
     );
-    return { response, calls };
+    return { response, calls, listCalls };
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
 }
+
+test("staff order feed derives signed tenant scope and limits kitchen status results", async () => {
+  for (const role of ["Reception", "Manager", "Administrator", "Kitchen Staff"] as const) {
+    const tenantId = new ObjectId();
+    const { response, listCalls } = await request({
+      method: "GET",
+      path: "/api/v1/orders",
+      token: "valid-staff-order-token",
+      role,
+      scopeRestaurantId: tenantId,
+    });
+
+    assert.equal(response.status, 200);
+    const payload = (await response.json()) as {
+      orders: Array<{
+        id: string;
+        status: string;
+        items: Array<{ id: string; name: string; preparationStatus: string }>;
+      }>;
+      truncated: boolean;
+    };
+    assert.equal(payload.orders.length, 1);
+    assert.equal(payload.orders[0].id, orderId.toHexString());
+    assert.equal(payload.orders[0].items[0].name, "Ghee podi dosa");
+    assert.equal(payload.truncated, false);
+    assert.equal(JSON.stringify(payload).includes("unitPriceMinor"), false);
+    assert.equal(JSON.stringify(payload).includes("totalMinor"), false);
+    assert.equal(JSON.stringify(payload).includes("customerId"), false);
+    assert.equal(JSON.stringify(payload).includes("restaurantId"), false);
+    assert.deepEqual(listCalls, [
+      { restaurantId: tenantId, view: role === "Kitchen Staff" ? "kitchen" : "floor" },
+    ]);
+  }
+
+  const unauthenticated = await request({ method: "GET", path: "/api/v1/orders" });
+  assert.equal(unauthenticated.response.status, 401);
+  assert.equal(unauthenticated.listCalls.length, 0);
+
+  const customer = await request({
+    method: "GET",
+    path: "/api/v1/orders",
+    token: "valid-staff-order-token",
+    role: "Customer",
+  });
+  assert.equal(customer.response.status, 403);
+  assert.equal(customer.listCalls.length, 0);
+
+  const filtered = await request({
+    method: "GET",
+    path: "/api/v1/orders?status=Completed",
+    token: "valid-staff-order-token",
+    role: "Reception",
+  });
+  assert.equal(filtered.response.status, 400);
+  assert.equal(filtered.listCalls.length, 0);
+});
 
 test("Reception progresses an order using the signed restaurant scope and safe response fields", async () => {
   const tenantId = new ObjectId();

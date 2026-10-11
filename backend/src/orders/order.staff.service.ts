@@ -5,7 +5,9 @@ import type {
   KitchenPreparationUpdate,
   StaffOrderRepository,
   StaffOrderServiceReader,
+  StaffOrderView,
 } from "./order.staff.types.js";
+import { KITCHEN_QUEUE_STATUSES, STAFF_ORDER_LIST_STATUSES } from "./order.staff.types.js";
 import type { OrderRecord } from "./order.types.js";
 
 const STAFF_ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus>> = {
@@ -27,6 +29,11 @@ export class StaffOrderService implements StaffOrderServiceReader {
     private readonly repository: StaffOrderRepository,
     private readonly clock: () => Date = () => new Date(),
   ) {}
+
+  listRestaurantOrders(restaurantId: ObjectId, view: StaffOrderView) {
+    const statuses = view === "kitchen" ? KITCHEN_QUEUE_STATUSES : STAFF_ORDER_LIST_STATUSES;
+    return this.repository.listRestaurantOrders(restaurantId, statuses);
+  }
 
   listKitchenQueue(restaurantId: ObjectId) {
     return this.repository.listKitchenQueue(restaurantId);

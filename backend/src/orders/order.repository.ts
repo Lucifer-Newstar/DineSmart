@@ -13,6 +13,8 @@ import {
   KITCHEN_QUEUE_LIMIT,
   KITCHEN_QUEUE_STATUSES,
   type KitchenQueueResult,
+  STAFF_ORDER_LIST_LIMIT,
+  type StaffOrderListResult,
   type StaffOrderRepository,
 } from "./order.staff.types.js";
 import type {
@@ -139,6 +141,36 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
           restaurantNames.get(order.restaurantId.toHexString()) ?? "Restaurant",
           itemsByOrder.get(order._id.toHexString()) ?? [],
         ),
+      ),
+      truncated,
+    };
+  }
+
+  async listRestaurantOrders(
+    restaurantId: ObjectId,
+    statuses: readonly OrderStatus[],
+  ): Promise<StaffOrderListResult> {
+    const documents = await this.orders
+      .find({ restaurantId, status: { $in: [...statuses] } })
+      .sort({ createdAt: 1, _id: 1 })
+      .limit(STAFF_ORDER_LIST_LIMIT + 1)
+      .toArray();
+    const truncated = documents.length > STAFF_ORDER_LIST_LIMIT;
+    const visibleOrders = documents.slice(0, STAFF_ORDER_LIST_LIMIT);
+    if (visibleOrders.length === 0) return { orders: [], truncated };
+
+    const items = await this.orderItems
+      .find({
+        restaurantId,
+        orderId: { $in: visibleOrders.map((order) => order._id) },
+      })
+      .sort({ createdAt: 1, _id: 1 })
+      .toArray();
+    const itemsByOrder = groupItemsByOrder(items);
+
+    return {
+      orders: visibleOrders.map((order) =>
+        toOrderRecord(order, "Restaurant", itemsByOrder.get(order._id.toHexString()) ?? []),
       ),
       truncated,
     };

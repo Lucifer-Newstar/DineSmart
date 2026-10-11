@@ -80,6 +80,7 @@ async function request(input: {
     };
   } = {};
   const service: StaffOrderServiceReader = {
+    listRestaurantOrders: async () => ({ orders: [], truncated: false }),
     listKitchenQueue: async (tenantId) => {
       calls.listRestaurantId = tenantId;
       return queue;

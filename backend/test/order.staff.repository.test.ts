@@ -222,6 +222,57 @@ test("kitchen queue returns no more than 200 orders and reports truncation", asy
   assert.equal(result.tickets[0].id.toHexString(), data.orderId.toHexString());
 });
 
+test("staff order feed filters the tenant and selected statuses, sorts, caps, and attaches item snapshots", async () => {
+  const data = fixture();
+  const repository = new MongoOrderRepository(data.db);
+  const statuses: OrderStatus[] = ["Created", "Accepted", "Preparing", "Ready", "Served"];
+  const result = await repository.listRestaurantOrders(data.restaurantId, statuses);
+
+  assert.equal(result.orders.length, 1);
+  assert.equal(result.truncated, false);
+  assert.equal(result.orders[0].status, "Accepted");
+  assert.deepEqual(
+    result.orders[0].items.map(({ nameSnapshot, quantity }) => ({ nameSnapshot, quantity })),
+    [{ nameSnapshot: "Ghee podi dosa", quantity: 1 }],
+  );
+  const listQuery = data.queries.find(
+    (query) => query.collection === COLLECTIONS.orders && "$in" in (query.filter.status as object),
+  );
+  assert.deepEqual(listQuery?.filter, {
+    restaurantId: data.restaurantId,
+    status: { $in: statuses },
+  });
+  assert.ok(
+    data.sorts.some(
+      (entry) =>
+        entry.collection === COLLECTIONS.orders &&
+        JSON.stringify(entry.sort) === JSON.stringify({ createdAt: 1, _id: 1 }),
+    ),
+  );
+  assert.ok(
+    data.limits.some((entry) => entry.collection === COLLECTIONS.orders && entry.limit === 201),
+  );
+  const itemQuery = data.queries.find(
+    (query) =>
+      query.collection === COLLECTIONS.orderItems &&
+      typeof query.filter.orderId === "object" &&
+      query.filter.orderId !== null &&
+      "$in" in query.filter.orderId,
+  );
+  assert.deepEqual(itemQuery?.filter, {
+    restaurantId: data.restaurantId,
+    orderId: { $in: [data.orderId] },
+  });
+});
+
+test("staff order feed returns at most 200 orders and reports truncation", async () => {
+  const data = fixture({ queueOrderCount: 201 });
+  const repository = new MongoOrderRepository(data.db);
+  const result = await repository.listRestaurantOrders(data.restaurantId, ["Created", "Accepted"]);
+  assert.equal(result.orders.length, 200);
+  assert.equal(result.truncated, true);
+});
+
 test("staff order and item writes match signed tenant, observed status, and update time", async () => {
   const data = fixture();
   const repository = new MongoOrderRepository(data.db);

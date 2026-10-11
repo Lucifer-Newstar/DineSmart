@@ -67,6 +67,48 @@ export function createStaffOrderRouter(
     }
   };
 
+  router.get(
+    "/",
+    resolveRuntime,
+    requirePermissions("orders:read"),
+    requireRestaurantScope(),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      const restaurantId = objectId(principal?.restaurantId);
+      if (!runtime || !principal || !restaurantId) {
+        response.status(403).json({
+          error: {
+            code: "restaurant_scope_required",
+            message: "A restaurant-scoped account is required.",
+          },
+        });
+        return;
+      }
+
+      if (Object.keys(request.query).length > 0) {
+        response.status(400).json({
+          error: {
+            code: "invalid_order_list_request",
+            message: "The staff order feed does not accept client-selected filters.",
+          },
+        });
+        return;
+      }
+
+      try {
+        const view = principal.role === "Kitchen Staff" ? "kitchen" : "floor";
+        const result = await runtime.service.listRestaurantOrders(restaurantId, view);
+        response.status(200).json({
+          orders: result.orders.map(toStaffOrderJson),
+          truncated: result.truncated,
+        });
+      } catch (error) {
+        sendOrderError(error, response);
+      }
+    },
+  );
+
   router.patch(
     "/:id/status",
     resolveRuntime,

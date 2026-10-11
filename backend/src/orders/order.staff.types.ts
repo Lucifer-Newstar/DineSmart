@@ -4,9 +4,23 @@ import type { OrderRecord } from "./order.types.js";
 
 export const KITCHEN_QUEUE_LIMIT = 200;
 export const KITCHEN_QUEUE_STATUSES = ["Accepted", "Preparing", "Ready"] as const;
+export const STAFF_ORDER_LIST_LIMIT = 200;
+export const STAFF_ORDER_LIST_STATUSES = [
+  "Created",
+  "Accepted",
+  "Preparing",
+  "Ready",
+  "Served",
+] as const satisfies readonly OrderStatus[];
 
 export type KitchenTicketStatus = (typeof KITCHEN_QUEUE_STATUSES)[number];
 export type KitchenPreparationUpdate = Exclude<PreparationStatus, "Created">;
+export type StaffOrderView = "floor" | "kitchen";
+
+export interface StaffOrderListResult {
+  orders: OrderRecord[];
+  truncated: boolean;
+}
 
 export interface KitchenTicketItem {
   id: ObjectId;
@@ -30,6 +44,10 @@ export interface KitchenQueueResult {
 
 /** Restaurant-scoped operations used only by staff order/kitchen workflows. */
 export interface StaffOrderRepository {
+  listRestaurantOrders(
+    restaurantId: ObjectId,
+    statuses: readonly OrderStatus[],
+  ): Promise<StaffOrderListResult>;
   listKitchenQueue(restaurantId: ObjectId): Promise<KitchenQueueResult>;
   findForRestaurant(orderId: ObjectId, restaurantId: ObjectId): Promise<OrderRecord | null>;
   updateOrderStatusIfCurrent(
@@ -55,6 +73,7 @@ export interface StaffOrderRepository {
 }
 
 export interface StaffOrderServiceReader {
+  listRestaurantOrders(restaurantId: ObjectId, view: StaffOrderView): Promise<StaffOrderListResult>;
   listKitchenQueue(restaurantId: ObjectId): Promise<KitchenQueueResult>;
   updateOrderStatus(
     restaurantId: ObjectId,

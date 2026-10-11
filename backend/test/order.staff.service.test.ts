@@ -3,7 +3,13 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import { OrderError } from "../src/orders/order.service.js";
 import { StaffOrderService } from "../src/orders/order.staff.service.js";
-import type { KitchenQueueResult, StaffOrderRepository } from "../src/orders/order.staff.types.js";
+import {
+  KITCHEN_QUEUE_STATUSES,
+  type KitchenQueueResult,
+  STAFF_ORDER_LIST_STATUSES,
+  type StaffOrderListResult,
+  type StaffOrderRepository,
+} from "../src/orders/order.staff.types.js";
 import type { OrderRecord } from "../src/orders/order.types.js";
 
 const at = new Date("2026-10-11T06:00:00.000Z");
@@ -47,11 +53,23 @@ function makeOrder(status: OrderRecord["status"] = "Accepted"): OrderRecord {
 class FakeStaffOrderRepository implements StaffOrderRepository {
   order: OrderRecord | null = makeOrder();
   listResult: KitchenQueueResult = { tickets: [], truncated: false };
+  orderListResult: StaffOrderListResult = { orders: [], truncated: false };
   failNextHeaderUpdate = false;
   failNextItemUpdate = false;
   readonly headerTransitions: Array<{ from: string; to: string }> = [];
   readonly itemTransitions: Array<{ from: string; to: string }> = [];
   lastQueueRestaurantId?: ObjectId;
+  lastListRestaurantId?: ObjectId;
+  lastListStatuses?: readonly OrderRecord["status"][];
+
+  listRestaurantOrders(
+    tenantId: ObjectId,
+    statuses: readonly OrderRecord["status"][],
+  ): Promise<StaffOrderListResult> {
+    this.lastListRestaurantId = tenantId;
+    this.lastListStatuses = statuses;
+    return Promise.resolve(this.orderListResult);
+  }
 
   listKitchenQueue(tenantId: ObjectId): Promise<KitchenQueueResult> {
     this.lastQueueRestaurantId = tenantId;
@@ -147,6 +165,23 @@ test("kitchen queue delegates using the signed tenant", async () => {
   const { service } = serviceWith(repository);
   assert.deepEqual(await service.listKitchenQueue(restaurantId), expected);
   assert.equal(repository.lastQueueRestaurantId?.toHexString(), restaurantId.toHexString());
+});
+
+test("staff order feed uses tenant scope and role-specific server status sets", async () => {
+  const repository = new FakeStaffOrderRepository();
+  const expected: StaffOrderListResult = { orders: [makeOrder()], truncated: true };
+  repository.orderListResult = expected;
+  const { service } = serviceWith(repository);
+
+  assert.deepEqual(await service.listRestaurantOrders(restaurantId, "floor"), expected);
+  assert.equal(repository.lastListRestaurantId?.toHexString(), restaurantId.toHexString());
+  assert.deepEqual(repository.lastListStatuses, STAFF_ORDER_LIST_STATUSES);
+
+  await service.listRestaurantOrders(restaurantId, "kitchen");
+  assert.deepEqual(repository.lastListStatuses, KITCHEN_QUEUE_STATUSES);
+  const kitchenStatuses = repository.lastListStatuses as readonly string[];
+  assert.ok(!kitchenStatuses.includes("Created"));
+  assert.ok(!kitchenStatuses.includes("Served"));
 });
 
 test("kitchen item progress derives Preparing and Ready from all order items", async () => {
