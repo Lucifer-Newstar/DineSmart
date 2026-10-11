@@ -133,7 +133,7 @@
 - **Branch:** `feature/frontend`, stacked on `feature/ai`.
 - Added a pure frontend navigation/access helper so Kitchen Staff and Reception see their intended workspace sections, Manager/Administrator can reach AI insights, and Customer sessions are routed to the guest home. The server's signed-principal authorization remains authoritative; this is presentation only, not a substitute for API RBAC.
 - **Implementation:** included in Dhanush's area-branch commit `7e69d80`; no separate task branch was created. The shared helper builds and passes Biome/type checks.
-- **Status:** S2-11 remains **In Progress** pending route coverage for the remaining operational APIs, customer ownership views, and role-specific workflow verification. No push or merge was made.
+- **Checkpoint at the initial navigation-helper delivery:** S2-11 remained **In Progress** pending role-specific route coverage, customer ownership views, and workflow review. The 2026-10-11 closeout below addresses the locally verifiable UI and access-policy-test gaps; it does not claim browser E2E or live-service verification.
 
 ### 2026-10-11 — Local area-branch integration and CI-equivalent validation
 
@@ -195,3 +195,12 @@
 - The recommendation deliberately reports restaurant-scoped operational orders, reservations, preparation observations, and current inventory; it does not label pre-bill order subtotals as revenue or infer service mix. Live/loading/empty/unavailable behavior and capped-sample disclosure are documented.
 - **Full local verification on Node `24.21.0`:** backend Biome checked 96 files, typecheck and production build passed, all 131 tests passed, and audit reported zero vulnerabilities. Frontend Biome checked 21 files, typecheck and Next production build passed, and audit reported zero vulnerabilities. `git diff --check` passed.
 - **Limits/status:** tests use fake repositories. Docker/`mongod`, Atlas credentials, live database/index validation, browser E2E, deployment, remote CI, push, and merge verification remain unavailable or deferred to the final deployment stage. S2-09 is **Ready to Push**, not Complete.
+
+### 2026-10-11 — S2-11 role-matrix review, tenant-state isolation, and documentation closeout
+
+- Reviewed role navigation, presentation, and staff/customer workflows against the approved role matrix. Confirmed Reception's availability-only Inventory access and the Customer portal's authenticated own-order summary; no UI check is treated as server authorization.
+- Closed the identified cross-session state risk: recommendations and review state are gated by the active user/restaurant/role scope and fall back immediately to preview/unreviewed when the scope differs. Analytics remounts on the same scope key, which removes the prior report and aborts its in-flight fetch. Added tests for role policy and scope-gated values.
+- Synchronized the implementation decisions, acceptance test TC-20 and S2-11 verification section, frontend guide, backlog status, and both assigned member work logs. S2-11 is **Ready to Push** on local `main`, not Complete.
+- **Frontend implementation:** `0ee395a` (Dhanush). **Dhanush's S2-11 work-log closeout:** `01caf0e`.
+- **Full local verification on Node `24.21.0`:** frontend `npm ci`, audit (zero vulnerabilities), Biome (22 files), 6/6 tests, typecheck, and production build passed; backend `npm ci`, audit (zero vulnerabilities), Biome (96 files), 131/131 tests, typecheck, and production build passed. `git diff --check` passed.
+- **Limits/delivery:** no browser E2E, live MongoDB/Atlas verification, deployment, remote CI result, push, or merge is claimed. No remote is configured; deployment and live Atlas checks remain deferred until the project's remaining work is finished.
