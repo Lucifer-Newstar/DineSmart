@@ -56,6 +56,20 @@ test("orders and reservations have indexes for tenant and customer history queri
   });
 });
 
+test("waitlist indexes support signed-restaurant FIFO reads and assigned-table lookup", () => {
+  assert.deepEqual(indexFor("waitlist", "waitlist_restaurant_status_created")?.key, {
+    restaurantId: 1,
+    status: 1,
+    createdAt: 1,
+    _id: 1,
+  });
+  assert.deepEqual(indexFor("waitlist", "waitlist_restaurant_table_status")?.key, {
+    restaurantId: 1,
+    tableId: 1,
+    status: 1,
+  });
+});
+
 test("notification indexes support recipient-scoped feeds and unread counts", () => {
   assert.deepEqual(
     indexFor("notifications", "notifications_restaurant_recipient_read_created")?.key,

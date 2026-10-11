@@ -14,6 +14,7 @@ import type {
   StaffDocument,
   TableDocument,
   UserDocument,
+  WaitlistDocument,
 } from "./schema.js";
 import { COLLECTIONS } from "./schema.js";
 
@@ -67,6 +68,7 @@ export interface DemoSeedData {
   tables: Array<WithId<TableDocument>>;
   inventoryItems: Array<WithId<InventoryItemDocument>>;
   reservations: Array<WithId<ReservationDocument>>;
+  waitlist: Array<WithId<WaitlistDocument>>;
   orders: Array<WithId<OrderDocument>>;
   orderItems: Array<WithId<OrderItemDocument>>;
   incidents: Array<WithId<IncidentDocument>>;
@@ -84,6 +86,7 @@ const DEMO_SEED_COLLECTIONS: ReadonlyArray<readonly [string, keyof DemoSeedData]
   [COLLECTIONS.tables, "tables"],
   [COLLECTIONS.inventoryItems, "inventoryItems"],
   [COLLECTIONS.reservations, "reservations"],
+  [COLLECTIONS.waitlist, "waitlist"],
   [COLLECTIONS.orders, "orders"],
   [COLLECTIONS.orderItems, "orderItems"],
   [COLLECTIONS.incidents, "incidents"],
@@ -421,6 +424,7 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
         now,
       ),
     ],
+    waitlist: [],
     orders: [
       withId<OrderDocument>(
         id(DEMO_IDS.orderOne),

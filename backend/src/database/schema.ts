@@ -10,6 +10,7 @@ export const COLLECTIONS = {
   orders: "orders",
   orderItems: "order_items",
   reservations: "reservations",
+  waitlist: "waitlist",
   tables: "tables",
   inventoryItems: "inventory_items",
   incidents: "incidents",
@@ -134,6 +135,20 @@ export interface TableDocument extends TimestampedDocument {
   status: string;
   currentReservationId?: ObjectId | null;
   currentOrderId?: ObjectId | null;
+  currentWaitlistId?: ObjectId | null;
+}
+
+export type WaitlistStatus = "waiting" | "seated" | "cancelled" | "no_show";
+
+export interface WaitlistDocument extends TimestampedDocument {
+  restaurantId: ObjectId;
+  guestName: string;
+  partySize: number;
+  phone?: string;
+  notes?: string;
+  status: WaitlistStatus;
+  tableId?: ObjectId;
+  seatedAt?: Date;
 }
 
 export interface ReservationDocument extends TimestampedDocument {
@@ -283,6 +298,13 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
       name: "reservations_restaurant_table_start",
     },
     { key: { customerId: 1, startAt: -1 }, name: "reservations_customer_start" },
+  ],
+  waitlist: [
+    {
+      key: { restaurantId: 1, status: 1, createdAt: 1, _id: 1 },
+      name: "waitlist_restaurant_status_created",
+    },
+    { key: { restaurantId: 1, tableId: 1, status: 1 }, name: "waitlist_restaurant_table_status" },
   ],
   tables: [
     {

@@ -18,6 +18,8 @@ test("demo fixtures are deterministic, restaurant-scoped, and internally connect
   assert.equal(seed.orders.length, 3);
   assert.equal(seed.incidents.length, 3);
   assert.equal(seed.recommendations.length, 2);
+  assert.equal(seed.waitlist.length, 0);
+  assert.ok(DEMO_SEED_COLLECTION_NAMES.includes("waitlist"));
   assert.ok(DEMO_SEED_COLLECTION_NAMES.includes("menu_items"));
   assert.ok(DEMO_SEED_COLLECTION_NAMES.includes("inventory_items"));
   assert.ok(DEMO_SEED_COLLECTION_NAMES.includes("order_items"));
