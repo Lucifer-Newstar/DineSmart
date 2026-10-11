@@ -177,9 +177,13 @@ export interface IncidentDocument extends TimestampedDocument {
   type: string;
   severity: IncidentSeverity;
   status: string;
+  /** Present only while a rule-managed incident remains active. */
+  activeKey?: string;
   triggerSnapshot: Document;
   affectedEntity: { type: string; id: ObjectId };
   rootCause?: string;
+  resolvedAt?: Date | null;
+  resolutionReason?: string;
 }
 
 export interface RecommendationDocument extends TimestampedDocument {
@@ -293,6 +297,12 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
     {
       key: { restaurantId: 1, severity: 1, status: 1 },
       name: "incidents_restaurant_severity_status",
+    },
+    {
+      key: { restaurantId: 1, activeKey: 1 },
+      name: "incidents_restaurant_active_key_unique",
+      unique: true,
+      partialFilterExpression: { activeKey: { $type: "string" } },
     },
   ],
   recommendations: [
