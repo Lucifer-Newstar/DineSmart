@@ -17,7 +17,9 @@ type Section =
   | "Insights"
   | "Analytics"
   | "Settings";
-type OrderStatus = "New" | "Preparing" | "Ready" | "Served";
+type OrderStatus = "New" | "Accepted" | "Preparing" | "Ready" | "Served" | "Completed";
+type PreparationStatus = "Created" | "Preparing" | "Ready";
+type OrderFeedStatus = "preview" | "loading" | "live" | "unavailable";
 type IconName =
   | "overview"
   | "orders"
@@ -54,14 +56,33 @@ type IconName =
   | "leaf"
   | "sun";
 
+interface StaffOrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  preparationStatus: PreparationStatus;
+}
+
 interface Order {
   id: string;
   guest: string;
   table: string;
   items: string;
+  itemRecords?: StaffOrderItem[];
   placed: string;
   elapsed: number;
   status: OrderStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface KitchenTicket {
+  id: string;
+  status: "Accepted" | "Preparing" | "Ready";
+  items: StaffOrderItem[];
+  createdAt: string;
+  updatedAt: string;
+  elapsed: number;
 }
 
 interface InventoryItem {
@@ -130,6 +151,16 @@ interface ParsedInventoryResponse {
 
 interface ParsedReservationsResponse {
   reservations: Reservation[];
+  truncated: boolean;
+}
+
+interface ParsedStaffOrdersResponse {
+  orders: Order[];
+  truncated: boolean;
+}
+
+interface ParsedKitchenQueueResponse {
+  tickets: KitchenTicket[];
   truncated: boolean;
 }
 
@@ -600,11 +631,15 @@ function DemoBanner({
   onDismiss,
   inventoryStatus,
   reservationsStatus,
+  ordersStatus,
+  kitchenQueueStatus,
   canManageInventory,
 }: {
   onDismiss: () => void;
   inventoryStatus: InventoryViewStatus;
   reservationsStatus: ReservationViewStatus;
+  ordersStatus: OrderFeedStatus;
+  kitchenQueueStatus: OrderFeedStatus;
   canManageInventory: boolean;
 }) {
   return (
@@ -629,8 +664,21 @@ function DemoBanner({
               : reservationsStatus === "unavailable"
                 ? "The reservation API is unavailable; sample bookings are shown and updates are not saved. "
                 : "Reservations are sample-only and not saved. "}
-          Orders and kitchen queue remain sample data. Health score and recommendations use the API
-          only when connected.
+          {ordersStatus === "live"
+            ? "Orders are live; permitted staff status updates save. "
+            : ordersStatus === "loading"
+              ? "Loading live orders; sample rows are shown until they arrive. "
+              : ordersStatus === "unavailable"
+                ? "The orders API is unavailable; sample rows and actions are not saved. "
+                : "Orders are sample-only and not saved. "}
+          {kitchenQueueStatus === "live"
+            ? "The kitchen queue is live and item updates save. "
+            : kitchenQueueStatus === "loading"
+              ? "Loading the kitchen queue; the sample board is shown until it arrives. "
+              : kitchenQueueStatus === "unavailable"
+                ? "The kitchen queue is unavailable; sample actions are not saved. "
+                : "The kitchen queue is sample-only and not saved. "}
+          Health score and recommendations use the API only when connected.
         </span>
       </p>
       <button type="button" className="demo-banner-link" onClick={onDismiss}>
@@ -644,10 +692,14 @@ function DemoBanner({
 function OrdersTable({
   orders,
   onAdvance,
+  canUpdate,
+  status,
   compact = false,
 }: {
   orders: Order[];
   onAdvance: (id: string) => void;
+  canUpdate: boolean;
+  status: OrderFeedStatus;
   compact?: boolean;
 }) {
   return (
@@ -669,7 +721,7 @@ function OrdersTable({
           {orders.map((order) => (
             <tr key={order.id}>
               <td>
-                <span className="order-number">{order.id}</span>
+                <span className="order-number">{displayOrderId(order.id)}</span>
                 <span className="cell-subline">{order.placed}</span>
               </td>
               <td>
@@ -686,7 +738,32 @@ function OrdersTable({
                 <StatusPill>{order.status}</StatusPill>
               </td>
               <td className="table-action-cell">
-                {order.status === "Served" ? (
+                {order.status === "Completed" ? (
+                  <span className="completed-label">
+                    <Icon name="check" size={14} /> Done
+                  </span>
+                ) : !canUpdate ? (
+                  <span className="completed-label">Read only</span>
+                ) : status === "live" &&
+                  (order.status === "Accepted" || order.status === "Preparing") ? (
+                  <span className="completed-label">In kitchen</span>
+                ) : status === "live" && order.status === "New" ? (
+                  <button
+                    className="table-action"
+                    type="button"
+                    onClick={() => onAdvance(order.id)}
+                  >
+                    Accept
+                  </button>
+                ) : status === "live" && order.status === "Served" ? (
+                  <button
+                    className="table-action"
+                    type="button"
+                    onClick={() => onAdvance(order.id)}
+                  >
+                    Complete
+                  </button>
+                ) : order.status === "Served" ? (
                   <span className="completed-label">
                     <Icon name="check" size={14} /> Done
                   </span>
@@ -696,11 +773,13 @@ function OrdersTable({
                     type="button"
                     onClick={() => onAdvance(order.id)}
                   >
-                    {order.status === "Ready"
+                    {status === "live"
                       ? "Serve"
-                      : order.status === "New"
-                        ? "Start"
-                        : "Mark ready"}
+                      : order.status === "Ready"
+                        ? "Serve"
+                        : order.status === "New"
+                          ? "Start"
+                          : "Mark ready"}
                   </button>
                 )}
               </td>
@@ -1150,6 +1229,154 @@ function parseReservationsResponse(value: unknown): ParsedReservationsResponse |
   return { reservations: reservations as Reservation[], truncated: response.truncated };
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseStaffOrderItem(value: unknown): StaffOrderItem | null {
+  if (!isObjectRecord(value)) return null;
+  if (
+    typeof value.id !== "string" ||
+    !/^[a-f\d]{24}$/i.test(value.id) ||
+    typeof value.name !== "string" ||
+    typeof value.quantity !== "number" ||
+    !Number.isInteger(value.quantity) ||
+    value.quantity < 1 ||
+    (value.preparationStatus !== "Created" &&
+      value.preparationStatus !== "Preparing" &&
+      value.preparationStatus !== "Ready")
+  ) {
+    return null;
+  }
+  return {
+    id: value.id,
+    name: value.name,
+    quantity: value.quantity,
+    preparationStatus: value.preparationStatus,
+  };
+}
+
+function parseStaffOrderRecord(value: unknown): Order | null {
+  if (!isObjectRecord(value)) return null;
+  const statusMap: Record<string, OrderStatus> = {
+    Created: "New",
+    Accepted: "Accepted",
+    Preparing: "Preparing",
+    Ready: "Ready",
+    Served: "Served",
+    Completed: "Completed",
+  };
+  if (
+    typeof value.id !== "string" ||
+    !/^[a-f\d]{24}$/i.test(value.id) ||
+    typeof value.status !== "string" ||
+    !Object.hasOwn(statusMap, value.status) ||
+    !Array.isArray(value.items) ||
+    typeof value.createdAt !== "string" ||
+    typeof value.updatedAt !== "string"
+  ) {
+    return null;
+  }
+  const createdAt = new Date(value.createdAt);
+  const updatedAt = new Date(value.updatedAt);
+  if (!Number.isFinite(createdAt.getTime()) || !Number.isFinite(updatedAt.getTime())) return null;
+  const itemRecords = value.items.map(parseStaffOrderItem);
+  if (itemRecords.some((item) => item === null)) return null;
+  const elapsed = Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 60_000));
+  const items = itemRecords as StaffOrderItem[];
+  return {
+    id: value.id,
+    guest: "Customer order",
+    table: "Unassigned",
+    items: items.map((item) => `${item.name} × ${item.quantity}`).join(", ") || "No item details",
+    itemRecords: items,
+    placed: elapsed === 0 ? "Just now" : `${elapsed} min ago`,
+    elapsed,
+    status: statusMap[value.status],
+    createdAt: createdAt.toISOString(),
+    updatedAt: updatedAt.toISOString(),
+  };
+}
+
+function parseStaffOrderListResponse(value: unknown): ParsedStaffOrdersResponse | null {
+  if (
+    !isObjectRecord(value) ||
+    !Array.isArray(value.orders) ||
+    typeof value.truncated !== "boolean"
+  )
+    return null;
+  const orders = value.orders.map(parseStaffOrderRecord);
+  if (orders.some((order) => order === null)) return null;
+  return { orders: orders as Order[], truncated: value.truncated };
+}
+
+function parseStaffOrderResponse(value: unknown): Order | null {
+  if (!isObjectRecord(value)) return null;
+  return parseStaffOrderRecord(value.order);
+}
+
+function parseKitchenQueueResponse(value: unknown): ParsedKitchenQueueResponse | null {
+  if (
+    !isObjectRecord(value) ||
+    !Array.isArray(value.orders) ||
+    typeof value.truncated !== "boolean"
+  )
+    return null;
+  const tickets: KitchenTicket[] = [];
+  for (const candidate of value.orders) {
+    if (!isObjectRecord(candidate)) return null;
+    if (
+      typeof candidate.id !== "string" ||
+      !/^[a-f\d]{24}$/i.test(candidate.id) ||
+      (candidate.status !== "Accepted" &&
+        candidate.status !== "Preparing" &&
+        candidate.status !== "Ready") ||
+      !Array.isArray(candidate.items) ||
+      typeof candidate.createdAt !== "string" ||
+      typeof candidate.updatedAt !== "string"
+    ) {
+      return null;
+    }
+    const createdAt = new Date(candidate.createdAt);
+    const updatedAt = new Date(candidate.updatedAt);
+    if (!Number.isFinite(createdAt.getTime()) || !Number.isFinite(updatedAt.getTime())) return null;
+    const items = candidate.items.map(parseStaffOrderItem);
+    if (items.some((item) => item === null)) return null;
+    tickets.push({
+      id: candidate.id,
+      status: candidate.status,
+      items: items as StaffOrderItem[],
+      createdAt: createdAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+      elapsed: Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 60_000)),
+    });
+  }
+  return { tickets, truncated: value.truncated };
+}
+
+function kitchenTicketFromOrder(order: Order): KitchenTicket | null {
+  if (
+    (order.status !== "Accepted" && order.status !== "Preparing" && order.status !== "Ready") ||
+    !order.itemRecords ||
+    !order.createdAt ||
+    !order.updatedAt
+  ) {
+    return null;
+  }
+  return {
+    id: order.id,
+    status: order.status,
+    items: order.itemRecords,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    elapsed: order.elapsed,
+  };
+}
+
+function displayOrderId(id: string): string {
+  return /^[a-f\d]{24}$/i.test(id) ? `#${id.slice(-6).toUpperCase()}` : id;
+}
+
 function parseReservationResponse(value: unknown): Reservation | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const response = value as Record<string, unknown>;
@@ -1195,7 +1422,14 @@ export function Dashboard() {
   const [demoBannerVisible, setDemoBannerVisible] = useState(true);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [ordersStatus, setOrdersStatus] = useState<OrderFeedStatus>("preview");
+  const [ordersTruncated, setOrdersTruncated] = useState(false);
+  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
+  const [kitchenTickets, setKitchenTickets] = useState<KitchenTicket[]>([]);
+  const [kitchenQueueStatus, setKitchenQueueStatus] = useState<OrderFeedStatus>("preview");
+  const [kitchenQueueTruncated, setKitchenQueueTruncated] = useState(false);
+  const [kitchenQueueRefreshKey, setKitchenQueueRefreshKey] = useState(0);
   const [inventory, setInventory] = useState(INITIAL_INVENTORY);
   const [inventoryStatus, setInventoryStatus] = useState<InventoryViewStatus>("preview");
   const [inventoryTruncated, setInventoryTruncated] = useState(false);
@@ -1215,6 +1449,83 @@ export function Dashboard() {
   const [healthScoreLoading, setHealthScoreLoading] = useState(false);
   const [healthScoreRefreshKey, setHealthScoreRefreshKey] = useState(0);
   const role = user?.role;
+
+  useEffect(() => {
+    if (!accessToken || !role || role === "Customer") {
+      setOrders(INITIAL_ORDERS);
+      setOrdersStatus("preview");
+      setOrdersTruncated(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setOrdersStatus("loading");
+    void fetch(`${API_BASE}/orders`, {
+      cache: ordersRefreshKey > 0 ? "reload" : "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Orders are not available from the API.");
+        const payload: unknown = await response.json();
+        const parsed = parseStaffOrderListResponse(payload);
+        if (!parsed) throw new Error("The staff order response was invalid.");
+        if (controller.signal.aborted) return;
+        setOrders(parsed.orders);
+        setOrdersTruncated(parsed.truncated);
+        setOrdersStatus("live");
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
+          return;
+        setOrders(INITIAL_ORDERS);
+        setOrdersTruncated(false);
+        setOrdersStatus("unavailable");
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, ordersRefreshKey]);
+
+  useEffect(() => {
+    if (
+      !accessToken ||
+      (role !== "Kitchen Staff" && role !== "Manager" && role !== "Administrator")
+    ) {
+      setKitchenTickets([]);
+      setKitchenQueueStatus("preview");
+      setKitchenQueueTruncated(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setKitchenQueueStatus("loading");
+    void fetch(`${API_BASE}/kitchen/queue`, {
+      cache: kitchenQueueRefreshKey > 0 ? "reload" : "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("The kitchen queue is not available from the API.");
+        const payload: unknown = await response.json();
+        const parsed = parseKitchenQueueResponse(payload);
+        if (!parsed) throw new Error("The kitchen queue response was invalid.");
+        if (controller.signal.aborted) return;
+        setKitchenTickets(parsed.tickets);
+        setKitchenQueueTruncated(parsed.truncated);
+        setKitchenQueueStatus("live");
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
+          return;
+        setKitchenTickets([]);
+        setKitchenQueueTruncated(false);
+        setKitchenQueueStatus("unavailable");
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, kitchenQueueRefreshKey]);
 
   useEffect(() => {
     if (!accessToken || !role || role === "Customer") {
@@ -1342,21 +1653,159 @@ export function Dashboard() {
     toastTimer.current = setTimeout(() => setToast(""), 3200);
   };
 
-  const advanceOrder = (id: string) => {
-    let nextStatus: OrderStatus = "Preparing";
-    setOrders((current) =>
-      current.map((order) => {
-        if (order.id !== id) return order;
-        nextStatus =
-          order.status === "New" ? "Preparing" : order.status === "Preparing" ? "Ready" : "Served";
-        return {
-          ...order,
-          status: nextStatus,
-          elapsed: nextStatus === "Served" ? order.elapsed : Math.max(1, order.elapsed - 2),
-        };
-      }),
-    );
-    notify(`${id} moved to ${nextStatus.toLowerCase()}.`);
+  const canUpdateOrderHeaders =
+    role === "Reception" || role === "Manager" || role === "Administrator";
+
+  const advanceOrder = async (id: string) => {
+    const currentOrder = orders.find((order) => order.id === id);
+    if (!currentOrder) return;
+
+    if (ordersStatus === "live") {
+      if (!accessToken || !canUpdateOrderHeaders) {
+        notify("Your role cannot update this order header.");
+        return;
+      }
+      const requestedStatus =
+        currentOrder.status === "New"
+          ? "Accepted"
+          : currentOrder.status === "Ready"
+            ? "Served"
+            : currentOrder.status === "Served"
+              ? "Completed"
+              : null;
+      if (!requestedStatus) {
+        notify("Preparation progress is managed item-by-item in the kitchen queue.");
+        return;
+      }
+      try {
+        const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/status`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ status: requestedStatus }),
+        });
+        if (!response.ok) {
+          setOrdersRefreshKey((current) => current + 1);
+          setKitchenQueueRefreshKey((current) => current + 1);
+          notify(
+            response.status === 409
+              ? "The order changed. Refresh the feed and try again."
+              : "The order update was not saved. Check your permissions and connection.",
+          );
+          return;
+        }
+        const updated = parseStaffOrderResponse(await response.json());
+        const expectedViewStatus: OrderStatus =
+          requestedStatus === "Accepted"
+            ? "Accepted"
+            : requestedStatus === "Served"
+              ? "Served"
+              : "Completed";
+        if (!updated || updated.id !== id || updated.status !== expectedViewStatus) {
+          setOrdersRefreshKey((current) => current + 1);
+          notify("The API saved an update but returned an invalid order. The feed is refreshing.");
+          return;
+        }
+        setOrders((current) =>
+          updated.status === "Completed"
+            ? current.filter((order) => order.id !== id)
+            : current.map((order) => (order.id === id ? updated : order)),
+        );
+        setKitchenQueueRefreshKey((current) => current + 1);
+        notify(`${displayOrderId(id)} moved to ${requestedStatus.toLowerCase()} and was saved.`);
+      } catch {
+        setOrdersRefreshKey((current) => current + 1);
+        notify("Orders are unavailable; the status update was not saved.");
+      }
+      return;
+    }
+
+    const nextStatus: OrderStatus | null =
+      currentOrder.status === "New"
+        ? "Accepted"
+        : currentOrder.status === "Accepted"
+          ? "Preparing"
+          : currentOrder.status === "Preparing"
+            ? "Ready"
+            : currentOrder.status === "Ready"
+              ? "Served"
+              : null;
+    if (nextStatus) {
+      setOrders((current) =>
+        current.map((order) => (order.id === id ? { ...order, status: nextStatus } : order)),
+      );
+      notify(
+        `${displayOrderId(id)} moved to ${nextStatus.toLowerCase()} in this preview; it was not saved.`,
+      );
+    }
+  };
+
+  const advanceKitchenItem = async (orderId: string, itemId: string) => {
+    if (kitchenQueueStatus !== "live") {
+      await advanceOrder(orderId);
+      return;
+    }
+    if (!accessToken) {
+      notify("Sign in again before updating a kitchen item.");
+      return;
+    }
+    const ticket = kitchenTickets.find((current) => current.id === orderId);
+    const item = ticket?.items.find((current) => current.id === itemId);
+    if (!ticket || !item) {
+      notify("The kitchen item is no longer in this queue. Refresh and try again.");
+      setKitchenQueueRefreshKey((current) => current + 1);
+      return;
+    }
+    const preparationStatus =
+      item.preparationStatus === "Created"
+        ? "Preparing"
+        : item.preparationStatus === "Preparing"
+          ? "Ready"
+          : null;
+    if (!preparationStatus) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/kitchen/queue/${orderId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ itemId, preparationStatus }),
+      });
+      if (!response.ok) {
+        setKitchenQueueRefreshKey((current) => current + 1);
+        notify(
+          response.status === 409
+            ? "The item changed. The kitchen queue is refreshing."
+            : "The preparation update was not saved. Check your permissions and connection.",
+        );
+        return;
+      }
+      const updated = parseStaffOrderResponse(await response.json());
+      if (!updated || updated.id !== orderId) {
+        setKitchenQueueRefreshKey((current) => current + 1);
+        notify("The API saved an update but returned an invalid order. The queue is refreshing.");
+        return;
+      }
+      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
+      const updatedTicket = kitchenTicketFromOrder(updated);
+      setKitchenTickets((current) =>
+        updatedTicket
+          ? current.map((currentTicket) =>
+              currentTicket.id === orderId ? updatedTicket : currentTicket,
+            )
+          : current.filter((currentTicket) => currentTicket.id !== orderId),
+      );
+      notify(`${item.name} moved to ${preparationStatus.toLowerCase()} and was saved.`);
+    } catch {
+      setKitchenQueueRefreshKey((current) => current + 1);
+      notify("The kitchen queue is unavailable; the item update was not saved.");
+    }
   };
 
   const addStock = async (item: InventoryItem, quantity: number): Promise<boolean> => {
@@ -1856,6 +2305,8 @@ export function Dashboard() {
               onDismiss={() => setDemoBannerVisible(false)}
               inventoryStatus={inventoryStatus}
               reservationsStatus={reservationsStatus}
+              ordersStatus={ordersStatus}
+              kitchenQueueStatus={kitchenQueueStatus}
               canManageInventory={canManageInventory}
             />
           ) : null}
@@ -1863,6 +2314,9 @@ export function Dashboard() {
           {section === "Overview" ? (
             <OverviewPage
               orders={orders}
+              orderFeedStatus={ordersStatus}
+              ordersTruncated={ordersTruncated}
+              canUpdateOrders={canUpdateOrderHeaders}
               inventory={inventory}
               inventoryStatus={inventoryStatus}
               inventoryTruncated={inventoryTruncated}
@@ -1883,14 +2337,26 @@ export function Dashboard() {
           ) : section === "Orders" ? (
             <OrdersPage
               orders={orders}
+              status={ordersStatus}
+              truncated={ordersTruncated}
+              canUpdateOrders={canUpdateOrderHeaders}
               onAdvance={advanceOrder}
               search={orderSearch}
               onSearch={setOrderSearch}
               statusFilter={orderStatusFilter}
               onFilter={setOrderStatusFilter}
+              onRefresh={() => setOrdersRefreshKey((current) => current + 1)}
             />
           ) : section === "Kitchen" ? (
-            <KitchenPage orders={orders} onAdvance={advanceOrder} />
+            <KitchenPage
+              orders={orders}
+              tickets={kitchenTickets}
+              status={kitchenQueueStatus}
+              truncated={kitchenQueueTruncated}
+              onRefresh={() => setKitchenQueueRefreshKey((current) => current + 1)}
+              onAdvanceItem={(orderId, itemId) => void advanceKitchenItem(orderId, itemId)}
+              onAdvanceOrder={(orderId) => void advanceOrder(orderId)}
+            />
           ) : section === "Reservations" ? (
             <ReservationsPage
               reservations={reservations}
@@ -2111,6 +2577,9 @@ function HealthScoreCard({
 
 function OverviewPage({
   orders,
+  orderFeedStatus,
+  ordersTruncated,
+  canUpdateOrders,
   inventory,
   inventoryStatus,
   inventoryTruncated,
@@ -2129,6 +2598,9 @@ function OverviewPage({
   onReservations,
 }: {
   orders: Order[];
+  orderFeedStatus: OrderFeedStatus;
+  ordersTruncated: boolean;
+  canUpdateOrders: boolean;
   inventory: InventoryItem[];
   inventoryStatus: InventoryViewStatus;
   inventoryTruncated: boolean;
@@ -2293,21 +2765,33 @@ function OverviewPage({
         <article className="card order-overview-card">
           <div className="card-heading-row card-heading-bottom">
             <div>
-              <div className="card-overline">SAMPLE SERVICE</div>
+              <div className="card-overline">
+                {orderFeedStatus === "live" ? "LIVE STAFF FEED" : "SAMPLE SERVICE"}
+              </div>
               <h2>
-                Orders in motion <span className="heading-count">18</span>
+                Orders in motion{" "}
+                <span className="heading-count">
+                  {orderFeedStatus === "live" ? orders.length : 18}
+                </span>
               </h2>
             </div>
             <button className="text-link" type="button" onClick={onOrders}>
               See all <Icon name="arrow-right" size={15} />
             </button>
           </div>
-          <OrdersTable orders={orders.slice(0, 4)} onAdvance={onAdvance} compact />
+          <OrdersTable
+            orders={orders.slice(0, 4)}
+            onAdvance={onAdvance}
+            canUpdate={canUpdateOrders}
+            status={orderFeedStatus}
+            compact
+          />
           <div className="card-bottom-note">
-            <span className="small-live-dot" /> 4 sample tickets shown{" "}
-            <button type="button" onClick={() => onAdvance(orders[0]?.id ?? "")}>
-              Move the first ticket along <Icon name="arrow-right" size={13} />
-            </button>
+            <span className="small-live-dot" />
+            {orderFeedStatus === "live"
+              ? `${orders.length} active order${orders.length === 1 ? "" : "s"} in the live feed`
+              : "4 sample tickets shown"}
+            {ordersTruncated ? " · first 200 only" : ""}
           </div>
         </article>
         {showAi ? (
@@ -2432,11 +2916,15 @@ function OverviewPage({
           <Icon name="sun" size={15} /> All times in IST
         </span>
         <span>
-          {inventoryStatus === "live"
-            ? "Inventory is live; most other operational data is a preview"
-            : healthScoreStatus === "live"
-              ? "Health score calculated on request; other data is a preview"
-              : "Operational metrics are sample-only"}
+          {orderFeedStatus === "live" && inventoryStatus === "live"
+            ? "Orders and inventory are live; sales analytics remain a preview"
+            : orderFeedStatus === "live"
+              ? "Staff orders are live; other operational metrics remain a preview"
+              : inventoryStatus === "live"
+                ? "Inventory is live; most other operational data is a preview"
+                : healthScoreStatus === "live"
+                  ? "Health score calculated on request; other data is a preview"
+                  : "Operational metrics are sample-only"}
         </span>
       </div>
     </>
@@ -2445,14 +2933,22 @@ function OverviewPage({
 
 function OrdersPage({
   orders,
+  status,
+  truncated,
+  canUpdateOrders,
   onAdvance,
   search,
   onSearch,
   statusFilter,
   onFilter,
+  onRefresh,
 }: {
   orders: Order[];
+  status: OrderFeedStatus;
+  truncated: boolean;
+  canUpdateOrders: boolean;
   onAdvance: (id: string) => void;
+  onRefresh: () => void;
   search: string;
   onSearch: (value: string) => void;
   statusFilter: string;
@@ -2469,31 +2965,42 @@ function OrdersPage({
       <section className="quick-stat-row">
         <div>
           <span>In progress</span>
-          <strong>18</strong>
+          <strong>
+            {
+              orders.filter((order) => order.status === "Accepted" || order.status === "Preparing")
+                .length
+            }
+          </strong>
           <i className="stat-dot stat-dot-gold" />
         </div>
         <div>
           <span>New tickets</span>
-          <strong>4</strong>
+          <strong>{orders.filter((order) => order.status === "New").length}</strong>
           <i className="stat-dot stat-dot-blue" />
         </div>
         <div>
           <span>Ready to serve</span>
-          <strong>6</strong>
+          <strong>{orders.filter((order) => order.status === "Ready").length}</strong>
           <i className="stat-dot stat-dot-green" />
         </div>
         <div>
           <span>Avg. ticket time</span>
-          <strong>16 min</strong>
+          <strong>
+            {orders.length
+              ? `${Math.round(orders.reduce((total, order) => total + order.elapsed, 0) / orders.length)} min`
+              : "—"}
+          </strong>
           <i className="stat-dot stat-dot-coral" />
         </div>
       </section>
       <article className="card orders-page-card">
         <div className="orders-toolbar">
           <div>
-            <div className="card-overline">SATURDAY SERVICE</div>
+            <div className="card-overline">
+              {status === "live" ? "LIVE STAFF FEED" : "SAMPLE SERVICE"}
+            </div>
             <h2>
-              All orders <span className="heading-count">{visible.length}</span>
+              Active orders <span className="heading-count">{visible.length}</span>
             </h2>
           </div>
           <div className="orders-filters">
@@ -2511,28 +3018,44 @@ function OrdersPage({
               <select value={statusFilter} onChange={(event) => onFilter(event.target.value)}>
                 <option>All orders</option>
                 <option>New</option>
+                <option>Accepted</option>
                 <option>Preparing</option>
                 <option>Ready</option>
                 <option>Served</option>
               </select>
               <Icon name="chevron" size={14} />
             </label>
+            <button type="button" className="button button-outline" onClick={onRefresh}>
+              <Icon name="refresh" size={15} /> Refresh
+            </button>
           </div>
         </div>
         {visible.length ? (
-          <OrdersTable orders={visible} onAdvance={onAdvance} />
+          <OrdersTable
+            orders={visible}
+            onAdvance={onAdvance}
+            canUpdate={canUpdateOrders}
+            status={status}
+          />
         ) : (
           <div className="empty-state">
             <span>
               <Icon name="search" size={22} />
             </span>
-            <strong>No orders found</strong>
-            <p>Try a different search or status filter.</p>
+            <strong>
+              {status === "live" && orders.length === 0 ? "No active orders" : "No orders found"}
+            </strong>
+            <p>
+              {status === "live" && orders.length === 0
+                ? "New orders appear here when staff accept them."
+                : "Try a different search or status filter."}
+            </p>
           </div>
         )}
         <div className="table-pagination">
           <span>
-            Showing <strong>{visible.length}</strong> sample orders
+            Showing <strong>{visible.length}</strong>{" "}
+            {status === "live" ? "live orders" : "sample orders"}
           </span>
           <div>
             <button type="button" disabled>
@@ -2544,20 +3067,74 @@ function OrdersPage({
           </div>
         </div>
       </article>
-      <p className="preview-note">
-        <Icon name="alert" size={15} /> Actions update this sample view only until a live POS
-        connection is configured.
-      </p>
+      {truncated && status === "live" ? (
+        <p className="preview-note">
+          <Icon name="alert" size={15} /> This feed is capped at the oldest 200 active orders; newer
+          active orders may be omitted.
+        </p>
+      ) : null}
+      {status !== "live" ? (
+        <p className="preview-note">
+          <Icon name="alert" size={15} />
+          {status === "loading"
+            ? "Loading live orders; preview actions are not saved."
+            : status === "unavailable"
+              ? "The staff order feed is unavailable; sample actions are not saved."
+              : "Actions update this sample view only; they are not saved."}
+        </p>
+      ) : null}
     </>
   );
 }
 
-function KitchenPage({ orders, onAdvance }: { orders: Order[]; onAdvance: (id: string) => void }) {
-  const columns: Array<{ title: OrderStatus; description: string; items: Order[] }> = [
+function KitchenPage({
+  orders,
+  tickets,
+  status,
+  truncated,
+  onRefresh,
+  onAdvanceItem,
+  onAdvanceOrder,
+}: {
+  orders: Order[];
+  tickets: KitchenTicket[];
+  status: OrderFeedStatus;
+  truncated: boolean;
+  onRefresh: () => void;
+  onAdvanceItem: (orderId: string, itemId: string) => void;
+  onAdvanceOrder: (id: string) => void;
+}) {
+  const live = status === "live";
+  const liveColumns: Array<{
+    title: KitchenTicket["status"];
+    description: string;
+    items: KitchenTicket[];
+  }> = [
+    {
+      title: "Accepted",
+      description: "Just came in",
+      items: tickets.filter((ticket) => ticket.status === "Accepted"),
+    },
+    {
+      title: "Preparing",
+      description: "On the line",
+      items: tickets.filter((ticket) => ticket.status === "Preparing"),
+    },
+    {
+      title: "Ready",
+      description: "At the pass",
+      items: tickets.filter((ticket) => ticket.status === "Ready"),
+    },
+  ];
+  const previewColumns: Array<{
+    title: "New" | "Preparing" | "Ready";
+    description: string;
+    items: Order[];
+  }> = [
     {
       title: "New",
       description: "Just came in",
-      items: orders.filter((order) => order.status === "New"),
+      items: orders.filter((order) => order.status === "New" || order.status === "Accepted"),
     },
     {
       title: "Preparing",
@@ -2570,74 +3147,168 @@ function KitchenPage({ orders, onAdvance }: { orders: Order[]; onAdvance: (id: s
       items: orders.filter((order) => order.status === "Ready"),
     },
   ];
+  const oldestTicketAge = tickets.reduce((oldest, ticket) => Math.max(oldest, ticket.elapsed), 0);
+
   return (
     <>
       <div className="kitchen-toolbar">
         <span>
-          <i className="small-live-dot" /> Dinner service · sample board
+          <i className={live ? "small-live-dot" : ""} />
+          {live
+            ? "Live kitchen queue · oldest first"
+            : status === "loading"
+              ? "Loading live queue · sample board shown"
+              : status === "unavailable"
+                ? "Queue unavailable · sample board only"
+                : "Dinner service · sample board"}
         </span>
         <span>
-          Average prep <strong>16 min</strong>
+          {live ? (
+            <>
+              Oldest ticket <strong>{oldestTicketAge} min</strong>
+            </>
+          ) : (
+            <>
+              Average prep <strong>16 min · sample</strong>
+            </>
+          )}
+          <button
+            type="button"
+            className="text-link"
+            onClick={onRefresh}
+            aria-label="Refresh kitchen queue"
+          >
+            <Icon name="refresh" size={15} /> Refresh
+          </button>
         </span>
       </div>
       <section className="kitchen-board" aria-label="Kitchen order board">
-        {columns.map((column) => (
-          <div className="kitchen-column" key={column.title}>
-            <div className={`kitchen-column-head kitchen-head-${column.title.toLowerCase()}`}>
-              <div>
-                <span className="kitchen-status-dot" />
-                <h2>{column.title}</h2>
-                <span className="kitchen-count">{column.items.length}</span>
-              </div>
-              <p>{column.description}</p>
-            </div>
-            <div className="kitchen-cards">
-              {column.items.length ? (
-                column.items.map((order) => (
-                  <article className="kitchen-order-card" key={order.id}>
-                    <div className="kitchen-order-top">
-                      <strong>{order.id}</strong>
-                      <span>{order.elapsed} min</span>
-                    </div>
-                    <h3>{order.items.split(",")[0]}</h3>
-                    <p>{order.items.split(",").slice(1).join(",") || "One item"}</p>
-                    <div className="kitchen-order-meta">
-                      <span>
-                        <Icon name="table" size={14} />
-                        {order.table}
-                      </span>
-                      <span>{order.guest}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className={`kitchen-card-action ${column.title === "Ready" ? "kitchen-action-ready" : ""}`}
-                      onClick={() => onAdvance(order.id)}
-                    >
-                      {column.title === "New"
-                        ? "Start preparing"
-                        : column.title === "Preparing"
-                          ? "Mark as ready"
-                          : "Mark served"}
-                      <Icon name="arrow-right" size={15} />
-                    </button>
-                  </article>
-                ))
-              ) : (
-                <div className="kitchen-empty">
-                  <span>
-                    <Icon name="check" size={18} />
-                  </span>
-                  <p>All clear for now.</p>
+        {live
+          ? liveColumns.map((column) => (
+              <div className="kitchen-column" key={column.title}>
+                <div className={`kitchen-column-head kitchen-head-${column.title.toLowerCase()}`}>
+                  <div>
+                    <span className="kitchen-status-dot" />
+                    <h2>{column.title}</h2>
+                    <span className="kitchen-count">{column.items.length}</span>
+                  </div>
+                  <p>{column.description}</p>
                 </div>
-              )}
-            </div>
-          </div>
-        ))}
+                <div className="kitchen-cards">
+                  {column.items.length ? (
+                    column.items.map((ticket) => (
+                      <article className="kitchen-order-card" key={ticket.id}>
+                        <div className="kitchen-order-top">
+                          <strong>{displayOrderId(ticket.id)}</strong>
+                          <span>{ticket.elapsed} min</span>
+                        </div>
+                        <p className="kitchen-private-note">
+                          Customer and table details are not included in this kitchen feed.
+                        </p>
+                        <ul className="kitchen-item-list">
+                          {ticket.items.map((item) => (
+                            <li className="kitchen-item-row" key={item.id}>
+                              <div className="kitchen-item-main">
+                                <strong>
+                                  {item.name} × {item.quantity}
+                                </strong>
+                                <span>{item.preparationStatus}</span>
+                              </div>
+                              {item.preparationStatus !== "Ready" ? (
+                                <button
+                                  type="button"
+                                  className={`kitchen-card-action ${item.preparationStatus === "Preparing" ? "kitchen-action-ready" : ""}`}
+                                  onClick={() => onAdvanceItem(ticket.id, item.id)}
+                                >
+                                  {item.preparationStatus === "Created"
+                                    ? "Start preparing"
+                                    : "Mark ready"}
+                                  <Icon name="arrow-right" size={15} />
+                                </button>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="kitchen-empty">
+                      <span>
+                        <Icon name="check" size={18} />
+                      </span>
+                      <p>All clear for now.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          : previewColumns.map((column) => (
+              <div className="kitchen-column" key={column.title}>
+                <div className={`kitchen-column-head kitchen-head-${column.title.toLowerCase()}`}>
+                  <div>
+                    <span className="kitchen-status-dot" />
+                    <h2>{column.title}</h2>
+                    <span className="kitchen-count">{column.items.length}</span>
+                  </div>
+                  <p>{column.description}</p>
+                </div>
+                <div className="kitchen-cards">
+                  {column.items.length ? (
+                    column.items.map((order) => (
+                      <article className="kitchen-order-card" key={order.id}>
+                        <div className="kitchen-order-top">
+                          <strong>{displayOrderId(order.id)}</strong>
+                          <span>{order.elapsed} min</span>
+                        </div>
+                        <h3>{order.items.split(",")[0]}</h3>
+                        <p>{order.items.split(",").slice(1).join(",") || "One item"}</p>
+                        <div className="kitchen-order-meta">
+                          <span>
+                            <Icon name="table" size={14} /> {order.table}
+                          </span>
+                          <span>{order.guest}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className={`kitchen-card-action ${column.title === "Ready" ? "kitchen-action-ready" : ""}`}
+                          onClick={() => onAdvanceOrder(order.id)}
+                        >
+                          {column.title === "New"
+                            ? "Start preparing"
+                            : column.title === "Preparing"
+                              ? "Mark as ready"
+                              : "Hand to floor"}
+                          <Icon name="arrow-right" size={15} />
+                        </button>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="kitchen-empty">
+                      <span>
+                        <Icon name="check" size={18} />
+                      </span>
+                      <p>All clear for now.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
       </section>
-      <p className="preview-note">
-        <Icon name="alert" size={15} /> This kitchen board uses sample tickets. Connect your order
-        stream to make it live.
-      </p>
+      {truncated && live ? (
+        <p className="preview-note">
+          <Icon name="alert" size={15} /> Only the oldest 200 active kitchen tickets are shown.
+        </p>
+      ) : null}
+      {!live ? (
+        <p className="preview-note">
+          <Icon name="alert" size={15} />
+          {status === "loading"
+            ? "Loading the live kitchen queue; sample actions are not saved."
+            : status === "unavailable"
+              ? "The kitchen queue is unavailable; sample actions are not saved."
+              : "This kitchen board uses sample tickets; actions are not saved."}
+        </p>
+      ) : null}
     </>
   );
 }

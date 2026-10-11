@@ -2088,6 +2088,11 @@ a {
   align-items: center;
   gap: 8px;
 }
+.kitchen-toolbar > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .kitchen-toolbar strong {
   margin-left: 5px;
   color: #58685e;
@@ -2183,6 +2188,46 @@ a {
   margin: 0;
   color: #96a097;
   font-size: 8px;
+}
+.kitchen-order-card > .kitchen-private-note {
+  margin: 6px 0 10px;
+  color: #929e94;
+  font-size: 8px;
+  line-height: 1.45;
+}
+.kitchen-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.kitchen-item-row {
+  padding: 8px;
+  border: 1px solid #edf0ea;
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+.kitchen-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #607065;
+  font-size: 8px;
+}
+.kitchen-item-main strong {
+  color: #45564b;
+  font-weight: 650;
+}
+.kitchen-item-main span {
+  flex: 0 0 auto;
+  color: #89968c;
+  font-size: 7px;
+}
+.kitchen-item-row .kitchen-card-action {
+  margin-top: 7px;
 }
 .kitchen-order-meta {
   display: flex;
