@@ -204,3 +204,20 @@
 - **Frontend implementation:** `0ee395a` (Dhanush). **Dhanush's S2-11 work-log closeout:** `01caf0e`.
 - **Full local verification on Node `24.21.0`:** frontend `npm ci`, audit (zero vulnerabilities), Biome (22 files), 6/6 tests, typecheck, and production build passed; backend `npm ci`, audit (zero vulnerabilities), Biome (96 files), 131/131 tests, typecheck, and production build passed. `git diff --check` passed.
 - **Limits/delivery:** no browser E2E, live MongoDB/Atlas verification, deployment, remote CI result, push, or merge is claimed. No remote is configured; deployment and live Atlas checks remain deferred until the project's remaining work is finished.
+
+### 2026-10-11 — S2-12 Incident Detection Rules started
+
+- Began the next sequential Sprint 2 item on local `main`; moved S2-12 to **In Progress**. The approved numerical thresholds are preserved.
+- The user selected condition-based auto-resolution and a new incident record on recurrence. I recorded assistant implementation recommendations for the active deduplication key, rule-evaluation cadence, and notification cooldown without presenting those technical defaults as additional owner approvals.
+- Waitlist-dependent queue/table congestion and the deferred staff-shortage rule will not be guessed; the local implementation scope and remaining dependencies are documented in the implementation decisions.
+- No remote push, live database check, deployment, or GitHub CI run is part of this start checkpoint.
+
+### 2026-10-11 — S2-12 supported-data incident rules and API closeout
+
+- Implemented rule-managed kitchen item/order delays, active-kitchen congestion, per-item inventory shortage, and reservation/table conflicts using the approved thresholds. Added tenant-scoped Mongo repository reads, bounded source snapshots, severity/evidence upsert, automatic condition-clear resolution, fresh IDs on recurrence, and an active-only unique index.
+- Wired successful order, kitchen, inventory, and reservation mutations to request non-blocking reevaluation; added next-threshold/reservation-conflict-end timers, startup/hourly active-restaurant sweeps, retries, shutdown cleanup, and a post-persistence health-score refresh request.
+- Added Manager/Administrator-only `GET /api/v1/incidents` with signed tenant scope, no client filters, a 200-item cap/truncation flag, and safe trigger serialization. Updated the AI incident context allowlist for capacity/table-status details.
+- Kept unsupported waitlist-dependent queue/table congestion, staffing rules without staffing inputs, notification fan-out/WebSocket delivery, and incident dashboard UI out of scope. The queue-wait estimate formula remains undecided. Active deduplication, cadence, caps, and the proposed notification cooldown are documented as assistant recommendations, not further owner approvals.
+- **Commits:** engine/lifecycle `ad278de`; API/event integration `a056607`; API/test-plan/architecture contract `c661164`. The backlog and this work-log closeout are committed separately.
+- **Local validation:** selected Node `24.21.0` explicitly through `npm exec --yes --package=node@24.21.0` (the base shell runtime remains Node `20.20.2`); backend Biome checked 107 files with no findings, typecheck passed, all 154 tests passed, and production build passed. `git diff --check` passed after documentation sync. `npm ci` installed 159 packages and reported zero audit vulnerabilities.
+- **Status:** S2-12 is **Ready to Push** on local `main`, not Complete. Live Docker Compose/MongoDB and Atlas persistence/index checks, multi-replica behavior, load/p95 tests, browser E2E, notifications/WebSocket delivery, deployment, remote CI, push, and merge verification remain unperformed or deferred. Atlas provisioning/live checks and deployment remain scheduled for after the project's remaining work is finished.
