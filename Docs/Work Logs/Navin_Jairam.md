@@ -285,3 +285,10 @@
 - Added an assistant-recommended FIFO/manual-seating contract for the walk-in waitlist. The sparse endpoint inventory contains list/add; the documented update route is added to support the existing manual promotion/table-assignment workflow. These details are recommendations, not separate owner approvals.
 - Shared architecture/API/test-plan documentation and app composition remain Navin-owned; feature repository/service/router work remains assigned to Jegatheesan.
 - Waitlist/table synchronization spans collections and remains a local-fake limitation; no live MongoDB, remote CI, deployment, or push is claimed.
+
+### 2026-10-11 — S2-17 shared docs and runtime closeout
+
+- Authored the assistant-recommended FIFO/manual-seating decisions and updated the API specification, database schema, S2-17 acceptance/test plan, and backlog status; recommendations are explicitly not represented as owner approval.
+- Integrated the waitlist router/service into the Express app and added tenant/read-permission filtered `waitlist.updated` and `table.updated` invalidation events, preserving existing roles and signed tenant boundaries.
+- Added app-mount and realtime authorization tests. Local Node `24.21.0` verification passed: Biome (142 backend files), typecheck, production build, all 257 backend tests, zero high-severity npm audit findings, and `git diff --check`.
+- S2-17 is Ready to Push on local `main`, not Complete. Live MongoDB/Atlas index/write behavior, cross-process allocation, browser workflow, remote CI, deployment, push, and merge are not claimed.
