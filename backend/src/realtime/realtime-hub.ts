@@ -24,6 +24,8 @@ import {
 const EVENT_PERMISSIONS: Record<RestaurantRealtimeEvent["event"], Permission> = {
   "order.updated": "orders:read",
   "reservation.updated": "reservations:read",
+  "table.updated": "tables:read",
+  "waitlist.updated": "waitlist:read",
   "inventory.updated": "inventory:availability:read",
   "incident.updated": "incidents:read",
   "recommendation.updated": "recommendations:read",

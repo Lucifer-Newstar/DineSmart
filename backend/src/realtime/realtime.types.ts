@@ -36,6 +36,14 @@ export type RestaurantRealtimeEvent =
       data: { reservationId: string; status: string };
     })
   | (RestaurantRealtimeEventBase & {
+      event: "table.updated";
+      data: { tableId: string; status: string };
+    })
+  | (RestaurantRealtimeEventBase & {
+      event: "waitlist.updated";
+      data: { waitlistId: string; status: string };
+    })
+  | (RestaurantRealtimeEventBase & {
       event: "inventory.updated";
       data: { inventoryItemId: string };
     })

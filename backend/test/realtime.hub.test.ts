@@ -93,6 +93,38 @@ test("restaurant events are tenant-filtered and use the existing role permission
   assert.deepEqual(envelope.data, { score: 82, calculatedAt: "2026-10-11T09:00:00.000Z" });
 });
 
+test("waitlist and table invalidations require matching tenant and existing read permissions", () => {
+  const restaurantId = new ObjectId();
+  const otherRestaurantId = new ObjectId();
+  const hub = new RealtimeHub();
+  const manager = socket();
+  const receptionist = socket();
+  const kitchen = socket();
+  const otherTenant = socket();
+  hub.addConnection(identity(new ObjectId(), restaurantId, "Manager"), manager.typed);
+  hub.addConnection(identity(new ObjectId(), restaurantId, "Reception"), receptionist.typed);
+  hub.addConnection(identity(new ObjectId(), restaurantId, "Kitchen Staff"), kitchen.typed);
+  hub.addConnection(identity(new ObjectId(), otherRestaurantId, "Manager"), otherTenant.typed);
+
+  hub.publishRestaurantEvent({
+    restaurantId,
+    event: "waitlist.updated",
+    data: { waitlistId: new ObjectId().toHexString(), status: "waiting" },
+  });
+  hub.publishRestaurantEvent({
+    restaurantId,
+    event: "table.updated",
+    data: { tableId: new ObjectId().toHexString(), status: "occupied" },
+  });
+
+  assert.equal(manager.raw.sent.length, 2);
+  assert.equal(receptionist.raw.sent.length, 2);
+  assert.equal(kitchen.raw.sent.length, 0);
+  assert.equal(otherTenant.raw.sent.length, 0);
+  assert.equal(JSON.parse(manager.raw.sent[0] ?? "{}").event, "waitlist.updated");
+  assert.equal(JSON.parse(manager.raw.sent[1] ?? "{}").event, "table.updated");
+});
+
 test("notifications fan out only to the authenticated recipient and preserve customer cross-restaurant scope", () => {
   const restaurantId = new ObjectId();
   const recipientId = new ObjectId();
