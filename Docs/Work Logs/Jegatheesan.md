@@ -129,3 +129,11 @@
 - Reviewed the sparse `GET /waitlist` and `POST /waitlist` inventory, existing Reception/Manager/Administrator permissions, the approved FIFO/manual-promotion workflow, guest/customer profiles, and current table-state fields.
 - Recommend a bounded signed-tenant walk-in queue plus a staff-only update to seat/cancel/no-show entries. Seating must be staff-directed, same-tenant, table-capacity-safe, and linked to an available table; it is not automatic seating or guest notification. These request/status details are recommendations, not separate owner approvals.
 - Shared API/architecture/test-plan docs and later app composition remain Navin-owned. Live MongoDB/Atlas and multi-document allocation behavior remain unverified; no deployment, push, or remote CI is planned.
+
+### 2026-10-11 — S2-17 Waitlist Management API local implementation
+
+- Implemented the assistant-recommended tenant-scoped walk-in waitlist contract: FIFO `GET`, validated `POST`, and staff-directed `PUT` resolution to seated/cancelled/no-show; no automatic seating, wait estimate, or notification was added.
+- Added the native-driver waitlist document/repository/service/router, bounded guest fields, signed-restaurant filters, conditional table allocation with `currentWaitlistId`, conditional waitlist resolution, and compensating rollback for stale/failed seating writes.
+- Added repository, service, and HTTP tests for tenant/role gates, FIFO/cap, body/path/query validation, capacity and table state, stale/conflicting writes, compensation, and safe errors. Schema/index and seed fixtures are covered locally.
+- Verification on Node `24.21.0`: Biome checked 142 backend files; typecheck and production build passed; all 257 backend tests passed; high-severity `npm audit` found zero vulnerabilities; `git diff --check` passed. S2-17 is Ready to Push on local `main`, not Complete.
+- Live MongoDB/Atlas index/write behavior, multi-process table allocation, browser workflow, remote CI, deployment, push, and merge remain outstanding/deferred.
