@@ -61,3 +61,33 @@ test("health-score repository scopes every operational query to the signed resta
   assert.ok(restaurantQuery);
   assert.equal(restaurantQuery.filter._id, restaurantId);
 });
+
+test("health-score repository lists only active tenant IDs for scheduled refresh", async () => {
+  const firstId = { toHexString: () => "64b000000000000000000001" } as ObjectId;
+  const secondId = { toHexString: () => "64b000000000000000000002" } as ObjectId;
+  let query: CapturedQuery | undefined;
+  let sort: Record<string, 1 | -1> | undefined;
+  const db = {
+    collection(name: string) {
+      return {
+        find(filter: Record<string, unknown>) {
+          query = { collection: name, filter };
+          return {
+            sort(specification: Record<string, 1 | -1>) {
+              sort = specification;
+              return this;
+            },
+            async toArray() {
+              return [{ _id: firstId }, { _id: secondId }];
+            },
+          };
+        },
+      };
+    },
+  } as unknown as Db;
+  const repository = new MongoHealthScoreRepository(db);
+
+  assert.deepEqual(await repository.listActiveRestaurantIds(), [firstId, secondId]);
+  assert.deepEqual(query, { collection: COLLECTIONS.restaurants, filter: { status: "active" } });
+  assert.deepEqual(sort, { _id: 1 });
+});

@@ -30,6 +30,15 @@ function capped<T>(collectionName: string, records: T[], truncatedCollections: S
 export class MongoHealthScoreRepository implements HealthScoreRepository {
   constructor(private readonly db: Db) {}
 
+  async listActiveRestaurantIds(): Promise<ObjectId[]> {
+    const restaurants = await this.db
+      .collection<RestaurantDocument>(COLLECTIONS.restaurants)
+      .find({ status: "active" }, { projection: { _id: 1 } })
+      .sort({ _id: 1 })
+      .toArray();
+    return restaurants.map((restaurant) => restaurant._id);
+  }
+
   async getSnapshot(restaurantId: ObjectId, from: Date, until: Date): Promise<HealthScoreSnapshot> {
     const [
       orderRecords,

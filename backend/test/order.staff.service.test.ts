@@ -152,9 +152,16 @@ class FakeStaffOrderRepository implements StaffOrderRepository {
   }
 }
 
-function serviceWith(repository = new FakeStaffOrderRepository()) {
+function serviceWith(
+  repository = new FakeStaffOrderRepository(),
+  notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
+) {
   let tick = 0;
-  const service = new StaffOrderService(repository, () => new Date(at.getTime() + ++tick * 1_000));
+  const service = new StaffOrderService(
+    repository,
+    () => new Date(at.getTime() + ++tick * 1_000),
+    notifyHealthScoreRefresh,
+  );
   return { repository, service };
 }
 
@@ -185,7 +192,10 @@ test("staff order feed uses tenant scope and role-specific server status sets", 
 });
 
 test("kitchen item progress derives Preparing and Ready from all order items", async () => {
-  const { repository, service } = serviceWith();
+  const notifications: ObjectId[] = [];
+  const { repository, service } = serviceWith(new FakeStaffOrderRepository(), (tenantId) =>
+    notifications.push(tenantId),
+  );
 
   let updated = await service.updateItemPreparationStatus(
     restaurantId,
@@ -212,6 +222,10 @@ test("kitchen item progress derives Preparing and Ready from all order items", a
     { from: "Preparing", to: "Ready" },
   ]);
   assert.ok(updated.items.every((item) => item.preparationStatus === "Ready"));
+  assert.deepEqual(
+    notifications,
+    Array.from({ length: 4 }, () => restaurantId),
+  );
 });
 
 test("idempotent item retry reconciles an order header after a partial write", async () => {
@@ -237,7 +251,8 @@ test("idempotent item retry reconciles an order header after a partial write", a
 
 test("staff order lifecycle permits only accept, serve, and complete transitions", async () => {
   const repository = new FakeStaffOrderRepository();
-  const { service } = serviceWith(repository);
+  const notifications: ObjectId[] = [];
+  const { service } = serviceWith(repository, (tenantId) => notifications.push(tenantId));
   repository.order = makeOrder("Created");
   assert.equal(
     (await service.updateOrderStatus(restaurantId, orderId, "Accepted")).status,
@@ -261,6 +276,10 @@ test("staff order lifecycle permits only accept, serve, and complete transitions
   await assert.rejects(
     service.updateOrderStatus(restaurantId, orderId, "Preparing"),
     (error: unknown) => error instanceof OrderError && error.code === "invalid_order_transition",
+  );
+  assert.deepEqual(
+    notifications,
+    Array.from({ length: 3 }, () => restaurantId),
   );
 });
 

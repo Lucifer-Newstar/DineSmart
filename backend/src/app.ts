@@ -20,7 +20,7 @@ import { MongoRegistrationOtpRepository } from "./auth/registration.repository.j
 import { connectToDatabase } from "./database.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
-import { HealthScoreService } from "./healthscore/health-score.service.js";
+import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 import { MongoInventoryRepository } from "./inventory/inventory.repository.js";
 import { createInventoryRouter } from "./inventory/inventory.router.js";
 import { InventoryService } from "./inventory/inventory.service.js";
@@ -49,6 +49,12 @@ export interface AppOptions {
 
 export function createApp(options: AppOptions = {}) {
   const app = express();
+  const healthScoreRefreshScheduler = new HealthScoreRefreshScheduler(
+    async () =>
+      new MongoHealthScoreRepository(await (options.getDatabase?.() ?? connectToDatabase())),
+    { onError: () => console.error("A background health-score refresh failed.") },
+  );
+  app.locals.healthScoreRefreshScheduler = healthScoreRefreshScheduler;
   const nodeEnvironment = options.nodeEnvironment ?? process.env.NODE_ENV ?? "development";
   const configuredWebOrigin = options.webOrigin ?? process.env.WEB_ORIGIN;
   const webOrigin =
@@ -131,9 +137,9 @@ export function createApp(options: AppOptions = {}) {
     "/api/v1/healthscore",
     createHealthScoreRouter({
       createRuntime: async () => {
-        const { db, service: authService } = await createAuthRuntime();
+        const { service: authService } = await createAuthRuntime();
         return {
-          service: new HealthScoreService(new MongoHealthScoreRepository(db)),
+          service: healthScoreRefreshScheduler,
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
@@ -146,7 +152,11 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new InventoryService(new MongoInventoryRepository(db)),
+          service: new InventoryService(
+            new MongoInventoryRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
@@ -180,7 +190,11 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new ReservationService(new MongoReservationRepository(db)),
+          service: new ReservationService(
+            new MongoReservationRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
@@ -193,7 +207,11 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new StaffOrderService(new MongoOrderRepository(db)),
+          service: new StaffOrderService(
+            new MongoOrderRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
@@ -206,7 +224,11 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new OrderService(new MongoOrderRepository(db)),
+          service: new OrderService(
+            new MongoOrderRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
@@ -219,7 +241,11 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new StaffOrderService(new MongoOrderRepository(db)),
+          service: new StaffOrderService(
+            new MongoOrderRepository(db),
+            undefined,
+            healthScoreRefreshScheduler.notifyOperationalEvent,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

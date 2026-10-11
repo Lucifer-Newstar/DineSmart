@@ -61,7 +61,11 @@ export interface HealthScoreSnapshot {
 
 export interface HealthScoreRepository {
   getSnapshot(restaurantId: ObjectId, from: Date, until: Date): Promise<HealthScoreSnapshot>;
+  listActiveRestaurantIds(): Promise<ObjectId[]>;
 }
+
+/** Event hook for operational write services to invalidate and refresh a tenant score. */
+export type HealthScoreRefreshNotifier = (restaurantId: ObjectId) => void;
 
 export interface HealthScoreResult {
   score: number;

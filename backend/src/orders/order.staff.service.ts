@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import type { OrderStatus, PreparationStatus } from "../database/schema.js";
+import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import { OrderError } from "./order.service.js";
 import type {
   KitchenPreparationUpdate,
@@ -28,6 +29,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
   constructor(
     private readonly repository: StaffOrderRepository,
     private readonly clock: () => Date = () => new Date(),
+    private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
   ) {}
 
   listRestaurantOrders(restaurantId: ObjectId, view: StaffOrderView) {
@@ -69,6 +71,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
       );
     }
 
+    this.notifyHealthScoreRefresh(restaurantId);
     return this.findOrder(orderId, restaurantId);
   }
 
@@ -85,7 +88,9 @@ export class StaffOrderService implements StaffOrderServiceReader {
     }
 
     if (item.preparationStatus === nextStatus) {
-      return this.synchronizeHeader(orderId, restaurantId);
+      const reconciled = await this.synchronizeHeader(orderId, restaurantId);
+      this.notifyHealthScoreRefresh(restaurantId);
+      return reconciled;
     }
 
     const expectedNext = ITEM_PREPARATION_TRANSITIONS[item.preparationStatus];
@@ -118,6 +123,7 @@ export class StaffOrderService implements StaffOrderServiceReader {
       }
     }
 
+    this.notifyHealthScoreRefresh(restaurantId);
     return this.synchronizeHeader(orderId, restaurantId);
   }
 

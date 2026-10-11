@@ -3,6 +3,7 @@ import type { Db } from "mongodb";
 import { createApp } from "./app.js";
 import { initializeDatabaseSchema } from "./database/schema.js";
 import { closeDatabase, connectToDatabase } from "./database.js";
+import type { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 
 const port = Number(process.env.PORT ?? 3001);
 
@@ -32,13 +33,22 @@ function getSchemaReadyDatabase(): Promise<Db> {
 }
 
 const app = createApp({ getDatabase: getSchemaReadyDatabase });
+const healthScoreRefreshScheduler = app.locals
+  .healthScoreRefreshScheduler as HealthScoreRefreshScheduler;
 const server = app.listen(port, "0.0.0.0", () => {
   console.info(`Andhrímnir API server listening on port ${port}.`);
 });
 
 if (process.env.MONGODB_URI) {
   void getSchemaReadyDatabase()
-    .then(() => console.info("Connected to MongoDB; schema indexes are ready."))
+    .then(() => {
+      console.info("Connected to MongoDB; schema indexes are ready.");
+      void healthScoreRefreshScheduler.startHourlyRefresh().catch(() => {
+        console.error(
+          "The initial health-score refresh failed; the hourly retry remains scheduled.",
+        );
+      });
+    })
     .catch(() => {
       console.error(
         "MongoDB connection or schema initialization failed; the API remains in liveness-only mode.",
@@ -50,6 +60,7 @@ if (process.env.MONGODB_URI) {
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
+    healthScoreRefreshScheduler.stopHourlyRefresh();
     server.close((error) => {
       if (error) {
         console.error("The API server did not shut down cleanly.", error);

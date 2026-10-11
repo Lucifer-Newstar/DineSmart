@@ -81,8 +81,12 @@ class FakeOrderRepository implements OrderRepository {
   }
 }
 
-function serviceWith(repository = new FakeOrderRepository(), clock = () => now) {
-  return { repository, service: new OrderService(repository, clock) };
+function serviceWith(
+  repository = new FakeOrderRepository(),
+  clock = () => now,
+  notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
+) {
+  return { repository, service: new OrderService(repository, clock, notifyHealthScoreRefresh) };
 }
 
 test("customer order uses available database prices and stores integer-minor-unit snapshots", async () => {
@@ -117,6 +121,24 @@ test("customer order uses available database prices and stores integer-minor-uni
       preparationStatus: "Created",
     },
   ]);
+});
+
+test("successful order creation and cancellation notify the tenant health-score refresher", async () => {
+  const notifications: ObjectId[] = [];
+  const { service } = serviceWith(
+    new FakeOrderRepository(),
+    () => now,
+    (tenantId) => notifications.push(tenantId),
+  );
+
+  await service.createForCustomer({
+    userId,
+    restaurantId,
+    items: [{ menuItemId: menuDosaId, quantity: 1 }],
+  });
+  await service.cancelForCustomer(userId, orderId);
+
+  assert.deepEqual(notifications, [restaurantId, restaurantId]);
 });
 
 test("order creation rejects invalid quantities, repeated items, excessive units, and unavailable IDs", async () => {

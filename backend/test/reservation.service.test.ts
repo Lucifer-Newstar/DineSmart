@@ -129,8 +129,15 @@ class FakeReservationRepository implements ReservationRepository {
   }
 }
 
-function serviceWith(repository = new FakeReservationRepository(), clock = () => now) {
-  return { repository, service: new ReservationService(repository, clock) };
+function serviceWith(
+  repository = new FakeReservationRepository(),
+  clock = () => now,
+  notifyHealthScoreRefresh?: (tenantId: ObjectId) => void,
+) {
+  return {
+    repository,
+    service: new ReservationService(repository, clock, notifyHealthScoreRefresh),
+  };
 }
 
 test("customer requests create an unassigned reservation with a server-derived 90-minute duration", async () => {
@@ -149,6 +156,20 @@ test("customer requests create an unassigned reservation with a server-derived 9
   assert.equal(reservation.endAt.getTime(), startAt.getTime() + RESERVATION_DURATION_MS);
   assert.equal(reservation.notes, "Window seat, if possible.");
   assert.equal(repository.created?.customerId, customerId);
+});
+
+test("reservation creation and status changes request tenant health-score refreshes", async () => {
+  const notifications: ObjectId[] = [];
+  const { service } = serviceWith(
+    new FakeReservationRepository(),
+    () => now,
+    (tenantId) => notifications.push(tenantId),
+  );
+
+  await service.createForCustomer({ userId, restaurantId, partySize: 2, startAt });
+  await service.updateForCustomer({ userId, reservationId, status: "Cancelled" });
+
+  assert.deepEqual(notifications, [restaurantId, restaurantId]);
 });
 
 test("reservation requests enforce party size, 30-minute slots, future time, opening hours, and note bounds", async () => {

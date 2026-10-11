@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type {
   CustomerReservationRequest,
   CustomerReservationUpdate,
@@ -42,6 +43,7 @@ export class ReservationService implements ReservationServiceReader {
   constructor(
     private readonly repository: ReservationRepository,
     private readonly clock: () => Date = () => new Date(),
+    private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
   ) {}
 
   async listForCustomer(userId: ObjectId) {
@@ -70,7 +72,9 @@ export class ReservationService implements ReservationServiceReader {
       status: "Awaiting",
       ...(notes === undefined ? {} : { notes }),
     };
-    return this.repository.createReservation(reservation, now);
+    const created = await this.repository.createReservation(reservation, now);
+    this.notifyHealthScoreRefresh(request.restaurantId);
+    return created;
   }
 
   async createForStaff(request: StaffReservationRequest): Promise<ReservationRecord> {
@@ -103,7 +107,9 @@ export class ReservationService implements ReservationServiceReader {
       status: request.tableId ? "Confirmed" : "Awaiting",
       ...(notes === undefined ? {} : { notes }),
     };
-    return this.repository.createReservation(reservation, now);
+    const created = await this.repository.createReservation(reservation, now);
+    this.notifyHealthScoreRefresh(request.restaurantId);
+    return created;
   }
 
   async updateForCustomer(request: CustomerReservationUpdate): Promise<ReservationRecord> {
@@ -130,6 +136,7 @@ export class ReservationService implements ReservationServiceReader {
       now,
     );
     if (!updated) throw changedReservationError();
+    this.notifyHealthScoreRefresh(current.restaurantId);
     return updated;
   }
 
@@ -187,6 +194,7 @@ export class ReservationService implements ReservationServiceReader {
       now,
     );
     if (!updated) throw changedReservationError();
+    this.notifyHealthScoreRefresh(request.restaurantId);
     return updated;
   }
 
