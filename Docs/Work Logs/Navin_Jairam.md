@@ -264,3 +264,10 @@
 - Updated the canonical API spec, implementation recommendations, schema/test acceptance notes, and backlog. Documented the assistant-recommended two-step endpoints, approved OTP limits, 5/10 per-IP limits, mock-provider boundary, generic response/timing caveat, stale-refresh fallback, and all remaining live-service blockers without implying owner approval.
 - S2-15 is recorded as **Ready to Push** on local `main`, not Complete. Local Node `24.21.0` backend validation: Biome checked 128 files, typecheck/build passed, all 216 tests passed, audit found zero high-severity vulnerabilities, and `git diff --check` passed.
 - No live MongoDB/Atlas behavior, real provider delivery, remote CI, deployment, push, or merge is claimed. Atlas provisioning/live checks and deployment remain deferred until the project's remaining work is finished.
+
+### 2026-10-11 — S2-16 Staff Management contract and shared integration started
+
+- Continued sequentially on local `main`; marked S2-16 In Progress after the S2-15 local checkpoint.
+- Documented an assistant-recommended contract for the existing staff list/update inventory, including Manager/Administrator-only access, signed-tenant scoping, safe bounded roster fields, updates to both auth user and staff membership, and a refresh-session invalidation watermark. It is not a separate owner approval.
+- Shared architecture/API/test-plan documentation and app/runtime mounting remain Navin-owned. Feature repository/service are assigned to Jegatheesan, with Gokul taking a substantive HTTP/security test sub-scope.
+- Live database and multi-document behavior remain unverified; no push, deployment, or remote CI is planned for this local checkpoint.
