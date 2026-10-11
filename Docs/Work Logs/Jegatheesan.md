@@ -113,3 +113,12 @@
 - Implement a tenant-scoped bounded roster and safe role/active-state updates for existing staff only; no invitation/creation, shift/scheduling, payroll, contact editing, or staff deletion. The two-document update and session-watermark choices are recommendations, not separate owner approvals.
 - Gokul is assigned a real sub-scope: the HTTP/security test suite for route validation, role gates, signed-tenant isolation, and safe responses. Shared endpoint/architecture docs and app composition remain Navin-owned.
 - Live MongoDB/Atlas verification, deployment, push, and remote CI remain deferred/unavailable; tests will use repository fakes.
+
+### 2026-10-11 — S2-16 Staff Management API local closeout
+
+- Implemented `GET /api/v1/staff` and `PUT /api/v1/staff/{id}` for Manager/Administrator using only the signed restaurant scope. The bounded 500-member roster joins minimal auth-user fields and omits hashes/OTP/session secrets. Updates allow only a supported staff role and/or active state; no invitation/create, schedule, payroll, contact edit, or delete workflow was added.
+- Kept the auth `users` document authoritative and synchronized its linked `staff` membership. Optimistic user updates, same-tenant membership filters, safe not-found responses, a self-deactivation guard, and a `refreshSessionsInvalidBefore` watermark prevent old refresh families from reviving after role changes/deactivation/reactivation. Access JWTs remain stateless and usable until their existing 15-minute expiry.
+- **Jegatheesan implementation commits:** `ddfd32e` (types, Mongo repository/service, schema/session-watermark changes and unit tests) and `9326e13` (protected router). **Gokul route/security tests:** `641fcc3`. **Navin app integration:** `d3304f8`.
+- **Local verification via Node `24.21.0`:** Biome checked 135 backend files with no findings; typecheck and production build passed; all 237 backend tests passed; `npm audit --audit-level=high` reported zero vulnerabilities; `git diff --check` passed. The base shell Node remains `20.20.2`.
+- Cross-collection changes cannot be transactional on the selected standalone local MongoDB. Fake-backed tests exercise filters/failure paths, but no live MongoDB/Atlas, browser UI, remote CI, deployment, push, or merge is claimed.
+- **Status:** S2-16 is **Ready to Push** on local `main`, not Complete.
