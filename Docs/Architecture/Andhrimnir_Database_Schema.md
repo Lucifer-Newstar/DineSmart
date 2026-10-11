@@ -18,7 +18,7 @@ All documents have MongoDB `_id` and `createdAt`/`updatedAt` timestamps unless n
 
 | Collection | Initial fields | Scope |
 | --- | --- | --- |
-| `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `googleSubject`, optional `passwordHash`, optional `emailOtpCodeHash`/`emailOtpExpiresAt`/`emailOtpResendAt`/`emailOtpAttempts` for pending Email/OTP registration; S2-15 adds separate optional `passwordResetCodeHash`/`passwordResetExpiresAt`/`passwordResetResendAt`/`passwordResetAttempts` and `passwordChangedAt` | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
+| `users` | `name`, `email`, `normalizedEmail`, `role`, `restaurantId`, `status`, optional `authProvider`, optional `googleSubject`, optional `passwordHash`, optional `emailOtpCodeHash`/`emailOtpExpiresAt`/`emailOtpResendAt`/`emailOtpAttempts` for pending Email/OTP registration; S2-15 adds separate optional `passwordResetCodeHash`/`passwordResetExpiresAt`/`passwordResetResendAt`/`passwordResetAttempts`, `passwordChangedAt`, and `refreshSessionsInvalidBefore` | Customer users may have `restaurantId: null`; other roles require an `ObjectId` at the type level. |
 | `refresh_sessions` | `userId`, current `tokenHash`, `usedTokenHashes`, absolute `expiresAt`, `revokedAt`, `lastUsedAt` | Authentication session family; token values are hashes, and the session is not restaurant-scoped. |
 | `restaurants` | `name`, optional `contact`/`address`, `timezone`, `currency`, optional `operatingHours`/`thresholds`, `status` | Root tenant record. |
 | `customers` | optional `userId`, `displayName`, optional guest `email`/`phone`, optional `contactPreferences` | Global profile; not tenant-scoped. |

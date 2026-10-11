@@ -261,9 +261,10 @@ S2-15 is **Ready to Push** on local `main`, not Complete. The two-step endpoint 
 
 ## 27. S2-16 Staff Management API Verification
 
-S2-16 is **In Progress**. The request semantics below are assistant recommendations, not separate owner approvals. Only Manager/Administrator can manage the roster; the API remains tenant-scoped, and adding staff or managing schedules/payroll is not part of the current inventory.
+S2-16 is **Ready to Push** on local `main`, not Complete. The request semantics below are assistant recommendations, not separate owner approvals. Only Manager/Administrator can manage the roster; the API remains tenant-scoped, and adding staff or managing schedules/payroll is not part of the current inventory.
 
 - Test repository filtering on the signed restaurant, bounded list ordering/truncation, safe joins to user records, atomic user role/status change, staff projection synchronization, and the refresh-session watermark.
 - Test HTTP role gates, strict body/query/path validation, same-tenant reads/updates, safe serialization, self-deactivation denial, inactive membership visibility/reactivation, and indistinguishable absent/cross-tenant updates.
 - Verify refresh rejects pre-change token families after both role/status changes and reactivation; existing access tokens remain valid only until their current 15-minute expiry.
-- Local fake-backed tests cannot prove two-collection atomicity. Live MongoDB behavior/indexes, browser workflow, remote CI, deployment, push, and merge are outstanding.
+- **Local verification via Node `24.21.0`:** Biome checked 135 backend files with no findings; typecheck and production build passed; all 237 backend tests passed; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed.
+- Tests use fake repositories. The auth user and staff membership are separate documents; a local standalone DB cannot make the update transactional. Live MongoDB/index behavior, browser workflow, remote CI, deployment, push, and merge remain outstanding/deferred.

@@ -132,7 +132,7 @@ See the [S1-08 Database Schema](Andhrimnir_Database_Schema.md) for collections, 
 ### Pending API contract and schema decisions
 
 - Global success/error envelopes, pagination/filter conventions, and validation/error codes remain draft for routes that are not implemented. S2-03 defines a locally tested reservation contract below; this is an assistant recommendation, not a separate owner approval.
-- Remaining endpoint operations include individual order detail, inventory creation, table listing, staff creation/deactivation, and notification read state. S2-04 now defines and locally implements customer order creation/history/cancellation; S2-05 locally implements the recommended tenant-scoped kitchen queue and staff order progression; OTP request/verify and reservation cancellation/table assignment also have local implementations.
+- Remaining endpoint operations include individual order detail, inventory creation, table listing, staff invitation/creation, and notification read state. S2-04 now defines and locally implements customer order creation/history/cancellation; S2-05 locally implements the recommended tenant-scoped kitchen queue and staff order progression; OTP request/verify and reservation cancellation/table assignment also have local implementations.
 - Exact runtime/document validation rules, optionality for unresolved workflow fields, restaurant onboarding, and remaining workflow constraints still require definition as their APIs are implemented.
 
 The canonical endpoint inventory is in the [API Specification](Andhrimnir_API_Specification.md). The S1-08 field list is a persistence baseline, not a substitute for finalizing API payloads and domain validation before the remaining workflows are implemented.
@@ -391,7 +391,7 @@ These open points should be clarified in the owning canonical documents before w
 
 ## 14. S2-16 Staff Management API recommendations (assistant-selected 2026-10-11)
 
-S2-16 specifies only the staff route inventory, so the following fills the request, scope, and update semantics as a recommendation, not a separate owner approval. The implementation remains In Progress until the API, tests, app wiring, and local verification are committed.
+S2-16 specifies only the staff route inventory, so the following fills the request, scope, and update semantics as a recommendation, not a separate owner approval. The local API, tests, app wiring, and local verification are committed; S2-16 is Ready to Push, not Complete. Live database and remote verification remain outstanding.
 
 - Keep the existing `GET /api/v1/staff` and `PUT /api/v1/staff/{id}` operations; do not add staff invitation/creation, shifts/scheduling, payroll, deletion, or user contact editing. Manager/Administrator are the only roles with the existing `staff:read`/`staff:write` permissions. All reads/writes derive `restaurantId` from the signed principal and include it in repository filters.
 - `GET` returns the restaurant's active and inactive membership entries, sorted by staff name and capped at 500 with `truncated`. Return only membership/user IDs, display name, email, current auth role, active state, and safe timestamps; never serialize password, OTP, refresh-session, or Google-secret data. Treat the linked `users` record as the authority for `role` and account status.

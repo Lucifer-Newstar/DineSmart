@@ -271,3 +271,10 @@
 - Documented an assistant-recommended contract for the existing staff list/update inventory, including Manager/Administrator-only access, signed-tenant scoping, safe bounded roster fields, updates to both auth user and staff membership, and a refresh-session invalidation watermark. It is not a separate owner approval.
 - Shared architecture/API/test-plan documentation and app/runtime mounting remain Navin-owned. Feature repository/service are assigned to Jegatheesan, with Gokul taking a substantive HTTP/security test sub-scope.
 - Live database and multi-document behavior remain unverified; no push, deployment, or remote CI is planned for this local checkpoint.
+
+### 2026-10-11 — S2-16 shared integration and documentation closeout
+
+- Mounted the staff runtime at `/api/v1/staff` using the shared Mongo/auth runtime and added an app-level protected-route assertion. **Shared integration commit:** `d3304f8`.
+- Updated the canonical endpoint inventory, recommendation/security/session-watermark documentation, database schema, backlog, acceptance criteria, and test plan. Kept the sparse staff route choices explicitly assistant-recommended, not owner-approved, and recorded the cross-collection standalone MongoDB limitation.
+- S2-16 is **Ready to Push** on local `main`, not Complete. Final local Node `24.21.0` verification: backend Biome checked 135 files, typecheck/build passed, all 237 tests passed, audit found zero high-severity vulnerabilities, and `git diff --check` passed.
+- Live MongoDB/Atlas, browser workflow, remote CI, deployment, push, and merge remain unverified or deferred to later work.
