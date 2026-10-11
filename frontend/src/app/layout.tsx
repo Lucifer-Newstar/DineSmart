@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AuthProvider } from "./auth-provider";
 import "./globals.css";
 import "./menu/menu.css";
+import "./orders/orders.css";
 
 export const metadata: Metadata = {
   title: {
