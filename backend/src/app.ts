@@ -19,6 +19,8 @@ import { createAuthRouter } from "./auth/auth.router.js";
 import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
 import { EmailOtpService } from "./auth/email-otp.service.js";
 import { GoogleIdTokenVerifier, GoogleOAuthService } from "./auth/google-oauth.service.js";
+import { MongoPasswordResetRepository } from "./auth/password-reset.repository.js";
+import { PasswordResetService } from "./auth/password-reset.service.js";
 import { MongoRegistrationOtpRepository } from "./auth/registration.repository.js";
 import { MongoBillRepository } from "./bills/bill.repository.js";
 import { createBillRouter } from "./bills/bill.router.js";
@@ -166,6 +168,17 @@ export function createApp(options: AppOptions = {}) {
         return new EmailOtpService(
           new MongoRegistrationOtpRepository(db),
           service,
+          secret,
+          emailProvider,
+          nodeEnvironment,
+        );
+      },
+      createPasswordResetService: async () => {
+        const { db, secret } = await createAuthRuntime();
+        const emailProvider =
+          process.env.EMAIL_PROVIDER ?? (nodeEnvironment === "production" ? "" : "mock");
+        return new PasswordResetService(
+          new MongoPasswordResetRepository(db),
           secret,
           emailProvider,
           nodeEnvironment,

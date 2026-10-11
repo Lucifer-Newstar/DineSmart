@@ -65,6 +65,13 @@ test("createApp mounts the public menu and protected analytics, billing, order, 
     const billsResponse = await fetch(`${baseUrl}/api/v1/bills/111111111111111111111111`);
     assert.equal(billsResponse.status, 401);
 
+    const resetResponse = await fetch(`${baseUrl}/api/v1/auth/reset-password/request`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(resetResponse.status, 400);
+
     const kitchenResponse = await fetch(`${baseUrl}/api/v1/kitchen/queue`);
     assert.equal(kitchenResponse.status, 401);
 
