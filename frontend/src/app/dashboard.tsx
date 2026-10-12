@@ -2014,7 +2014,7 @@ export function Dashboard() {
 
   const signOutAndNotify = async () => {
     await signOut();
-    notify("You are signed out. The sample workspace remains available.");
+    notify("You are signed out. The sample workspace is available at /dashboard.");
   };
 
   if (user?.role === "Customer") {

@@ -279,7 +279,7 @@ export default function RegisterPage() {
             </>
           )}
           <Link className="auth-back-link" href="/">
-            ← Back to the preview workspace
+            ← Back to DineSmart home
           </Link>
         </div>
       </section>

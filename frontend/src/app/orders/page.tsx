@@ -237,7 +237,7 @@ export default function OrdersPage() {
             Browse menu
           </Link>
           <Link className="menu-back-link" href="/">
-            Workspace
+            Home
           </Link>
         </div>
       </header>
