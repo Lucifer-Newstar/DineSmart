@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 export const REQUIRED_DEMO_DOCUMENTS = [
   "Docs/Quality/Andhrimnir_Demo_Runbook.md",
@@ -98,7 +99,7 @@ export function formatDemoReadinessReport(checks) {
 
 function main(argv, stdout) {
   const strict = argv.includes("--strict");
-  const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const checks = buildChecks(rootDir);
   const summary = evaluateDemoReadiness(checks);
 
@@ -106,6 +107,7 @@ function main(argv, stdout) {
   return strict && !summary.ok ? 1 : 0;
 }
 
-if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
+const invokedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedDirectly) {
   process.exitCode = main(process.argv.slice(2), process.stdout);
 }
