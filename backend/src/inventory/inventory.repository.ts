@@ -9,6 +9,20 @@ import type {
 
 export const INVENTORY_LIST_LIMIT = 2_000;
 
+/**
+ * Stock reads need the dashboard's display and threshold fields only; the
+ * remaining audit fields stay server-side.
+ */
+const INVENTORY_PROJECTION = {
+  _id: 1,
+  restaurantId: 1,
+  name: 1,
+  quantity: 1,
+  unit: 1,
+  lowStockThreshold: 1,
+  lastAdjustedAt: 1,
+} as const;
+
 function toRecord(document: InventoryItemDocument & { _id: ObjectId }): InventoryItemRecord {
   return {
     id: document._id,
@@ -26,7 +40,7 @@ export class MongoInventoryRepository implements InventoryRepository {
   async listForRestaurant(restaurantId: ObjectId): Promise<InventoryListResult> {
     const documents = await this.db
       .collection<InventoryItemDocument>(COLLECTIONS.inventoryItems)
-      .find({ restaurantId })
+      .find({ restaurantId }, { projection: INVENTORY_PROJECTION })
       .sort({ name: 1 })
       .limit(INVENTORY_LIST_LIMIT + 1)
       .toArray();
@@ -57,7 +71,10 @@ export class MongoInventoryRepository implements InventoryRepository {
     const update = await collection.updateOne({ _id: itemId, restaurantId }, { $set: fields });
     if (update.matchedCount === 0) return null;
 
-    const document = await collection.findOne({ _id: itemId, restaurantId });
+    const document = await collection.findOne(
+      { _id: itemId, restaurantId },
+      { projection: INVENTORY_PROJECTION },
+    );
     return document ? toRecord(document as InventoryItemDocument & { _id: ObjectId }) : null;
   }
 }
