@@ -4,6 +4,7 @@ import {
   canAccessDashboardSection,
   canViewAnalytics,
   canViewHealthScore,
+  canViewIncidents,
   canViewRecommendations,
   dashboardWorkspaceScopeKey,
   navigationForRole,
@@ -72,6 +73,11 @@ test("dashboard-only access follows the approved role matrix", () => {
   assert.equal(canViewAnalytics("Administrator"), true);
   assert.equal(canViewAnalytics("Reception"), false);
   assert.equal(canViewAnalytics("Kitchen Staff"), false);
+  assert.equal(canViewIncidents("Manager"), true);
+  assert.equal(canViewIncidents("Administrator"), true);
+  assert.equal(canViewIncidents("Reception"), false);
+  assert.equal(canViewIncidents("Kitchen Staff"), false);
+  assert.equal(canViewIncidents("Customer"), false);
   assert.equal(canViewHealthScore("Reception"), true);
   assert.equal(canViewHealthScore("Kitchen Staff"), false);
   assert.equal(canViewRecommendations(undefined), true);

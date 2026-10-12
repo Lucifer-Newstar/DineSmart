@@ -70,6 +70,10 @@ export function canViewAnalytics(role: DashboardRole | null | undefined): boolea
   return role === "Manager" || role === "Administrator";
 }
 
+export function canViewIncidents(role: DashboardRole | null | undefined): boolean {
+  return role === "Manager" || role === "Administrator";
+}
+
 export function canViewHealthScore(role: DashboardRole | null | undefined): boolean {
   return role === "Reception" || role === "Manager" || role === "Administrator";
 }

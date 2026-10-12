@@ -10,12 +10,14 @@ import {
   canAccessDashboardSection,
   canViewAnalytics,
   canViewHealthScore,
+  canViewIncidents,
   canViewRecommendations,
   dashboardWorkspaceScopeKey,
   navigationForRole,
   resolveDashboardSection,
   valueForDashboardWorkspace,
 } from "./dashboard-access";
+import { type IncidentRecord, parseIncidentsResponse } from "./incident-data";
 import {
   parseGeneratedRecommendationResponse,
   parseRecommendationsResponse,
@@ -131,6 +133,7 @@ type RecommendationViewStatus =
   | "empty"
   | "unavailable"
   | "restricted";
+type IncidentViewStatus = "preview" | "loading" | "live" | "empty" | "unavailable" | "restricted";
 
 interface HealthScoreMetric {
   score: number;
@@ -316,6 +319,35 @@ const DEMO_RECOMMENDATION: Recommendation = {
     },
   ],
 };
+
+const DEMO_INCIDENTS: IncidentRecord[] = [
+  {
+    id: INCIDENT_INVENTORY_ID,
+    type: "inventory_shortage",
+    severity: "critical",
+    status: "open",
+    triggerSnapshot: { available: 2.4, lowStockThreshold: 4, unit: "kg" },
+    affectedEntity: { type: "inventory_item", id: "710000000000000000000010" },
+    rootCause: "Paneer stock is below the configured reorder threshold.",
+    createdAt: "2026-10-10T12:31:00.000Z",
+    updatedAt: "2026-10-10T12:31:00.000Z",
+    resolvedAt: null,
+    resolutionReason: null,
+  },
+  {
+    id: "71000000000000000000001e",
+    type: "reservation_conflict",
+    severity: "info",
+    status: "resolved",
+    triggerSnapshot: { partySize: 2, conflictCount: 1, capacity: 4, tableStatus: "reserved" },
+    affectedEntity: { type: "reservation", id: "710000000000000000000015" },
+    rootCause: "A reservation conflict cleared after the affected table became available.",
+    createdAt: "2026-10-10T09:15:00.000Z",
+    updatedAt: "2026-10-10T09:24:00.000Z",
+    resolvedAt: "2026-10-10T09:24:00.000Z",
+    resolutionReason: "condition_cleared",
+  },
+];
 
 function Icon({
   name,
@@ -1454,6 +1486,11 @@ export function Dashboard() {
   const [reservationsTruncated, setReservationsTruncated] = useState(false);
   const [reservationsRefreshKey, setReservationsRefreshKey] = useState(0);
   const [savingReservationId, setSavingReservationId] = useState("");
+  const [incidents, setIncidents] = useState(DEMO_INCIDENTS);
+  const [incidentScopeKey, setIncidentScopeKey] = useState("preview");
+  const [incidentViewStatus, setIncidentViewStatus] = useState<IncidentViewStatus>("preview");
+  const [incidentTruncated, setIncidentTruncated] = useState(false);
+  const [incidentRefreshKey, setIncidentRefreshKey] = useState(0);
   const [recommendation, setRecommendation] = useState(DEMO_RECOMMENDATION);
   const [recommendationScopeKey, setRecommendationScopeKey] = useState("preview");
   const [recommendationReviewed, setRecommendationReviewed] = useState(false);
@@ -1486,6 +1523,31 @@ export function Dashboard() {
       : accessToken && role && canViewRecommendations(role)
         ? "loading"
         : "preview";
+  const incidentScopeMatches = incidentScopeKey === workspaceScopeKey;
+  const currentIncidents = incidentScopeMatches
+    ? incidents
+    : accessToken && role && canViewIncidents(role)
+      ? []
+      : DEMO_INCIDENTS;
+  const currentIncidentStatus: IncidentViewStatus = incidentScopeMatches
+    ? incidentViewStatus
+    : accessToken && role
+      ? canViewIncidents(role)
+        ? "loading"
+        : "restricted"
+      : "preview";
+  const currentIncidentTruncated = incidentScopeMatches && incidentTruncated;
+  const currentRecommendationIncident = currentIncidents.find(
+    (incident) => incident.id.toLowerCase() === currentRecommendation.incidentId.toLowerCase(),
+  );
+  const currentOpenIncidentCount =
+    currentIncidentStatus === "live" ||
+    currentIncidentStatus === "empty" ||
+    currentIncidentStatus === "preview"
+      ? currentIncidents.filter(
+          (incident) => incident.status === "open" || incident.status === "active",
+        ).length
+      : null;
 
   useEffect(() => {
     if (recommendationScopeKey === workspaceScopeKey) return;
@@ -1540,6 +1602,59 @@ export function Dashboard() {
 
     return () => controller.abort();
   }, [accessToken, role, workspaceScopeKey]);
+
+  useEffect(() => {
+    if (!accessToken || !role) {
+      setIncidents(DEMO_INCIDENTS);
+      setIncidentTruncated(false);
+      setIncidentScopeKey(workspaceScopeKey);
+      setIncidentViewStatus("preview");
+      return;
+    }
+
+    if (!canViewIncidents(role)) {
+      setIncidents([]);
+      setIncidentTruncated(false);
+      setIncidentScopeKey(workspaceScopeKey);
+      setIncidentViewStatus("restricted");
+      return;
+    }
+
+    const controller = new AbortController();
+    setIncidents([]);
+    setIncidentTruncated(false);
+    setIncidentScopeKey(workspaceScopeKey);
+    setIncidentViewStatus("loading");
+    void fetch(`${API_BASE}/incidents`, {
+      cache: incidentRefreshKey > 0 ? "reload" : "no-store",
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (controller.signal.aborted) return;
+        if (response.status === 401 || response.status === 403) {
+          setIncidentViewStatus("restricted");
+          return;
+        }
+        if (!response.ok) throw new Error("Incidents are not available from the API.");
+        const parsed = parseIncidentsResponse(await response.json());
+        if (!parsed) throw new Error("The incident response was invalid.");
+        if (controller.signal.aborted) return;
+        setIncidents(parsed.incidents);
+        setIncidentTruncated(parsed.truncated);
+        setIncidentViewStatus(parsed.incidents.length === 0 ? "empty" : "live");
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
+          return;
+        setIncidents([]);
+        setIncidentTruncated(false);
+        setIncidentViewStatus("unavailable");
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, workspaceScopeKey, incidentRefreshKey]);
 
   useEffect(() => {
     if (!accessToken || !role || role === "Customer") {
@@ -2214,8 +2329,23 @@ export function Dashboard() {
                 <span>{item.label}</span>
                 {item.label === "Orders" ? (
                   <span className="nav-count">18</span>
-                ) : item.label === "Incidents" ? (
-                  <span className="nav-alert-dot" role="img" aria-label="1 open incident" />
+                ) : item.label === "Incidents" &&
+                  currentOpenIncidentCount !== null &&
+                  (currentOpenIncidentCount > 0 || currentIncidentTruncated) ? (
+                  <span
+                    className="nav-alert-dot"
+                    role="img"
+                    aria-label={
+                      currentIncidentTruncated && currentOpenIncidentCount === 0
+                        ? "Incident history is partial; open count may be incomplete"
+                        : `${currentIncidentStatus === "preview" ? "Sample preview: " : ""}${currentOpenIncidentCount} open incident${currentOpenIncidentCount === 1 ? "" : "s"}`
+                    }
+                    title={
+                      currentIncidentTruncated && currentOpenIncidentCount === 0
+                        ? "Incident history is partial"
+                        : `${currentOpenIncidentCount} open incident${currentOpenIncidentCount === 1 ? "" : "s"}`
+                    }
+                  />
                 ) : null}
               </button>
             </div>
@@ -2294,7 +2424,7 @@ export function Dashboard() {
               <button
                 className={`icon-button notification-button ${notificationsOpen ? "notification-active" : ""}`}
                 type="button"
-                aria-label="Notifications"
+                aria-label="Sample notifications, not connected to a live feed"
                 aria-expanded={notificationsOpen}
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
               >
@@ -2304,8 +2434,8 @@ export function Dashboard() {
               {notificationsOpen ? (
                 <div className="notification-popover">
                   <div className="popover-heading">
-                    <strong>Notifications</strong>
-                    <span>2 new</span>
+                    <strong>Sample notifications</strong>
+                    <span>Preview</span>
                   </div>
                   <div className="notification-item">
                     <span className="notification-mark notification-mark-coral">
@@ -2406,6 +2536,16 @@ export function Dashboard() {
                   </button>
                 ) : null}
               </>
+            ) : currentSection === "Incidents" ? (
+              <button
+                type="button"
+                className="button button-outline"
+                disabled={currentIncidentStatus === "loading"}
+                onClick={() => setIncidentRefreshKey((current) => current + 1)}
+              >
+                <Icon name="refresh" size={16} />
+                {currentIncidentStatus === "loading" ? "Loading…" : "Refresh incidents"}
+              </button>
             ) : currentSection === "Insights" ? (
               <button
                 type="button"
@@ -2444,6 +2584,10 @@ export function Dashboard() {
               inventoryStatus={inventoryStatus}
               inventoryTruncated={inventoryTruncated}
               recommendation={currentRecommendation}
+              recommendationStatus={currentRecommendationStatus}
+              openIncidentCount={currentOpenIncidentCount}
+              incidentStatus={currentIncidentStatus}
+              incidentTruncated={currentIncidentTruncated}
               showAi={canUseInsights}
               role={role}
               healthScore={healthScore}
@@ -2501,6 +2645,9 @@ export function Dashboard() {
             />
           ) : currentSection === "Incidents" ? (
             <IncidentsPage
+              incidents={currentIncidents}
+              status={currentIncidentStatus}
+              truncated={currentIncidentTruncated}
               recommendation={currentRecommendation}
               onInsights={() => goTo("Insights")}
             />
@@ -2508,6 +2655,8 @@ export function Dashboard() {
             <InsightsPage
               recommendation={currentRecommendation}
               recommendationStatus={currentRecommendationStatus}
+              incident={currentRecommendationIncident ?? null}
+              incidentStatus={currentIncidentStatus}
               reviewed={currentRecommendationReviewed}
               onReview={() => {
                 setRecommendationReviewed(true);
@@ -2712,6 +2861,10 @@ function OverviewPage({
   inventoryStatus,
   inventoryTruncated,
   recommendation,
+  recommendationStatus,
+  openIncidentCount,
+  incidentStatus,
+  incidentTruncated,
   showAi,
   role,
   healthScore,
@@ -2733,6 +2886,10 @@ function OverviewPage({
   inventoryStatus: InventoryViewStatus;
   inventoryTruncated: boolean;
   recommendation: Recommendation;
+  recommendationStatus: RecommendationViewStatus;
+  openIncidentCount: number | null;
+  incidentStatus: IncidentViewStatus;
+  incidentTruncated: boolean;
   showAi: boolean;
   role: AuthUser["role"] | undefined;
   healthScore: HealthScoreData | null;
@@ -2929,16 +3086,36 @@ function OverviewPage({
                 <Icon name="spark" size={18} />
               </span>
               <span>DINESMART ASSIST</span>
-              <span className="open-incident-tag">1 to review</span>
+              <span className="open-incident-tag">
+                {incidentStatus === "preview"
+                  ? "Sample preview"
+                  : incidentStatus === "loading"
+                    ? "Checking incidents…"
+                    : incidentStatus === "unavailable"
+                      ? "Incident feed unavailable"
+                      : incidentStatus === "restricted"
+                        ? "Access restricted"
+                        : openIncidentCount === 0
+                          ? incidentTruncated
+                            ? "Partial incident list"
+                            : "No open incidents"
+                          : `${openIncidentCount ?? 0}${incidentTruncated ? "+" : ""} to review`}
+              </span>
             </div>
             <div className="insight-teaser-label">
-              <span className="priority-dot" /> STOCK WATCH · HIGH PRIORITY
+              <span className={`priority-dot priority-dot-${recommendation.priority}`} />
+              {recommendation.priority.toUpperCase()} PRIORITY ·{" "}
+              {recommendationStatus === "live" && recommendation.source !== "demo"
+                ? "LIVE ADVISORY"
+                : recommendationStatus === "loading"
+                  ? "LOADING"
+                  : "SAMPLE PREVIEW"}
             </div>
             <h2>One thing to get ahead of.</h2>
             <p>{recommendation.summary}</p>
             <div className="insight-teaser-action">
               <span className="action-number">01</span>
-              <span>Confirm a quick stock transfer before the dinner rush peaks.</span>
+              <span>{recommendation.actions[0]?.description ?? "No action is available."}</span>
             </div>
             <div className="insight-teaser-footer">
               <span className={`insight-source-dot ${recommendation.source}`} />
@@ -3782,112 +3959,259 @@ function InventoryPage({
   );
 }
 
-function IncidentsPage({
+function incidentTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    kitchen_delay: "Kitchen delay",
+    order_delay: "Order delay",
+    kitchen_congestion: "Kitchen congestion",
+    inventory_shortage: "Inventory shortage",
+    reservation_conflict: "Reservation conflict",
+  };
+  return labels[type] ?? type.replaceAll("_", " ");
+}
+
+function incidentTriggerLabel(key: string): string {
+  const labels: Record<string, string> = {
+    elapsedMinutes: "Elapsed",
+    thresholdMinutes: "Threshold",
+    queueLength: "Queue length",
+    activeOrderCount: "Active orders",
+    oldestActiveOrderMinutes: "Oldest active order",
+    available: "Available stock",
+    lowStockThreshold: "Low-stock threshold",
+    partySize: "Party size",
+    conflictCount: "Conflicts",
+    capacity: "Table capacity",
+    tableStatus: "Table status",
+  };
+  return labels[key] ?? key;
+}
+
+function incidentTriggerValue(
+  key: string,
+  value: string | number | boolean,
+  snapshot: Record<string, string | number | boolean>,
+): string {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string") return value.replaceAll("_", " ");
+  const amount = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(value);
+  if (key.endsWith("Minutes")) return `${amount} min`;
+  if ((key === "available" || key === "lowStockThreshold") && typeof snapshot.unit === "string") {
+    return `${amount} ${snapshot.unit}`;
+  }
+  return amount;
+}
+
+function incidentTimestamp(value: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function IncidentCard({
+  incident,
   recommendation,
   onInsights,
 }: {
+  incident: IncidentRecord;
   recommendation: Recommendation;
   onInsights: () => void;
 }) {
+  const isResolved = incident.status === "resolved";
+  const triggerEntries = Object.entries(incident.triggerSnapshot)
+    .filter(([key]) => key !== "unit")
+    .slice(0, 4);
+  const canReview = incident.id.toLowerCase() === recommendation.incidentId.toLowerCase();
+  const isConditionResolved = incident.resolutionReason === "condition_cleared";
+
+  return (
+    <article className="card incident-card">
+      <div className="incident-row-top">
+        <div className="incident-card-labels">
+          <span className="incident-type-pill">
+            <i /> {incidentTypeLabel(incident.type)}
+          </span>
+          <span className={`incident-severity incident-severity-${incident.severity}`}>
+            {incident.severity}
+          </span>
+          <span
+            className={`incident-record-status incident-record-status-${isResolved ? "resolved" : "open"}`}
+          >
+            {isResolved ? "Resolved" : "Open"}
+          </span>
+        </div>
+        <time className="incident-time" dateTime={incident.createdAt}>
+          Reported {incidentTimestamp(incident.createdAt)}
+        </time>
+      </div>
+      <h2>{incident.rootCause || `${incidentTypeLabel(incident.type)} detected.`}</h2>
+      <p className="incident-description">
+        Affected {incident.affectedEntity.type.replaceAll("_", " ")} · ID{" "}
+        {incident.affectedEntity.id.slice(0, 6)}…{incident.affectedEntity.id.slice(-4)}
+      </p>
+      {triggerEntries.length > 0 ? (
+        <dl className="incident-context-grid">
+          {triggerEntries.map(([key, value]) => (
+            <div key={key}>
+              <dt>{incidentTriggerLabel(key)}</dt>
+              <dd>{incidentTriggerValue(key, value, incident.triggerSnapshot)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      <div className="incident-actions-row">
+        <span>
+          <Icon name={isResolved ? "check" : "alert"} size={15} />
+          {isResolved
+            ? isConditionResolved
+              ? "Resolved after the trigger cleared."
+              : "This incident is resolved."
+            : "Rule-managed incidents resolve automatically when the trigger clears."}
+        </span>
+        {canReview ? (
+          <button className="button button-dark" type="button" onClick={onInsights}>
+            Review recommendation <Icon name="arrow-right" size={15} />
+          </button>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function IncidentsPage({
+  incidents,
+  status,
+  truncated,
+  recommendation,
+  onInsights,
+}: {
+  incidents: IncidentRecord[];
+  status: IncidentViewStatus;
+  truncated: boolean;
+  recommendation: Recommendation;
+  onInsights: () => void;
+}) {
+  const showRecords = status === "live" || status === "preview";
+  const visibleIncidents = showRecords ? incidents : [];
+  const openIncidents = visibleIncidents.filter(
+    (incident) => incident.status === "open" || incident.status === "active",
+  );
+  const resolvedIncidents = visibleIncidents.filter((incident) => incident.status === "resolved");
+  const count = (value: number) => (truncated && value === 200 ? "200+" : value);
+  const stateText =
+    status === "preview"
+      ? "Sample preview only — these incidents are illustrative, not a live restaurant feed."
+      : status === "loading"
+        ? "Loading incidents from the signed-in restaurant workspace."
+        : status === "unavailable"
+          ? "The incident service is unavailable or returned invalid data. No sample records are shown as live."
+          : status === "restricted"
+            ? "This account cannot view incident records. Sign in as a Manager or Administrator."
+            : status === "empty"
+              ? "No incident records were returned for this restaurant."
+              : "Live incidents for the signed-in restaurant. Rule-managed records update and resolve from operational data.";
+
   return (
     <>
-      <section className="incident-summary-row">
+      <section className="incident-summary-row" aria-label="Incident record summary">
         <article>
-          <span className="incident-number incident-number-coral">01</span>
+          <span className="incident-number incident-number-coral">
+            <Icon name="alert" size={16} />
+          </span>
           <div>
-            <span>Open now</span>
-            <strong>1 incident</strong>
+            <span>Open in loaded list</span>
+            <strong>{showRecords ? count(openIncidents.length) : "—"}</strong>
           </div>
         </article>
         <article>
-          <span className="incident-number incident-number-gold">06</span>
+          <span className="incident-number incident-number-gold">
+            <Icon name="check" size={16} />
+          </span>
           <div>
-            <span>Resolved today</span>
-            <strong>6 incidents</strong>
+            <span>Resolved in loaded list</span>
+            <strong>{showRecords ? count(resolvedIncidents.length) : "—"}</strong>
           </div>
         </article>
         <article>
           <span className="incident-number incident-number-green">
-            <Icon name="check" size={17} />
+            <Icon name="receipt" size={16} />
           </span>
           <div>
-            <span>Average resolution</span>
-            <strong>11 min</strong>
+            <span>Records loaded</span>
+            <strong>
+              {showRecords ? count(visibleIncidents.length) : status === "empty" ? 0 : "—"}
+            </strong>
           </div>
         </article>
       </section>
-      <article className="card incident-card">
-        <div className="incident-row-top">
-          <div>
-            <span className="incident-type-pill">
-              <i /> INVENTORY · STOCK RISK
-            </span>
-            <StatusPill tone="status-pill status-critical">Critical</StatusPill>
-          </div>
-          <span className="incident-time">Opened at 6:31 pm · 9 min ago</span>
-        </div>
-        <h2>Fresh paneer has fallen below its reorder point.</h2>
-        <p className="incident-description">
-          On-hand quantity is 3 kg, below the 8 kg threshold. Current dinner service is using paneer
-          faster than the usual Saturday rate.
+      <p
+        className={`incident-feed-state incident-feed-state-${status}`}
+        role={status === "unavailable" || status === "restricted" ? "alert" : "status"}
+      >
+        {stateText}
+      </p>
+      {truncated && status === "live" ? (
+        <p className="incident-truncation-note">
+          Showing the newest 200 records; older history may be omitted.
         </p>
-        <div className="incident-context-grid">
-          <div>
-            <span>On hand</span>
-            <strong>3 kg</strong>
+      ) : null}
+      {showRecords ? (
+        <>
+          <div className="incident-history-head">
+            <div>
+              <div className="card-overline">CURRENT OPERATIONS</div>
+              <h2>Open incidents</h2>
+            </div>
           </div>
-          <div>
-            <span>Reorder point</span>
-            <strong>8 kg</strong>
+          {openIncidents.length > 0 ? (
+            <div className="incident-list">
+              {openIncidents.map((incident) => (
+                <IncidentCard
+                  key={incident.id}
+                  incident={incident}
+                  recommendation={recommendation}
+                  onInsights={onInsights}
+                />
+              ))}
+            </div>
+          ) : (
+            <article className="card incident-empty-state">
+              <strong>No open incidents in this list.</strong>
+              <span>Rule-managed incidents reopen when their supported condition recurs.</span>
+            </article>
+          )}
+          <div className="incident-history-head">
+            <div>
+              <div className="card-overline">RECENT ACTIVITY</div>
+              <h2>Resolved incidents</h2>
+            </div>
           </div>
-          <div>
-            <span>Service status</span>
-            <strong>Open · monitoring</strong>
-          </div>
-          <div>
-            <span>Restaurant</span>
-            <strong>Saffron &amp; Co.</strong>
-          </div>
-        </div>
-        <div className="incident-actions-row">
-          <span>
-            <Icon name="spark" size={16} /> DineSmart Assist has a suggestion ready.
-          </span>
-          <button className="button button-dark" type="button" onClick={onInsights}>
-            Review recommendation <Icon name="arrow-right" size={15} />
-          </button>
-        </div>
-      </article>
-      <div className="incident-history-head">
-        <div>
-          <div className="card-overline">RECENT ACTIVITY</div>
-          <h2>Resolved incidents</h2>
-        </div>
-        <button className="text-link" type="button">
-          View history <Icon name="arrow-right" size={15} />
-        </button>
-      </div>
-      <div className="resolved-incident-row">
-        <span className="resolved-check">
-          <Icon name="check" size={15} />
-        </span>
-        <div>
-          <strong>Kitchen ticket time briefly exceeded target</strong>
-          <span>Resolved by kitchen lead · 5:12 pm</span>
-        </div>
-        <StatusPill>Resolved</StatusPill>
-      </div>
-      <div className="resolved-incident-row">
-        <span className="resolved-check">
-          <Icon name="check" size={15} />
-        </span>
-        <div>
-          <strong>Table 7 reset delayed between parties</strong>
-          <span>Resolved by floor manager · 3:48 pm</span>
-        </div>
-        <StatusPill>Resolved</StatusPill>
-      </div>
-      <div className="sr-only">Current demo recommendation: {recommendation.summary}</div>
+          {resolvedIncidents.length > 0 ? (
+            <div className="incident-list">
+              {resolvedIncidents.map((incident) => (
+                <IncidentCard
+                  key={incident.id}
+                  incident={incident}
+                  recommendation={recommendation}
+                  onInsights={onInsights}
+                />
+              ))}
+            </div>
+          ) : (
+            <article className="card incident-empty-state">
+              <strong>No resolved records in this list.</strong>
+              <span>Resolution history appears after the source condition clears.</span>
+            </article>
+          )}
+        </>
+      ) : null}
+      <p className="incident-lifecycle-note">
+        <Icon name="alert" size={15} />
+        Incident detection and resolution are rule-managed. This view does not offer a manual close
+        action.
+      </p>
     </>
   );
 }
@@ -3895,6 +4219,8 @@ function IncidentsPage({
 function InsightsPage({
   recommendation,
   recommendationStatus,
+  incident,
+  incidentStatus,
   reviewed,
   onReview,
   onGenerate,
@@ -3902,6 +4228,8 @@ function InsightsPage({
 }: {
   recommendation: Recommendation;
   recommendationStatus: RecommendationViewStatus;
+  incident: IncidentRecord | null;
+  incidentStatus: IncidentViewStatus;
   reviewed: boolean;
   onReview: () => void;
   onGenerate: () => void;
@@ -3917,6 +4245,35 @@ function InsightsPage({
           : recommendationStatus === "restricted"
             ? "The current account is not authorized to load recommendations; sample preview guidance is shown."
             : "This is sample preview guidance. Connect the API and sign in as a Manager or Administrator to load live recommendations.";
+  const incidentContextMessage =
+    incident !== null
+      ? ""
+      : incidentStatus === "loading"
+        ? "Loading incident context."
+        : incidentStatus === "unavailable"
+          ? "Incident context is unavailable; no sample trigger facts are shown beside this advisory."
+          : incidentStatus === "restricted"
+            ? "This account cannot view incident context."
+            : incidentStatus === "empty"
+              ? "No matching incident record was returned for this advisory."
+              : "Sample incident context is not available for this advisory.";
+  const incidentBadgeLabel = incident
+    ? incidentStatus === "preview"
+      ? `SAMPLE · ${incident.status === "resolved" ? "RESOLVED" : "OPEN"}`
+      : incident.status === "resolved"
+        ? "RESOLVED"
+        : "OPEN INCIDENT"
+    : incidentStatus === "loading"
+      ? "LOADING INCIDENT"
+      : incidentStatus === "restricted"
+        ? "RESTRICTED"
+        : "CONTEXT UNAVAILABLE";
+  const incidentBadgeClass =
+    incident?.status === "resolved"
+      ? "incident-status-resolved"
+      : incident
+        ? "incident-status-open"
+        : "incident-status-unavailable";
 
   return (
     <>
@@ -3942,15 +4299,24 @@ function InsightsPage({
           {statusMessage}
         </p>
       ) : null}
+      {incidentContextMessage ? (
+        <p className="preview-note" role="status">
+          {incidentContextMessage}
+        </p>
+      ) : null}
       <div className="insights-layout">
         <div className="insights-main-column">
           <div className="section-title-inline">
             <div>
               <div className="card-overline">CURRENT RECOMMENDATION</div>
-              <h2>Fresh paneer · stock risk</h2>
+              <h2>
+                {incident
+                  ? `${incidentTypeLabel(incident.type)} · ${incident.severity}`
+                  : "Incident context unavailable"}
+              </h2>
             </div>
-            <span className="incident-status-open">
-              <i /> OPEN INCIDENT
+            <span className={incidentBadgeClass}>
+              <i /> {incidentBadgeLabel}
             </span>
           </div>
           <RecommendationCard
@@ -3966,22 +4332,37 @@ function InsightsPage({
               <span className="supporting-icon supporting-icon-coral">
                 <Icon name="box" size={17} />
               </span>
-              <div className="card-overline">SIGNAL</div>
-              <h3>Below the reorder point</h3>
+              <div className="card-overline">INCIDENT EVIDENCE</div>
+              <h3>{incident ? incidentTypeLabel(incident.type) : "No incident loaded"}</h3>
               <p>
-                3 kg on hand · reorder point is 8 kg · Saturday dinner service is using stock faster
-                than average.
+                {incident?.rootCause ||
+                  "No incident details are available. Sample trigger facts are not shown as live data."}
               </p>
+              {incident ? (
+                <div className="insight-trigger-snapshot">
+                  {Object.entries(incident.triggerSnapshot)
+                    .filter(([key]) => key !== "unit")
+                    .slice(0, 3)
+                    .map(([key, value]) => (
+                      <span key={key}>
+                        <small>{incidentTriggerLabel(key)}</small>
+                        <strong>
+                          {incidentTriggerValue(key, value, incident.triggerSnapshot)}
+                        </strong>
+                      </span>
+                    ))}
+                </div>
+              ) : null}
             </article>
             <article className="card supporting-card">
               <span className="supporting-icon supporting-icon-green">
-                <Icon name="calendar" size={17} />
+                <Icon name="check" size={17} />
               </span>
-              <div className="card-overline">WHAT THIS PROTECTS</div>
-              <h3>Tonight’s menu, without a scramble</h3>
+              <div className="card-overline">HUMAN REVIEW</div>
+              <h3>Operational decisions stay with your team.</h3>
               <p>
-                Protect the current menu and give the kitchen lead a short, practical plan before
-                the rush.
+                Check the source record before acting. This advisory does not change stock, menu,
+                reservations, or orders.
               </p>
             </article>
           </div>
