@@ -33,3 +33,14 @@
 - Tests cover Manager/Administrator access, Reception/Customer denial, bearer authentication, tenant derivation from the signed principal, query/body/path validation, forged tenant rejection, safe roster serialization, active-state/role updates, and the non-enumerating 404/self-deactivation error paths.
 - **Gokul test commit:** `641fcc3` (`test(staff): verify route permissions and scope`). Targeted staff/auth/app coverage passed; final Node `24.21.0` full backend verification passed all 237 tests with Biome, typecheck, build, and high-severity audit clean.
 - Live MongoDB, browser UI, remote CI, deployment, push, and merge remain unverified/deferred; S2-16 is **Ready to Push** locally, not Complete.
+
+## 2026-10-12
+
+### S3-06 — Customer workflow and app-composition integration tests
+
+- Delivered a locally verifiable integration-test sub-scope on `main`, using the real public menu router, customer-order router, and `OrderService` with one shared in-memory menu/order repository.
+- The customer workflow test browses the current public menu, places an order using only item IDs and quantities, verifies the server-derived integer-minor total and safe response, then reads the same order from authenticated history. Regression coverage changes menu availability after browsing and verifies the stale cart is rejected without a second write; another Customer cannot see or cancel the first Customer's order.
+- Extended the `createApp` composition test to verify the reservation and AI recommendation read/generate endpoints are mounted and reject unauthenticated requests.
+- **Gokul-authored commits:** `dc2eb8a` (`test(S3-06): integrate customer menu and order flow`) and `aaa9416` (`test(S3-06): cover app router composition for reservations and AI`).
+- **Validation on Node `24.21.0`:** all 274 backend tests passed, including the four app/customer-workflow HTTP tests; Biome checked 150 files with no findings; TypeScript typecheck, production build, and high-severity dependency audit passed (zero vulnerabilities).
+- **Limits:** integration repositories and auth verifier are fakes; the tests do not establish live MongoDB/index behavior, browser E2E, live Gemini, deployment, remote CI, push, or merge. S3-06's local test contribution is Ready to Push only; external acceptance remains outstanding.
