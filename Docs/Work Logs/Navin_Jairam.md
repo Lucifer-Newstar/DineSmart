@@ -306,3 +306,10 @@
 - Closed the S2-18 API/schema/implementation-decision/test-plan/backlog documentation. The lowercase state graph and link-release policy remain explicitly assistant-selected recommendations, not owner approvals.
 - Local Node `24.21.0` verification passed: Biome (149 backend files), typecheck, production build, all 272 backend tests, zero high-severity npm audit findings, and `git diff --check`.
 - S2-18 is Ready to Push on local `main`, not Complete. Live MongoDB/Atlas reference consistency, browser workflow, remote CI, deployment, push, and merge are not claimed.
+
+### 2026-10-12 — S2-01/02 acceptance and shared documentation integration
+
+- Reconciled the S2-01/S2-02 backlog rows with SRS FR-2 and the demo flow. The repository lacked a detailed landing/menu acceptance section, and the existing signed-out root rendered the operations preview instead of the documented Landing Page → Authentication flow.
+- Recorded the route and menu-display choices in Implementation Decisions as assistant-selected recommendations—not owner approval. Added/expanded TC-03 and TC-27/28, added local verification/blocker notes, aligned the Demo Strategy and frontend README, and updated S2-01/02 to Ready to Push after Dhanush's implementation commits.
+- **Local verification reviewed:** Node `24.21.0` frontend Biome, 11 unit tests, typecheck, static build of `/` and `/dashboard`, npm audit (zero vulnerabilities), and `git diff --check` passed. Static HTML contains the guest landing copy; no interactive browser/responsive review or Customer UAT was performed.
+- **Blockers/limits:** No Docker/`mongod`, local backend health service, `.env` files, `MONGODB_URI`, `JWT_SECRET`, or `API_PROXY_TARGET` are configured; the live menu/auth/order/reservation/API path was not verified. No Git remote is configured, so remote CI, code review/merge, and deployment remain unavailable/deferred. No push or deployment was attempted; S2-01/02 remain Ready to Push, not Complete.

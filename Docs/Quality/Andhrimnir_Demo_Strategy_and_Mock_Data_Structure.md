@@ -15,8 +15,9 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 - Present a polished, deployable MVP.
 ## 2. Demo Flow
 
-- Landing Page → Authentication
-- Customer Portal → Browse Menu → Reservation → Order
+- Public customer landing page → live menu and reservation entry points; restaurant-team sign-in entry
+- Customer registration/sign-in → Customer Portal → browse menu → reservation request/order → own order and reservation status
+- Restaurant-team sign-in → role-based restaurant workspace
 - Restaurant Dashboard receives live updates
 - Kitchen Queue updates
 - Inventory updates

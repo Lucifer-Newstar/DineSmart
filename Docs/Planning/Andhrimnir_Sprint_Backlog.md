@@ -59,8 +59,8 @@ Goal: Complete customer workflows and dashboard.
 
 | Task ID | Task | Owner | Priority | Story Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| S2-01 | Customer Landing Page | Dhanush | Medium | 2 | In Progress |
-| S2-02 | Digital Menu | Dhanush | High | 3 | In Progress |
+| S2-01 | Customer Landing Page | Dhanush | Medium | 2 | Ready to Push |
+| S2-02 | Digital Menu | Dhanush | High | 3 | Ready to Push |
 | S2-03 | Reservation Module | Jegatheesan | High | 3 | Ready to Push |
 | S2-04 | Order Placement | Dhanush | High | 5 | Ready to Push |
 | S2-05 | Kitchen Queue | Jegatheesan | High | 3 | Ready to Push |
