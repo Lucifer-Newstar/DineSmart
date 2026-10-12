@@ -146,3 +146,11 @@
 - **Dhanush-authored commits:** `554acce` (`feat(S3-03): validate recommendation API payloads`) and `4fb28fd` (`feat(S3-03): load scoped saved recommendations in Insights`).
 - **Local verification on Node `24.21.0`:** 16 frontend tests passed, including five recommendation parser cases; Biome checked 29 files; TypeScript typecheck and Next.js production build passed; high-severity npm audit reported zero vulnerabilities.
 - **Limits/status:** no live backend/MongoDB/Gemini, browser E2E, responsive visual review, or customer UAT was available. S3-03's locally tested implementation is **Ready to Push**, not Complete; no remote CI, push, merge, or deployment is claimed.
+
+### S3-05 — Dashboard polish and read-only incident feed
+
+- Added a frontend-only Manager/Administrator Incidents view backed by the signed-tenant `GET /api/v1/incidents` response, with strict bounded parsing, request cancellation on workspace changes, manual refresh, open/resolved cards, safe trigger snapshots, truncation notices, and matching recommendation links. Live, empty, loading, unavailable, restricted, and sample-preview states remain distinguishable; client-supplied tenant filters and manual resolution controls are not introduced.
+- Updated Overview incident counts/navigation and Insights incident context to use validated incident records; Insights shows status/root cause/trigger facts only when a recommendation matches an incident. Preview notification content remains explicitly labeled. The Insights claim is no longer a static inventory/paneer example.
+- **Dhanush-authored commits:** `5b379df` (scoped feed, parser, role tests and dashboard/Insights integration) and `3564ea5` (incident/Insights styling), committed locally on `main`.
+- **Local verification via Node `24.21.0`:** frontend tests passed 20/20; Biome checked 31 files; TypeScript typecheck and Next.js production build passed; `npm audit --audit-level=high` found zero vulnerabilities.
+- **Status/limits:** S3-05 is **Ready to Push**, not Complete. No browser E2E, responsive visual review, live API/MongoDB, remote CI, push, merge, or deployment is claimed. The panel is an assistant-selected interpretation of the backlog's generic Dashboard Polish item, not separately confirmed owner design approval.
