@@ -4,7 +4,14 @@ import { request as httpRequest, type IncomingMessage, type Server } from "node:
 import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
 import express from "express";
+import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
+import { createApp } from "../src/app.js";
+import {
+  NO_STORE_CACHE_CONTROL,
+  PUBLIC_MENU_MAX_AGE_SECONDS,
+  sendNoStoreApiResponse,
+} from "../src/http/cache-policy.js";
 import {
   createPublicJsonCompression,
   PUBLIC_JSON_COMPRESSION_THRESHOLD_BYTES,
@@ -160,4 +167,73 @@ test("the public compression helper only compresses JSON above the threshold", a
   });
 
   assert.ok(PUBLIC_JSON_COMPRESSION_THRESHOLD_BYTES > 0);
+});
+
+test("operational API responses are marked no-store while the public menu opts into a short cache", async () => {
+  const db = { collection: () => ({}) } as unknown as Db;
+  const api = createApp({
+    getDatabase: async () => db,
+    getJwtSecret: () => "local-test-secret-with-sufficient-length",
+    webOrigin: "http://localhost:3000",
+    nodeEnvironment: "test",
+  });
+
+  await withServer(api, async (port) => {
+    const incidents = await rawGet(port, "/api/v1/incidents", "identity");
+    assert.equal(incidents.status, 401);
+    assert.equal(incidents.headers["cache-control"], NO_STORE_CACHE_CONTROL);
+
+    const orders = await rawGet(port, "/api/v1/orders/history", "identity");
+    assert.equal(orders.status, 401);
+    assert.equal(orders.headers["cache-control"], NO_STORE_CACHE_CONTROL);
+
+    const invalidMenu = await rawGet(port, "/api/v1/menu?restaurantId=not-an-id", "identity");
+    assert.equal(invalidMenu.status, 400);
+    assert.equal(invalidMenu.headers["cache-control"], NO_STORE_CACHE_CONTROL);
+  });
+});
+
+test("the liveness probe stays uncompressed and cacheable-free without touching tenant data", async () => {
+  const db = { collection: () => ({}) } as unknown as Db;
+  const api = createApp({
+    getDatabase: async () => db,
+    getJwtSecret: () => "local-test-secret-with-sufficient-length",
+    webOrigin: "http://localhost:3000",
+    nodeEnvironment: "test",
+  });
+
+  await withServer(api, async (port) => {
+    const health = await rawGet(port, "/health", "gzip");
+    assert.equal(health.status, 200);
+    assert.equal(health.headers["content-encoding"], undefined);
+    assert.deepEqual(JSON.parse(health.text), { status: "ok" });
+  });
+});
+
+test("the menu success response overrides the default no-store policy", async () => {
+  const menu = buildMenu(3);
+  const reader: MenuReader = {
+    getAvailableMenu: async (id) => (id.equals(restaurantId) ? menu : null),
+  };
+  const app = express();
+  app.use("/api/v1", sendNoStoreApiResponse as unknown as express.RequestHandler);
+  app.use("/api/v1/menu", createMenuRouter({ createReader: async () => reader }));
+
+  await withServer(app, async (port) => {
+    const ok = await rawGet(
+      port,
+      `/api/v1/menu?restaurantId=${restaurantId.toHexString()}`,
+      "identity",
+    );
+    assert.equal(ok.status, 200);
+    assert.equal(ok.headers["cache-control"], `public, max-age=${PUBLIC_MENU_MAX_AGE_SECONDS}`);
+
+    const missing = await rawGet(
+      port,
+      `/api/v1/menu?restaurantId=${new ObjectId().toHexString()}`,
+      "identity",
+    );
+    assert.equal(missing.status, 404);
+    assert.equal(missing.headers["cache-control"], NO_STORE_CACHE_CONTROL);
+  });
 });
