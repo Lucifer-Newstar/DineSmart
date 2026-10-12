@@ -3016,15 +3016,7 @@ function OverviewPage({
                   <div className="card-overline">YOUR WEEK AT A GLANCE · SAMPLE</div>
                   <h2>Revenue overview · preview</h2>
                 </div>
-                <button
-                  className="select-button"
-                  type="button"
-                  aria-label="Selected range, last 7 days"
-                  onClick={() => {}}
-                >
-                  <span>Last 7 days</span>
-                  <Icon name="chevron" size={15} />
-                </button>
+                <span className="sample-period-label">Last 7 days · sample</span>
               </div>
               <div className="revenue-summary">
                 <strong>₹4,28,590</strong>
