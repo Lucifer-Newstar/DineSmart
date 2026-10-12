@@ -20,6 +20,31 @@ The Incidents workspace reads the bounded `GET /api/v1/incidents` feed only for 
 - Manager and Administrator can reach the full restaurant workspace; tenant and permission enforcement remains server-side. A stale/unauthorized selected section resolves to Overview when the session role changes. Recommendation/review state is scope-keyed and falls back to preview/unreviewed immediately on an identity change; Analytics remounts for the new workspace and aborts its earlier request. Other tenant-bound feeds clear as their new session requests begin.
 - `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, interactive-control regression, and dashboard metric suites on Node `24.21.0` (29 tests at this checkpoint). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
 
+## Demo walkthrough (S3-12)
+
+The step-by-step script lives in [`Docs/Quality/Andhrimnir_Demo_Runbook.md`](../Docs/Quality/Andhrimnir_Demo_Runbook.md). This section records the frontend surfaces it depends on so presenters know exactly what each route shows.
+
+| Route | Audience | What to show |
+| --- | --- | --- |
+| `/` | Signed-out visitors | Public landing page with menu, reservation, and team sign-in entry points |
+| `/login`, `/register` | Everyone | Email/password and Google sign-in, Email/OTP registration |
+| `/menu` | Customers | Public live menu, bounded cart, ID/quantity-only submission |
+| `/orders` | Customers | Own order history and pre-acceptance cancellation |
+| `/book` | Customers | Reservation request |
+| `/dashboard` (Customer) | Customers | Own recent orders and upcoming reservations, no staff sections |
+| `/dashboard` → Orders, Kitchen | Kitchen Staff | Item-level `Created → Preparing → Ready` updates only |
+| `/dashboard` → Orders, Reservations, Inventory | Reception | Availability-only stock; no incidents, analytics, or AI sections |
+| `/dashboard` → Incidents | Manager/Administrator | Bounded feed, trigger snapshots, read-only lifecycle |
+| `/dashboard` → Insights | Manager/Administrator | Advisory recommendation with Gemini/fallback/demo source labels |
+| `/dashboard` → Analytics | Manager/Administrator | `7d`/`30d` operational charts with truncation notices |
+
+Presenter rules for the UI:
+
+- Keep sample/preview labels visible; never narrate preview cards as live operational data.
+- Every section distinguishes loading, empty, unavailable, restricted, and live states — pause on one of these if a service fails, and explain the fallback.
+- Incidents have no manual close control; rule-managed records resolve when their condition clears.
+- Pre-bill subtotals are not revenue, and no payment is captured in the UI.
+
 ## Requirements
 
 - Node.js `24.21.0` (pinned in the repository root `.nvmrc`)
