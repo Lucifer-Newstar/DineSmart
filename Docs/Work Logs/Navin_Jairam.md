@@ -320,3 +320,10 @@
 - Updated the canonical test plan with TC-29/TC-30 and explicit fake-backed integration limits; updated the backend guide and root README/CI-equivalent test counts. Marked S3-06 **Ready to Push** for the locally committed test deliverable, not Complete. Backlog totals are now 1 Complete, 24 Ready to Push, 14 In Progress, and 5 To Do.
 - **Local backend validation via Node `24.21.0`:** 274 tests passed; Biome checked 150 files; typecheck, production build, and high-severity audit (zero vulnerabilities) passed. Frontend code was unchanged; the latest recorded frontend checks remain 11 tests plus Biome, typecheck, production build, and zero-vulnerability audit.
 - **Limits:** MongoDB/Atlas, Google/email/Gemini credentials, real database persistence/indexes, browser E2E, performance load, remote CI, and deployment remain unverified or unavailable. No remote is configured; no push, merge, live-service check, or deployment was attempted. Atlas/deployment remain deferred until the other project work is finished.
+
+### 2026-10-12 — S3-03 recommendation UI documentation and status closeout
+
+- Reviewed Dhanush's recommendation-response parser and Insights dashboard integration; updated the frontend guide and canonical AI verification notes to distinguish live API results, deterministic fallback, seeded demo, and preview/unavailable states. Recorded the server-only Gemini boundary and the lack of live-service/browser acceptance.
+- Added S3-03's local verification and blocker record, marked it **Ready to Push** (not Complete), and synchronized the root README and canonical backlog with S3-03/S3-06. Current backlog totals: 1 Complete, 25 Ready to Push, 13 In Progress, 5 To Do.
+- **Frontend local verification via Node `24.21.0`:** 16 tests passed; Biome checked 29 files; typecheck and Next.js production build passed; high-severity audit reported zero vulnerabilities. No browser E2E or live API/MongoDB/Gemini verification occurred.
+- No Git remote is configured; no push, merge, remote CI, or deployment was attempted. Existing Atlas/provisioning/deployment work remains deferred until other project work is finished.

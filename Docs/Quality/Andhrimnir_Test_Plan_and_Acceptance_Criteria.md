@@ -149,6 +149,8 @@ S2-12 locally implements and tests current-data detection for kitchen/order dela
 - Prompt/provider tests validate the structured JSON schema, locally validate output fields/ranges, require priority to match incident severity, and reject malformed/escalated output.
 - Failure-path tests verify deterministic incident-specific recommendations when the API key is absent or provider errors/timeouts/invalid output occur. Fallback responses are persisted with `source=fallback` and remain advisory.
 - HTTP tests verify Manager-only generation, tenant-scoped retrieval, and no direct browser-to-Gemini integration. The production SDK call is not live-tested because no Gemini API key is configured; MongoDB persistence/index and live route verification remain pending.
+- The S3-03 dashboard loads the saved recommendation for the seeded inventory incident only for signed-in Manager/Administrator sessions, validates the GET/POST response shape and incident identity before rendering, aborts reads on workspace changes, and distinguishes loading/empty/unavailable/restricted states from sample preview content. Gemini, fallback, and seeded demo sources have separate labels; the browser never calls Gemini.
+- Frontend parser tests cover bounded list parsing, incident matching, duplicate/malformed records, allowed severity/source, action/confidence ranges, and generated-response validation. They are contract/unit tests, not component or browser E2E. Live UI/API/MongoDB/Gemini and responsive acceptance remain outstanding.
 
 ## 15. S2-03 Reservation Verification
 
@@ -314,3 +316,14 @@ S3-06's locally verifiable test slice is committed on `main` and marked **Ready 
 - **Gokul-authored implementation commits:** `dc2eb8a` (customer menu/order workflow) and `aaa9416` (reservation/AI route composition coverage). The test contribution is also recorded in Gokul's work log.
 - **Local verification via Node `24.21.0`:** all 274 backend tests passed; Biome checked 150 backend files with no findings; TypeScript typecheck, production build, and `npm audit --audit-level=high` passed (zero vulnerabilities).
 - These tests use in-memory repositories and injected token verification. They do not validate live MongoDB/Atlas persistence or indexes, real OAuth/email/Gemini providers, frontend browser E2E, responsive behavior, load/performance targets, remote CI, deployment, or full user acceptance. Docker/`mongod`, credentials, and a Git remote are unavailable; no live-service, push, merge, or deployment result is claimed.
+
+## 32. S3-03 Recommendation UI Verification
+
+S3-03 is locally implemented and committed on `main`, marked **Ready to Push**, not Complete. Its response parser and API-connected state behavior are locally checked; no browser/live-service acceptance is claimed.
+
+- Manager/Administrator sessions request the saved recommendation for the seeded inventory incident through `GET /api/v1/recommendations?incidentId=...`; generation remains a protected `POST /api/v1/incidents/{incidentId}/recommendations`. The dashboard does not call Gemini directly and carries no provider key.
+- The client fails closed on malformed or oversized payloads, mismatched/duplicate incident records, unsupported priorities/sources, invalid confidence, out-of-range action counts, and bounded-text violations. It validates generated response identity before replacing visible state.
+- Workspace-scoped requests abort on identity/tenant change. The Insights page distinguishes loading, empty, unavailable, restricted, live, and sample-preview states; Gemini, deterministic fallback, and seeded-demo source labels are not conflated. On generation/load failure, sample preview content remains visibly labeled rather than being represented as a live result.
+- **Dhanush-authored commits:** `554acce` (recommendation response parser and unit tests) and `4fb28fd` (scoped GET loading, POST validation, and status/source presentation). Frontend README and this verification section record the behavior and limits.
+- **Local verification via Node `24.21.0`:** 16 frontend tests passed, including five recommendation parser cases; Biome checked 29 files; TypeScript typecheck and Next.js production build passed; `npm audit --audit-level=high` found zero vulnerabilities.
+- The tests are contract/unit tests; no component/browser E2E, responsive visual review, live backend, MongoDB/Atlas persistence/index test, Gemini request, or customer UAT was performed. The environment has no Docker/`mongod`, Gemini/Mongo credentials, or Git remote. No remote CI, push, merge, or deployment is claimed.
