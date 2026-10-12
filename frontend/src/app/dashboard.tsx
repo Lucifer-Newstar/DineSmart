@@ -23,7 +23,12 @@ import {
   resolveDashboardSection,
   valueForDashboardWorkspace,
 } from "./dashboard-access";
-import { buildAnalyticsBars, summarizeOrders } from "./dashboard-metrics";
+import {
+  buildAnalyticsBars,
+  formatLoadedCount,
+  summarizeIncidents,
+  summarizeOrders,
+} from "./dashboard-metrics";
 import { type IncidentRecord, parseIncidentsResponse } from "./incident-data";
 import {
   parseGeneratedRecommendationResponse,
@@ -4081,13 +4086,12 @@ function IncidentsPage({
   recommendation: Recommendation;
   onInsights: () => void;
 }) {
+  const {
+    visible: visibleIncidents,
+    open: openIncidents,
+    resolved: resolvedIncidents,
+  } = useMemo(() => summarizeIncidents(incidents, status), [incidents, status]);
   const showRecords = status === "live" || status === "preview";
-  const visibleIncidents = showRecords ? incidents : [];
-  const openIncidents = visibleIncidents.filter(
-    (incident) => incident.status === "open" || incident.status === "active",
-  );
-  const resolvedIncidents = visibleIncidents.filter((incident) => incident.status === "resolved");
-  const count = (value: number) => (truncated && value === 200 ? "200+" : value);
   const stateText =
     status === "preview"
       ? "Sample preview only — these incidents are illustrative, not a live restaurant feed."
@@ -4110,7 +4114,9 @@ function IncidentsPage({
           </span>
           <div>
             <span>Open in loaded list</span>
-            <strong>{showRecords ? count(openIncidents.length) : "—"}</strong>
+            <strong>
+              {showRecords ? formatLoadedCount(openIncidents.length, truncated) : "—"}
+            </strong>
           </div>
         </article>
         <article>
@@ -4119,7 +4125,9 @@ function IncidentsPage({
           </span>
           <div>
             <span>Resolved in loaded list</span>
-            <strong>{showRecords ? count(resolvedIncidents.length) : "—"}</strong>
+            <strong>
+              {showRecords ? formatLoadedCount(resolvedIncidents.length, truncated) : "—"}
+            </strong>
           </div>
         </article>
         <article>
@@ -4129,7 +4137,11 @@ function IncidentsPage({
           <div>
             <span>Records loaded</span>
             <strong>
-              {showRecords ? count(visibleIncidents.length) : status === "empty" ? 0 : "—"}
+              {showRecords
+                ? formatLoadedCount(visibleIncidents.length, truncated)
+                : status === "empty"
+                  ? 0
+                  : "—"}
             </strong>
           </div>
         </article>

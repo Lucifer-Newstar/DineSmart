@@ -64,6 +64,52 @@ export function summarizeOrders<T extends MetricOrder>(
   };
 }
 
+export const INCIDENT_FEED_CAP = 200;
+
+export type IncidentFeedStatus =
+  | "preview"
+  | "loading"
+  | "live"
+  | "empty"
+  | "unavailable"
+  | "restricted";
+
+export interface IncidentSummary<T> {
+  visible: T[];
+  open: T[];
+  resolved: T[];
+}
+
+const LIVE_INCIDENT_FEED_STATUSES = new Set<IncidentFeedStatus>(["live", "preview"]);
+
+/**
+ * Splits the bounded incident feed once per load. Sample and live lists are the
+ * only states that render records, and every counter derives from that split.
+ */
+export function summarizeIncidents<T extends { status: string }>(
+  incidents: readonly T[],
+  status: IncidentFeedStatus,
+): IncidentSummary<T> {
+  if (!LIVE_INCIDENT_FEED_STATUSES.has(status)) return { visible: [], open: [], resolved: [] };
+
+  const open: T[] = [];
+  const resolved: T[] = [];
+  for (const incident of incidents) {
+    if (incident.status === "resolved") resolved.push(incident);
+    else open.push(incident);
+  }
+
+  return { visible: [...incidents], open, resolved };
+}
+
+/**
+ * A feed that reached the server cap cannot be counted exactly, so the UI shows
+ * an explicit lower bound instead of implying a complete total.
+ */
+export function formatLoadedCount(value: number, truncated: boolean): string | number {
+  return truncated && value >= INCIDENT_FEED_CAP ? `${INCIDENT_FEED_CAP}+` : value;
+}
+
 export interface AnalyticsBar<T> {
   point: T;
   value: number;
