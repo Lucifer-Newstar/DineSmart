@@ -90,7 +90,7 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-04 | Incident Context Builder | Navin | High | 4 | In Progress |
 | S3-05 | Dashboard Polish | Dhanush | Medium | 2 | Ready to Push |
 | S3-06 | Integration Testing | Entire Team | High | 5 | Ready to Push |
-| S3-07 | Bug Fixing | Entire Team | High | 5 | To Do |
+| S3-07 | Bug Fixing | Entire Team | High | 5 | In Progress |
 | S3-08 | Frontend Deployment | Gokul | High | 2 | To Do |
 | S3-09 | Backend Deployment | Gokul | High | 2 | To Do |
 | S3-10 | Performance Optimization | Navin | Medium | 2 | To Do |
