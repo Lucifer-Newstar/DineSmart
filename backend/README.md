@@ -1,6 +1,6 @@
 # Andhrímnir Backend
 
-This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, Email/OTP, email/password, Google sign-in, JWT refresh/logout flows, shared RBAC permission/tenant middleware, tenant-scoped inventory and health-score endpoints, and AI recommendation endpoints. Unit/route tests pass locally, but MongoDB-backed workflows have not been verified against a live MongoDB service and AI has not been checked against a live Gemini key. Most other operations routes, password reset, strict document validation, and persisted restaurant workflows remain pending.
+This package provides the Express API foundation, process-liveness endpoint, native MongoDB connection/index bootstrap, typed collection contracts, Email/OTP, email/password, Google sign-in, JWT refresh/logout and password-reset flows, shared RBAC permission/tenant middleware, customer menu/orders and reservations, kitchen/order operations, inventory, incidents, analytics/health score, notifications, billing, staff, waitlist/table APIs, and advisory AI recommendations. Unit, service, router, and selected cross-module integration tests pass locally using fake repositories; MongoDB-backed workflows/indexes have not been verified against a live MongoDB service, third-party credentials/delivery remain unavailable, and AI has not been checked against a live Gemini key. Strict persisted-document validation and live end-to-end acceptance remain outstanding.
 
 ## Requirements
 
@@ -66,6 +66,10 @@ The approved weight distribution is in [Implementation Decisions](../Docs/Archit
 - The backend defaults to `GEMINI_MODEL=gemini-3.5-flash-lite`; the model ID is configurable. Set `GEMINI_API_KEY` only in backend `.env` or a deployment secret. It is never sent to the browser.
 - With no API key, or on timeout/quota/invalid output, the backend persists a deterministic `source=fallback` recommendation. All recommendations are advisory; no operational record is changed automatically.
 - Context construction omits customer names/contact details and direct customer/database identifiers. Live Gemini and MongoDB integration still need credentials/service availability for end-to-end verification.
+
+## Local cross-module integration coverage (S3-06)
+
+`test/customer-workflow.integration.test.ts` composes the public menu router, customer-order router, and `OrderService` over one in-memory repository. It verifies the menu-to-order/history contract, server-derived totals, live-availability rechecks, and customer-owned history/cancellation. `test/app.test.ts` also checks that reservation and AI recommendation routes are mounted and reject unauthenticated requests. These tests are local router/service integration using fake repositories and token verification; they do not demonstrate MongoDB persistence/indexes, browser E2E, live Gemini, or deployment.
 
 ## Quality commands
 
