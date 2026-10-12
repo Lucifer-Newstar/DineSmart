@@ -127,3 +127,14 @@
 - **Implementation commits:** `72b0322` (repository/service/schema/session policy/tests); `b33fdef` (HTTP endpoints and router tests). Shared app composition was committed separately by Navin as `1415eea`.
 - **Local verification via Node `24.21.0`:** Biome checked 128 backend files with no findings; TypeScript typecheck and production build passed; all 216 backend tests passed; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed. The base shell Node remains `20.20.2`.
 - **Status:** S2-15 is **Ready to Push** on local `main`, not Complete. Repository tests use fakes; no live MongoDB/Atlas, real email-provider credentials/delivery, browser E2E, remote CI, deployment, push, or merge is claimed.
+
+## 2026-10-12
+
+### S2-01 Customer Landing Page and S2-02 Digital Menu closeout
+
+- Added a public guest-facing landing page at `/`. The entry route now shows the Customer Portal to Customer sessions and the role-based operations workspace to staff after session restoration; `/dashboard` preserves the signed-out sample operations preview. The restaurant-team sign-in link continues to `/dashboard`, and home/back labels now describe the public home correctly.
+- Extracted live menu response/cart validation into a pure utility module and added Node-native tests for safe response parsing, dietary/allergen data, cart/menu/restaurant matching, quantity/line bounds, and integer-safe totals. The menu now withholds an unsafe subtotal and blocks checkout instead of showing a rounded/overflowed amount.
+- The landing/menu presentation defaults are documented as assistant-selected recommendations, not owner approvals. No restaurant directory, owner onboarding, payment capture, or reservation/order policy was added.
+- **Implementation commits:** `307085d` (S2-01 landing/routing), `b385815` (S2-02 menu/cart validation and tests), both authored by Dhanush on local `main`.
+- **Local verification via Node `24.21.0`:** `npm ci` installed 56 frontend packages and reported zero vulnerabilities; Biome checked 27 files; all 11 frontend unit tests passed (6 existing role/access and 5 menu/cart tests); TypeScript typecheck and Next.js production build passed, generating `/` and `/dashboard`; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed.
+- **Status:** S2-01 and S2-02 are locally committed and **Ready to Push**, not Complete. No browser E2E, interactive/responsive visual review, or Customer UAT was run. Docker/`mongod`, `.env` files, `MONGODB_URI`, `JWT_SECRET`, `API_PROXY_TARGET`, and local backend health are unavailable; live API/menu/auth/order/reservation persistence was not verified. No Git remote is configured, so remote CI/review/merge and deployment were not verified or attempted. No push or deployment was made.
