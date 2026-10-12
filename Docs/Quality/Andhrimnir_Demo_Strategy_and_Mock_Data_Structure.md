@@ -23,7 +23,7 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 - Inventory updates
 - Incident Detection Engine creates incidents
 - AI Recommendation Engine generates actions
-- Manager resolves incidents
+- Manager reviews recommendations and takes any required operational action; rule-managed incidents resolve automatically when their triggering condition clears
 - Restaurant Health Score recalculates
 - Analytics and Notifications update
 ## 3. Demo Scenarios
@@ -35,7 +35,7 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 - Scenario 5: Inventory Shortage
 - Scenario 6: Reservation Conflict
 - Scenario 7: Order Delay
-- Scenario 8: AI Recommendation & Resolution
+- Scenario 8: AI Recommendation & Condition-Cleared Resolution
 - Scenario 9: Health Score Recovery
 ## 4. Mock Data Structure
 
@@ -106,6 +106,9 @@ This document defines the end-to-end hackathon demonstration strategy for the An
 - Health score changes dynamically
 - Notifications are delivered
 - Application is deployed and documented
+
+Implementation boundary as of 2026-10-12: the incident dashboard is a read-only view of the tenant-scoped API; rule-managed incidents auto-resolve when the trigger clears, and no manual close route exists. Browser WebSocket/notification delivery, live services, deployment, and public demo acceptance remain outstanding, so these checklist items are goals rather than verified results.
+
 ## 9. Judging Criteria Coverage
 
 - Functionality – Complete end-to-end workflow
