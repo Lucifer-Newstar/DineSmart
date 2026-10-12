@@ -362,3 +362,15 @@ S3-10 is **In Progress**; this checkpoint covers locally measurable response-siz
 - **Commits:** Jegatheesan `8fa08f1`, `829bed3`, `5324834`, `8a1e974`, `318501b`; Gokul `f44e0aa`, `159a40a`, `268e51c`, `1c7b52b`, `3527515`; Dhanush `76a6649`, `0470a73`.
 - **Local verification via Node `24.21.0`:** backend 283 tests passed; Biome checked 154 files; typecheck and production build passed; high-severity audit found zero vulnerabilities. Frontend 29 tests passed; Biome checked 34 files; typecheck and Next.js production build passed; high-severity audit found zero vulnerabilities.
 - **Limits:** no p95 measurement, load/concurrency test, live database/index behavior, browser E2E, or deployed-environment verification was performed. The added `compression` dependency (`1.8.2`) and `@types/compression` (`1.8.1`) were audited with zero high-severity findings.
+
+## 36. S3-12 Presentation & Demo Preparation
+
+S3-12 is **In Progress**: the presentation outline, demo runbook, readiness preflight, and fixture summary exist locally. The slide deck itself, a rehearsal against live services, and the recorded backup demo remain outstanding.
+
+- [`Docs/Planning/Andhrimnir_Presentation_Plan.md`](../Planning/Andhrimnir_Presentation_Plan.md) is an 11-slide outline with timings, a judging-criteria mapping, and presenter rules. Each criterion row records the honest current state (for example: functionality is locally verified with fake/unit tests; deployment is still deferred).
+- [`Docs/Quality/Andhrimnir_Demo_Runbook.md`](Andhrimnir_Demo_Runbook.md) covers pre-demo setup, a 14-step script, and a fallback table for missing MongoDB, a missing Gemini key, missing seed data, an unreachable API, and an unavailable WebSocket.
+- `tools/demo-readiness.mjs` prints a dependency-free preflight (documents, env examples, seed CLI, CI workflow, no committed `.env` files, Node pinning) and fails only with `--strict`. `tools/demo-readiness.test.mjs` covers the checker with temporary fixture directories.
+- `backend/src/database/demo-fixtures.ts` and `npm run demo:fixtures` describe the seeded scenario without a database: restaurant, demo accounts, per-collection counts, incidents, and advisory recommendations. The report never prints a password or hash.
+- **Commits:** Navin `6850c43`, `1f24ea8`; Gokul `3e7464f`, `653ad71`, `9169140`; Jegatheesan `4c1d6a3`; Dhanush `2114926`.
+- **Local verification via Node `24.21.0`:** backend 286 tests passed; Biome checked 157 files; typecheck and production build passed; high-severity audit found zero vulnerabilities. Frontend 29 tests passed with Biome, typecheck, and Next.js production build clean. `node --test tools/demo-readiness.test.mjs` passed 4/4, and `node tools/demo-readiness.mjs --strict` exited 0.
+- **Limits:** no slide deck has been rendered, no rehearsal or recorded backup exists, and no live MongoDB/Gemini/deployed environment was available. The runbook's fallback paths are untested against real failures.
