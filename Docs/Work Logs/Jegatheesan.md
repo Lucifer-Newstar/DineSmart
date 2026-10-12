@@ -152,3 +152,12 @@
 - Added service/repository/HTTP tests for role gates, strict input and tenant scope, transitions/idempotency, reference cleanup, conflict behavior, safe response fields, and operational hooks.
 - Verification on Node `24.21.0`: Biome checked 149 backend files; typecheck and production build passed; all 272 backend tests passed; high-severity `npm audit` found zero vulnerabilities; `git diff --check` passed. S2-18 is Ready to Push on local `main`, not Complete.
 - Live MongoDB/Atlas and cross-collection concurrency, browser workflow, remote CI, deployment, push, and merge remain outstanding/deferred.
+
+### S3-10 — Backend performance work
+
+- Took the backend half of the local performance pass on `main`: gzip for the public menu, explicit API cache policy, and field projections for bounded reads.
+- Added `src/http/response-compression.ts` (JSON-only, 1 KB threshold) wired into the public menu router, and `src/http/cache-policy.ts` with a `no-store` default for every `/api/v1` response that only a successful public menu read overrides (`public, max-age=30`). Pinned `compression` `1.8.2` and `@types/compression` `1.8.1` like the other backend dependencies; the audit reports zero high-severity findings.
+- Restricted notification, inventory, and recommendation list/read queries to the fields their mappers serialize so reads stop shipping unused document fields.
+- **Jegatheesan implementation commits:** `8fa08f1` (public menu compression), `829bed3` (cache policy), `5324834` (notification projection), `8a1e974` (inventory projection), `318501b` (recommendation projection). Gokul covered these with `f44e0aa`, `159a40a`, and `268e51c`.
+- **Local verification via Node `24.21.0`:** all 283 backend tests passed; Biome checked 154 files; TypeScript typecheck and production build passed; `npm audit --audit-level=high` found zero vulnerabilities.
+- **Status/limits:** S3-10 remains **In Progress**. This work reduces transfer size and repeated work; it is not a load test. No p95 measurement, live MongoDB/index coverage check, browser E2E, remote CI, push, merge, or deployment is claimed. Docker/`mongod` and a load generator are unavailable.

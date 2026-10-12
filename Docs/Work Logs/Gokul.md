@@ -52,3 +52,12 @@
 - **Gokul-authored test commits:** `e55b1d6` (empty click handlers), `38348a0` (buttons must declare an explicit `type`), and `14519b6` (form controls must expose an accessible name through `aria-label`/`aria-labelledby` or a wrapping label with visible text; placeholders alone are rejected). Verified the guard by temporarily introducing one violation of each type, then removing the probe file.
 - **Validation via Node `24.21.0`:** the three guards passed; the full frontend suite passed 23/23; Biome, typecheck, production build, and high-severity dependency audit passed.
 - The overall S3-07 bug-fixing task remains **In Progress**. These static checks do not replace browser E2E/responsive acceptance or a live accessibility audit; no live API/database, remote CI, push, merge, or deployment is claimed.
+
+### S3-10 — Performance test coverage
+
+- Owned the test side of the S3-10 backend and frontend performance work on `main`.
+- Backend: `backend/test/http-performance.test.ts` uses a raw HTTP client (Node's `fetch` always decompresses) to verify gzip negotiation on large public menus, uncompressed small menus and `identity` requests, JSON-only compression, `no-store` defaults across operational routes, and the menu success override. `backend/test/repository-projections.test.ts` records query options and fails when a read omits an explicit projection or projects a field the serializer does not use.
+- Frontend: `frontend/test/dashboard-metrics.test.mjs` covers order filtering/counters/averages, empty and unknown-filter cases, bar scaling with custom floors, flat/empty series, incident feed state gating, and the capped `200+` count label.
+- **Gokul test commits:** `f44e0aa`, `159a40a`, `268e51c`, `1c7b52b`, `3527515`.
+- **Validation via Node `24.21.0`:** all 283 backend tests and all 29 frontend tests passed; both packages pass Biome, typecheck, production build, and high-severity dependency audit.
+- These are unit/contract tests, not a load test: no p95 measurement, live database/index coverage, browser E2E, remote CI, push, merge, or deployment is claimed.

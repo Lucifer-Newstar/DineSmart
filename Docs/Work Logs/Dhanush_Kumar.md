@@ -161,3 +161,11 @@
 - **Dhanush implementation commit:** `30f2ac4` (`fix(S3-07): make sample range read-only`).
 - **Local verification via Node `24.21.0`:** all 23 frontend tests passed; Biome checked 32 files; TypeScript typecheck and Next.js production build passed; high-severity audit found zero vulnerabilities.
 - **Status/limits:** this is a frontend-only S3-07 sub-scope; the overall bug-fixing item remains **In Progress** pending broader review. No browser E2E, responsive visual review, live services, remote CI, push, merge, or deployment is claimed.
+
+### S3-10 — Frontend performance work
+
+- Added `frontend/src/app/dashboard-metrics.ts` with pure derivations and memoized them in the dashboard: order search/status filtering with counters and average ticket time, analytics bar geometry for the daily and hourly charts, and the incident open/resolved split with an explicit `200+` lower bound when the bounded feed reaches its cap.
+- Kept hook order unconditional by computing the analytics memos before the state early-returns, and preserved the previous peak-highlighting and minimum-bar behavior exactly.
+- **Dhanush implementation commits:** `76a6649` (order and chart derivations) and `0470a73` (incident feed summary). Gokul covered the helpers in `1c7b52b` and `3527515`.
+- **Local verification via Node `24.21.0`:** all 29 frontend tests passed; Biome checked 34 files; TypeScript typecheck and Next.js production build passed; high-severity audit found zero vulnerabilities.
+- **Status/limits:** S3-10 remains **In Progress**. No browser E2E, responsive review, live-service measurement, remote CI, push, merge, or deployment is claimed; the documented p95 targets are not measured by these local checks.

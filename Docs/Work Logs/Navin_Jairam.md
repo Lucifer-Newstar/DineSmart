@@ -341,3 +341,10 @@
 - Updated the test plan with TC-31 and the S3-07 frontend sub-scope; corrected the stale S1-12 test-plan claim about manager-only manual incident resolution to match the approved automatic lifecycle. Updated frontend/root READMEs and marked S3-07 **In Progress** (broader bug triage and browser acceptance remain open). Backlog totals: 1 Complete, 26 Ready to Push, 13 In Progress, 4 To Do.
 - **Local verification via Node `24.21.0`:** 23 frontend tests passed; Biome checked 32 files; typecheck and Next.js production build passed; high-severity audit reported zero vulnerabilities.
 - This checkpoint is frontend-only. No browser E2E/responsive review, backend modifications, live-service verification, remote CI, push, merge, or deployment is claimed.
+
+### 2026-10-12 — S3-10 performance checkpoint and shared documentation
+
+- Opened S3-10 on local `main` with locally verifiable work only, and recorded the selection in the implementation decisions: public-menu gzip, `no-store` API default with a short public menu cache, bounded read projections, and memoized client derivations. Authenticated responses stay uncompressed to avoid mixing tenant data with client-controlled content; the decision document states this is a recommendation, not owner approval, and that the documented p95 targets remain unmeasured.
+- Added Test Plan section 35 (S3-10 verification with commit IDs and limits), marked S3-10 **In Progress** in the canonical backlog, and updated both READMEs with the new test counts (backend 283, frontend 29). Backlog totals: 1 Complete, 26 Ready to Push, 14 In Progress, 3 To Do.
+- **Local verification via Node `24.21.0`:** backend 283 tests passed, Biome checked 154 files, typecheck/build passed, high-severity audit clean; frontend 29 tests passed, Biome checked 34 files, typecheck and Next.js production build passed, high-severity audit clean.
+- No load test, p95 measurement, live database/index coverage check, browser E2E, remote CI, push, merge, or deployment was performed. Atlas and deployment remain deferred until the remaining non-deployment work is finished.
