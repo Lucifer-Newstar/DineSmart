@@ -28,7 +28,7 @@ test("GET /health reports process liveness", async () => {
   }
 });
 
-test("createApp mounts the public menu and protected analytics, billing, order, kitchen, incident, notification, staff, waitlist, and table status routers", async () => {
+test("createApp mounts the public menu and protected analytics, billing, order, kitchen, incident, notification, reservation, staff, waitlist, table, and AI routers", async () => {
   const db = { collection: () => ({}) } as unknown as Db;
   const api = createApp({
     getDatabase: async () => db,
@@ -62,6 +62,9 @@ test("createApp mounts the public menu and protected analytics, billing, order, 
       error: { code: "missing_access_token", message: "A bearer access token is required." },
     });
 
+    const reservationsResponse = await fetch(`${baseUrl}/api/v1/reservations`);
+    assert.equal(reservationsResponse.status, 401);
+
     const billsResponse = await fetch(`${baseUrl}/api/v1/bills/111111111111111111111111`);
     assert.equal(billsResponse.status, 401);
 
@@ -93,6 +96,15 @@ test("createApp mounts the public menu and protected analytics, billing, order, 
 
     const incidentsResponse = await fetch(`${baseUrl}/api/v1/incidents`);
     assert.equal(incidentsResponse.status, 401);
+
+    const recommendationsResponse = await fetch(`${baseUrl}/api/v1/recommendations`);
+    assert.equal(recommendationsResponse.status, 401);
+
+    const generateRecommendationResponse = await fetch(
+      `${baseUrl}/api/v1/incidents/111111111111111111111111/recommendations`,
+      { method: "POST" },
+    );
+    assert.equal(generateRecommendationResponse.status, 401);
 
     const notificationsResponse = await fetch(`${baseUrl}/api/v1/notifications`);
     assert.equal(notificationsResponse.status, 401);
