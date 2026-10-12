@@ -154,3 +154,10 @@
 - **Dhanush-authored commits:** `5b379df` (scoped feed, parser, role tests and dashboard/Insights integration) and `3564ea5` (incident/Insights styling), committed locally on `main`.
 - **Local verification via Node `24.21.0`:** frontend tests passed 20/20; Biome checked 31 files; TypeScript typecheck and Next.js production build passed; `npm audit --audit-level=high` found zero vulnerabilities.
 - **Status/limits:** S3-05 is **Ready to Push**, not Complete. No browser E2E, responsive visual review, live API/MongoDB, remote CI, push, merge, or deployment is claimed. The panel is an assistant-selected interpretation of the backlog's generic Dashboard Polish item, not separately confirmed owner design approval.
+
+### S3-07 — Frontend bug-fix sub-scope
+
+- During a local dashboard review, found that the overview's sample revenue card presented a “Last 7 days” button with an empty click handler and chevron. Replaced it with a static “Last 7 days · sample” label so the preview card no longer advertises an inert interaction.
+- **Dhanush implementation commit:** `30f2ac4` (`fix(S3-07): make sample range read-only`).
+- **Local verification via Node `24.21.0`:** all 21 frontend tests passed; Biome checked 32 files; TypeScript typecheck and Next.js production build passed; high-severity audit found zero vulnerabilities.
+- **Status/limits:** this is a frontend-only S3-07 sub-scope; the overall bug-fixing item remains **In Progress** pending broader review. No browser E2E, responsive visual review, live services, remote CI, push, merge, or deployment is claimed.

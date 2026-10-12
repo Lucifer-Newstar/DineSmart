@@ -334,3 +334,10 @@
 - Marked S3-05 **Ready to Push** after the frontend work was locally committed under Dhanush's identity (`5b379df`, `3564ea5`). Corrected the Test Plan to remove the accidental seed-fixture/backend claim and record actual frontend commit IDs. Backlog totals are now 1 Complete, 26 Ready to Push, 12 In Progress, and 5 To Do.
 - **Final local verification:** frontend Node `24.21.0`: 20 tests passed; Biome checked 31 files; typecheck and production build passed; high-severity audit found zero vulnerabilities. Backend after restoring its accidental uncommitted edits: 274 tests passed; Biome checked 150 files; typecheck/build passed; high-severity audit found zero vulnerabilities.
 - No backend change is part of S3-05. No browser E2E/responsive visual review, live incident API/MongoDB, remote CI, push, merge, or deployment is claimed. No remote is configured; Atlas and deployment remain deferred until remaining non-deployment work is finished.
+
+### 2026-10-12 — S3-07 frontend bug-fix checkpoint and shared documentation
+
+- Reviewed the local dashboard and corrected an inert sample revenue-period button by rendering the period as explicitly static preview text. Dhanush authored implementation commit `30f2ac4`; Gokul added an AST regression guard against empty JSX click callbacks in commit `e55b1d6`.
+- Updated the test plan with TC-31 and the S3-07 frontend sub-scope; corrected the stale S1-12 test-plan claim about manager-only manual incident resolution to match the approved automatic lifecycle. Updated frontend/root READMEs and marked S3-07 **In Progress** (broader bug triage and browser acceptance remain open). Backlog totals: 1 Complete, 26 Ready to Push, 13 In Progress, 4 To Do.
+- **Local verification via Node `24.21.0`:** 21 frontend tests passed; Biome checked 32 files; typecheck and Next.js production build passed; high-severity audit reported zero vulnerabilities.
+- This checkpoint is frontend-only. No browser E2E/responsive review, backend modifications, live-service verification, remote CI, push, merge, or deployment is claimed.

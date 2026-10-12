@@ -44,3 +44,10 @@
 - **Gokul-authored commits:** `dc2eb8a` (`test(S3-06): integrate customer menu and order flow`) and `aaa9416` (`test(S3-06): cover app router composition for reservations and AI`).
 - **Validation on Node `24.21.0`:** all 274 backend tests passed, including the four app/customer-workflow HTTP tests; Biome checked 150 files with no findings; TypeScript typecheck, production build, and high-severity dependency audit passed (zero vulnerabilities).
 - **Limits:** integration repositories and auth verifier are fakes; the tests do not establish live MongoDB/index behavior, browser E2E, live Gemini, deployment, remote CI, push, or merge. S3-06's local test contribution is Ready to Push only; external acceptance remains outstanding.
+
+### S3-07 — Frontend interactive-control regression test
+
+- Took a substantive frontend test sub-scope on `main`: added a TypeScript AST regression test that scans the app's TSX/JSX components and fails if a JSX `onClick` uses an empty block-bodied callback. It guards against regressions like the inert sample-range control removed by Dhanush's S3-07 fix.
+- **Gokul-authored test commit:** `e55b1d6` (`test(S3-07): guard against empty click handlers`).
+- **Validation via Node `24.21.0`:** the new targeted test passed; full frontend suite passed 21/21; Biome, typecheck, production build, and high-severity dependency audit passed.
+- The overall S3-07 bug-fixing task remains **In Progress**. This test does not replace browser E2E/responsive acceptance; no live API/database, remote CI, push, merge, or deployment is claimed.
