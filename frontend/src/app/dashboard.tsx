@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
-import { type AnalyticsData, type AnalyticsRange, parseAnalyticsData } from "./analytics-data";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type AnalyticsDailyPoint,
+  type AnalyticsData,
+  type AnalyticsHourlyPoint,
+  type AnalyticsRange,
+  parseAnalyticsData,
+} from "./analytics-data";
 import { type AuthUser, useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
 import {
@@ -17,6 +23,7 @@ import {
   resolveDashboardSection,
   valueForDashboardWorkspace,
 } from "./dashboard-access";
+import { buildAnalyticsBars, summarizeOrders } from "./dashboard-metrics";
 import { type IncidentRecord, parseIncidentsResponse } from "./incident-data";
 import {
   parseGeneratedRecommendationResponse,
@@ -3257,42 +3264,31 @@ function OrdersPage({
   statusFilter: string;
   onFilter: (value: string) => void;
 }) {
-  const visible = orders.filter((order) => {
-    const queryMatch = `${order.id} ${order.guest} ${order.items}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    return queryMatch && (statusFilter === "All orders" || order.status === statusFilter);
-  });
+  const { visible, inProgress, newTickets, readyToServe, averageTicketMinutes } = useMemo(
+    () => summarizeOrders(orders, search, statusFilter),
+    [orders, search, statusFilter],
+  );
   return (
     <>
       <section className="quick-stat-row">
         <div>
           <span>In progress</span>
-          <strong>
-            {
-              orders.filter((order) => order.status === "Accepted" || order.status === "Preparing")
-                .length
-            }
-          </strong>
+          <strong>{inProgress}</strong>
           <i className="stat-dot stat-dot-gold" />
         </div>
         <div>
           <span>New tickets</span>
-          <strong>{orders.filter((order) => order.status === "New").length}</strong>
+          <strong>{newTickets}</strong>
           <i className="stat-dot stat-dot-blue" />
         </div>
         <div>
           <span>Ready to serve</span>
-          <strong>{orders.filter((order) => order.status === "Ready").length}</strong>
+          <strong>{readyToServe}</strong>
           <i className="stat-dot stat-dot-green" />
         </div>
         <div>
           <span>Avg. ticket time</span>
-          <strong>
-            {orders.length
-              ? `${Math.round(orders.reduce((total, order) => total + order.elapsed, 0) / orders.length)} min`
-              : "—"}
-          </strong>
+          <strong>{averageTicketMinutes === null ? "—" : `${averageTicketMinutes} min`}</strong>
           <i className="stat-dot stat-dot-coral" />
         </div>
       </section>
@@ -4490,6 +4486,23 @@ function AnalyticsPage() {
     return () => controller.abort();
   }, [accessToken, canReadAnalytics, range, refreshKey]);
 
+  // Charts are derived before the state early-returns so hook order is stable.
+  const dailyBars = useMemo(
+    () =>
+      buildAnalyticsBars<AnalyticsDailyPoint>(data?.daily ?? [], {
+        value: (point) => point.ordersPlaced,
+      }),
+    [data],
+  );
+  const hourlyBars = useMemo(
+    () =>
+      buildAnalyticsBars<AnalyticsHourlyPoint>(data?.hourly ?? [], {
+        value: (point) => point.ordersPlaced,
+        minimumPercent: 6,
+      }),
+    [data],
+  );
+
   if (state === "restricted") {
     return (
       <article className="card analytics-state-card" role="status">
@@ -4544,7 +4557,6 @@ function AnalyticsPage() {
   }
 
   const { summary } = data;
-  const maximumDailyOrders = Math.max(1, ...data.daily.map((point) => point.ordersPlaced));
   const totalOrders = summary.ordersPlaced;
   const fulfilledPercent = totalOrders ? (summary.ordersFulfilled / totalOrders) * 100 : 0;
   const cancelledPercent = totalOrders ? (summary.ordersCancelled / totalOrders) * 100 : 0;
@@ -4553,7 +4565,6 @@ function AnalyticsPage() {
   const outcomeDonutBackground = totalOrders
     ? `conic-gradient(#809875 0 ${fulfilledEnd}%, #d7a272 ${fulfilledEnd}% ${cancelledEnd}%, #dfe7db ${cancelledEnd}% 100%)`
     : "#edf0eb";
-  const maximumHourOrders = Math.max(1, ...data.hourly.map((point) => point.ordersPlaced));
   const busiestHour = data.hourly.reduce(
     (best, point) => (point.ordersPlaced > best.ordersPlaced ? point : best),
     data.hourly[0],
@@ -4635,21 +4646,16 @@ function AnalyticsPage() {
               role="img"
               aria-label={`${totalOrders} orders placed over the selected ${data.range === "7d" ? "seven-day" : "thirty-day"} window`}
             >
-              {data.daily.map((point) => {
-                const height = point.ordersPlaced
-                  ? Math.max(7, (point.ordersPlaced / maximumDailyOrders) * 100)
-                  : 2;
-                return (
-                  <div className="analytics-bar-wrap" key={point.date}>
-                    <span className="analytics-bar-value">{point.ordersPlaced || ""}</span>
-                    <div
-                      className={`analytics-bar ${point.ordersPlaced === maximumDailyOrders && point.ordersPlaced > 0 ? "analytics-bar-active" : ""}`}
-                      style={{ height: `${height}%` }}
-                    />
-                    <span className="analytics-day">{formatAnalyticsDate(point.date)}</span>
-                  </div>
-                );
-              })}
+              {dailyBars.map(({ point, value, heightPercent, isPeak }) => (
+                <div className="analytics-bar-wrap" key={point.date}>
+                  <span className="analytics-bar-value">{value || ""}</span>
+                  <div
+                    className={`analytics-bar ${isPeak ? "analytics-bar-active" : ""}`}
+                    style={{ height: `${heightPercent}%` }}
+                  />
+                  <span className="analytics-day">{formatAnalyticsDate(point.date)}</span>
+                </div>
+              ))}
             </div>
           </div>
         </article>
@@ -4706,24 +4712,19 @@ function AnalyticsPage() {
             role="img"
             aria-label={`Hourly order counts in ${data.period.timeZone}`}
           >
-            {data.hourly.map((point) => {
-              const height = point.ordersPlaced
-                ? Math.max(6, (point.ordersPlaced / maximumHourOrders) * 100)
-                : 2;
-              return (
+            {hourlyBars.map(({ point, value, heightPercent }) => (
+              <div
+                className="analytics-hour-wrap"
+                key={point.hour}
+                title={`${formatAnalyticsHour(point.hour)} · ${value} orders`}
+              >
                 <div
-                  className="analytics-hour-wrap"
-                  key={point.hour}
-                  title={`${formatAnalyticsHour(point.hour)} · ${point.ordersPlaced} orders`}
-                >
-                  <div
-                    className={`analytics-hour-bar ${point.hour === busiestHour.hour && point.ordersPlaced > 0 ? "analytics-bar-active" : ""}`}
-                    style={{ height: `${height}%` }}
-                  />
-                  {point.hour % 3 === 0 ? <span>{formatAnalyticsHour(point.hour)}</span> : null}
-                </div>
-              );
-            })}
+                  className={`analytics-hour-bar ${point.hour === busiestHour.hour && value > 0 ? "analytics-bar-active" : ""}`}
+                  style={{ height: `${heightPercent}%` }}
+                />
+                {point.hour % 3 === 0 ? <span>{formatAnalyticsHour(point.hour)}</span> : null}
+              </div>
+            ))}
           </div>
         </article>
 
