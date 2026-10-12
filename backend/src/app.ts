@@ -29,6 +29,7 @@ import { connectToDatabase } from "./database.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
+import { sendNoStoreApiResponse } from "./http/cache-policy.js";
 import { MongoIncidentDetectionRepository } from "./incidents/incident.repository.js";
 import { createIncidentRouter } from "./incidents/incident.router.js";
 import { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
@@ -158,6 +159,8 @@ export function createApp(options: AppOptions = {}) {
     }),
   );
   app.use(express.json({ limit: "16kb" }));
+  // Every API response is private by default; routers opt out explicitly.
+  app.use("/api/v1", sendNoStoreApiResponse);
 
   // Infrastructure liveness only; this must not depend on database/auth readiness.
   app.get("/health", (_request, response) => {

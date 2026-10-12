@@ -1,5 +1,6 @@
 import { type Request, type Response, Router } from "express";
 import { ObjectId } from "mongodb";
+import { setPublicMenuCacheHeaders } from "../http/cache-policy.js";
 import { createPublicJsonCompression } from "../http/response-compression.js";
 import type { MenuReader } from "./menu.types.js";
 
@@ -45,6 +46,7 @@ export function createMenuRouter(options: MenuRouterOptions) {
         });
         return;
       }
+      setPublicMenuCacheHeaders(response);
       response.status(200).json({
         restaurant: {
           id: menu.restaurant.id.toHexString(),
