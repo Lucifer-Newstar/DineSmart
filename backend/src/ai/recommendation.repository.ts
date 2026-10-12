@@ -15,6 +15,23 @@ export interface RecommendationRepository {
   ): Promise<Array<WithId<RecommendationDocument>>>;
 }
 
+/**
+ * Advisory reads are serialized field by field, so the projection lists exactly
+ * those fields and leaves prompt/audit data out of the tenant-scoped feed.
+ */
+const RECOMMENDATION_PROJECTION = {
+  _id: 1,
+  incidentId: 1,
+  summary: 1,
+  rootCause: 1,
+  priority: 1,
+  actions: 1,
+  confidence: 1,
+  source: 1,
+  provider: 1,
+  generatedAt: 1,
+} as const;
+
 export class MongoRecommendationRepository implements RecommendationRepository {
   private readonly recommendations;
 
@@ -56,7 +73,7 @@ export class MongoRecommendationRepository implements RecommendationRepository {
   ): Promise<Array<WithId<RecommendationDocument>>> {
     const filter = incidentId ? { restaurantId, incidentId } : { restaurantId };
     return this.recommendations
-      .find(filter)
+      .find(filter, { projection: RECOMMENDATION_PROJECTION })
       .sort({ generatedAt: -1 })
       .limit(Math.min(Math.max(limit, 1), 100))
       .toArray();
