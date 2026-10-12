@@ -1,5 +1,6 @@
 import { type Request, type Response, Router } from "express";
 import { ObjectId } from "mongodb";
+import { createPublicJsonCompression } from "../http/response-compression.js";
 import type { MenuReader } from "./menu.types.js";
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -19,6 +20,10 @@ function sendUnavailable(response: Response): void {
 
 export function createMenuRouter(options: MenuRouterOptions) {
   const router = Router();
+
+  // The public catalog is identical for every visitor and carries no tenant
+  // secrets, so it is the one response that is safe to compress and cache.
+  router.use(createPublicJsonCompression());
 
   router.get("/", async (request: Request, response: Response) => {
     const value = request.query.restaurantId;
