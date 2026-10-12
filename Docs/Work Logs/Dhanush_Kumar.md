@@ -169,3 +169,10 @@
 - **Dhanush implementation commits:** `76a6649` (order and chart derivations) and `0470a73` (incident feed summary). Gokul covered the helpers in `1c7b52b` and `3527515`.
 - **Local verification via Node `24.21.0`:** all 29 frontend tests passed; Biome checked 34 files; TypeScript typecheck and Next.js production build passed; high-severity audit found zero vulnerabilities.
 - **Status/limits:** S3-10 remains **In Progress**. No browser E2E, responsive review, live-service measurement, remote CI, push, merge, or deployment is claimed; the documented p95 targets are not measured by these local checks.
+
+### S3-12 — Frontend demo walkthrough
+
+- Added a demo walkthrough section to the frontend README: a route-to-audience table covering `/`, auth, `/menu`, `/orders`, `/book`, and each role-specific dashboard section, plus presenter rules about sample labels, explicit state handling, the absence of a manual incident close control, and the revenue/payment boundary.
+- **Dhanush documentation commit:** `2114926`.
+- **Local verification:** the README change is documentation only; frontend Biome, typecheck, tests, and the Next.js production build were unaffected.
+- **Status/limits:** no browser demo, responsive review, or live-service run has been performed; the runbook's frontend steps are untested against real services.

@@ -161,3 +161,10 @@
 - **Jegatheesan implementation commits:** `8fa08f1` (public menu compression), `829bed3` (cache policy), `5324834` (notification projection), `8a1e974` (inventory projection), `318501b` (recommendation projection). Gokul covered these with `f44e0aa`, `159a40a`, and `268e51c`.
 - **Local verification via Node `24.21.0`:** all 283 backend tests passed; Biome checked 154 files; TypeScript typecheck and production build passed; `npm audit --audit-level=high` found zero vulnerabilities.
 - **Status/limits:** S3-10 remains **In Progress**. This work reduces transfer size and repeated work; it is not a load test. No p95 measurement, live MongoDB/index coverage check, browser E2E, remote CI, push, merge, or deployment is claimed. Docker/`mongod` and a load generator are unavailable.
+
+### S3-12 — Seeded demo fixture summary
+
+- Added `backend/src/database/demo-fixtures.ts`, `backend/src/database/demo-fixtures.cli.ts`, and the `npm run demo:fixtures` script. The summary builds the in-memory fixture set only to describe it: it prints the restaurant, demo accounts (emails/roles/names), per-collection counts, seeded incidents, and advisory recommendations without connecting to a database or printing any password or hash.
+- **Jegatheesan implementation commit:** `4c1d6a3`. Gokul covered the summary with `9169140`.
+- **Local verification via Node `24.21.0`:** all 286 backend tests passed; Biome checked 157 files; TypeScript typecheck and production build passed; `npm audit --audit-level=high` found zero vulnerabilities. `npm run demo:fixtures` printed 40 seeded records across 15 collections.
+- **Status/limits:** this describes the fixtures; it does not seed or verify a live database. The seeded scenario has not been demonstrated against live MongoDB, and no deployment or remote CI is claimed.

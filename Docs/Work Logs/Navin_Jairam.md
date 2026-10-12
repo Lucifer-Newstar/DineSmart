@@ -348,3 +348,10 @@
 - Added Test Plan section 35 (S3-10 verification with commit IDs and limits), marked S3-10 **In Progress** in the canonical backlog, and updated both READMEs with the new test counts (backend 283, frontend 29). Backlog totals: 1 Complete, 26 Ready to Push, 14 In Progress, 3 To Do.
 - **Local verification via Node `24.21.0`:** backend 283 tests passed, Biome checked 154 files, typecheck/build passed, high-severity audit clean; frontend 29 tests passed, Biome checked 34 files, typecheck and Next.js production build passed, high-severity audit clean.
 - No load test, p95 measurement, live database/index coverage check, browser E2E, remote CI, push, merge, or deployment was performed. Atlas and deployment remain deferred until the remaining non-deployment work is finished.
+
+### 2026-10-12 — S3-12 presentation and demo preparation
+
+- Authored the presentation outline (`Docs/Planning/Andhrimnir_Presentation_Plan.md`) with slide timings, a judging-criteria mapping that records honest current states, and presenter rules for advisory AI, sample labels, and revenue boundaries. Authored the demo runbook (`Docs/Quality/Andhrimnir_Demo_Runbook.md`) with setup steps, a 14-step script, and a fallback table for every dependency that can fail on stage.
+- Added Test Plan section 36, marked S3-12 **In Progress** in the canonical backlog, and updated the root README (backend 286 tests). Backlog totals: 1 Complete, 26 Ready to Push, 15 In Progress, 2 To Do.
+- **Local verification via Node `24.21.0`:** backend 286 tests passed; Biome checked 157 files; typecheck and production build passed; high-severity audit clean. `node --test tools/demo-readiness.test.mjs` passed 4/4 and `node tools/demo-readiness.mjs --strict` exited 0.
+- No slide deck has been rendered, no rehearsal or recorded backup exists, and no live MongoDB/Gemini/deployed environment was available. The runbook's fallback paths are untested against real failures. Atlas and deployment remain deferred.

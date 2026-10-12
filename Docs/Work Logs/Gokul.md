@@ -61,3 +61,11 @@
 - **Gokul test commits:** `f44e0aa`, `159a40a`, `268e51c`, `1c7b52b`, `3527515`.
 - **Validation via Node `24.21.0`:** all 283 backend tests and all 29 frontend tests passed; both packages pass Biome, typecheck, production build, and high-severity dependency audit.
 - These are unit/contract tests, not a load test: no p95 measurement, live database/index coverage, browser E2E, remote CI, push, merge, or deployment is claimed.
+
+### S3-12 — Demo readiness preflight and fixture tests
+
+- Built `tools/demo-readiness.mjs`, a dependency-free preflight that checks the demo documents, env examples, seed CLI, CI workflow, Node pinning, and absence of committed `.env` files; `--strict` makes it exit non-zero for CI use. Covered it with `tools/demo-readiness.test.mjs` using temporary fixture directories (complete repo, partially configured repo, empty repo, report formatting).
+- Added `backend/test/demo-fixtures.test.ts` for Jegatheesan's fixture summary: accounts by role, per-collection counts, incident statuses/types, recommendation sources, and an assertion that the printed report never contains the demo password or a hash field.
+- **Gokul-authored commits:** `3e7464f` (preflight script), `653ad71` (preflight tests), `9169140` (fixture summary tests).
+- **Validation via Node `24.21.0`:** `node --test tools/demo-readiness.test.mjs` passed 4/4; the backend suite passed 286/286 with Biome, typecheck, production build, and high-severity audit clean.
+- This is preparation work. No live demo, rehearsal, database run, remote CI, push, merge, or deployment has been performed.
