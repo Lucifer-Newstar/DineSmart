@@ -16,6 +16,11 @@ import {
   resolveDashboardSection,
   valueForDashboardWorkspace,
 } from "./dashboard-access";
+import {
+  parseGeneratedRecommendationResponse,
+  parseRecommendationsResponse,
+  type Recommendation,
+} from "./recommendation-data";
 
 type Section =
   | "Overview"
@@ -119,15 +124,13 @@ interface Reservation {
   restaurantName?: string;
 }
 
-interface Recommendation {
-  incidentId: string;
-  summary: string;
-  rootCause: string;
-  priority: string;
-  source: "gemini" | "fallback" | "demo";
-  confidence: number;
-  actions: Array<{ description: string; rationale: string; expectedImpact: string }>;
-}
+type RecommendationViewStatus =
+  | "preview"
+  | "loading"
+  | "live"
+  | "empty"
+  | "unavailable"
+  | "restricted";
 
 interface HealthScoreMetric {
   score: number;
@@ -1004,12 +1007,14 @@ function RecommendationCard({
   onReview,
   onGenerate,
   generating,
+  loading,
 }: {
   recommendation: Recommendation;
   reviewed: boolean;
   onReview: () => void;
   onGenerate?: () => void;
   generating?: boolean;
+  loading?: boolean;
 }) {
   const sourceLabel =
     recommendation.source === "gemini"
@@ -1050,10 +1055,10 @@ function RecommendationCard({
               type="button"
               className="button button-soft"
               onClick={onGenerate}
-              disabled={generating}
+              disabled={generating || loading}
             >
               <Icon name="refresh" size={15} />
-              {generating ? "Generating…" : "Generate again"}
+              {generating ? "Generating…" : loading ? "Loading…" : "Generate again"}
             </button>
           ) : null}
           <button
@@ -1452,6 +1457,8 @@ export function Dashboard() {
   const [recommendation, setRecommendation] = useState(DEMO_RECOMMENDATION);
   const [recommendationScopeKey, setRecommendationScopeKey] = useState("preview");
   const [recommendationReviewed, setRecommendationReviewed] = useState(false);
+  const [recommendationViewStatus, setRecommendationViewStatus] =
+    useState<RecommendationViewStatus>("preview");
   const [generating, setGenerating] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All orders");
@@ -1473,6 +1480,12 @@ export function Dashboard() {
     workspaceScopeKey,
     false,
   );
+  const currentRecommendationStatus =
+    recommendationScopeKey === workspaceScopeKey
+      ? recommendationViewStatus
+      : accessToken && role && canViewRecommendations(role)
+        ? "loading"
+        : "preview";
 
   useEffect(() => {
     if (recommendationScopeKey === workspaceScopeKey) return;
@@ -1480,6 +1493,53 @@ export function Dashboard() {
     setRecommendationReviewed(false);
     setRecommendationScopeKey(workspaceScopeKey);
   }, [recommendationScopeKey, workspaceScopeKey]);
+
+  useEffect(() => {
+    if (!accessToken || !role || !canViewRecommendations(role)) {
+      setRecommendation(DEMO_RECOMMENDATION);
+      setRecommendationReviewed(false);
+      setRecommendationScopeKey(workspaceScopeKey);
+      setRecommendationViewStatus("preview");
+      return;
+    }
+
+    const controller = new AbortController();
+    setRecommendation(DEMO_RECOMMENDATION);
+    setRecommendationReviewed(false);
+    setRecommendationScopeKey(workspaceScopeKey);
+    setRecommendationViewStatus("loading");
+    void fetch(
+      `${API_BASE}/recommendations?incidentId=${encodeURIComponent(INCIDENT_INVENTORY_ID)}`,
+      {
+        cache: "no-store",
+        credentials: "include",
+        headers: { authorization: `Bearer ${accessToken}` },
+        signal: controller.signal,
+      },
+    )
+      .then(async (response) => {
+        if (controller.signal.aborted) return;
+        if (response.status === 403) {
+          setRecommendationViewStatus("restricted");
+          return;
+        }
+        if (!response.ok) throw new Error("Saved recommendations are not available from the API.");
+        const parsed = parseRecommendationsResponse(await response.json(), INCIDENT_INVENTORY_ID);
+        if (!parsed.valid) throw new Error("The recommendation response was invalid.");
+        if (controller.signal.aborted) return;
+        if (!parsed.recommendation) {
+          setRecommendationViewStatus("empty");
+          return;
+        }
+        setRecommendation(parsed.recommendation);
+        setRecommendationViewStatus("live");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setRecommendationViewStatus("unavailable");
+      });
+
+    return () => controller.abort();
+  }, [accessToken, role, workspaceScopeKey]);
 
   useEffect(() => {
     if (!accessToken || !role || role === "Customer") {
@@ -1960,6 +2020,7 @@ export function Dashboard() {
       if (!accessToken) {
         setRecommendation({ ...DEMO_RECOMMENDATION, source: "demo" });
         setRecommendationScopeKey(workspaceScopeKey);
+        setRecommendationViewStatus("preview");
         notify(
           "Preview guidance refreshed. Sign in as a manager and connect the API for live recommendations.",
         );
@@ -1980,21 +2041,26 @@ export function Dashboard() {
             : "The live recommendation service is not available yet.",
         );
       }
-      const result = (await response.json()) as {
-        recommendation: Omit<Recommendation, "incidentId"> & { incidentId: string };
-      };
-      setRecommendation(result.recommendation);
+      const recommendation = parseGeneratedRecommendationResponse(
+        await response.json(),
+        INCIDENT_INVENTORY_ID,
+      );
+      if (!recommendation) throw new Error("The recommendation response was invalid.");
+      setRecommendation(recommendation);
       setRecommendationScopeKey(workspaceScopeKey);
       setRecommendationReviewed(false);
+      setRecommendationViewStatus("live");
       notify(
-        result.recommendation.source === "gemini"
+        recommendation.source === "gemini"
           ? "A new AI recommendation is ready."
-          : "A safe fallback recommendation is ready.",
+          : recommendation.source === "fallback"
+            ? "A safe fallback recommendation is ready."
+            : "The seeded preview recommendation is ready.",
       );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Live recommendations are unavailable.";
-      notify(`${message} Keeping the preview guidance on screen.`);
+      notify(`${message} Keeping the current recommendation on screen.`);
     } finally {
       setGenerating(false);
     }
@@ -2344,11 +2410,15 @@ export function Dashboard() {
               <button
                 type="button"
                 className="button button-dark"
-                disabled={generating}
+                disabled={generating || currentRecommendationStatus === "loading"}
                 onClick={() => void generateRecommendation()}
               >
                 <Icon name="spark" size={16} />
-                {generating ? "Generating…" : "Generate insight"}
+                {generating
+                  ? "Generating…"
+                  : currentRecommendationStatus === "loading"
+                    ? "Loading…"
+                    : "Generate insight"}
               </button>
             ) : null}
           </PageHeading>
@@ -2437,6 +2507,7 @@ export function Dashboard() {
           ) : currentSection === "Insights" ? (
             <InsightsPage
               recommendation={currentRecommendation}
+              recommendationStatus={currentRecommendationStatus}
               reviewed={currentRecommendationReviewed}
               onReview={() => {
                 setRecommendationReviewed(true);
@@ -2871,7 +2942,11 @@ function OverviewPage({
             </div>
             <div className="insight-teaser-footer">
               <span className={`insight-source-dot ${recommendation.source}`} />
-              {recommendation.source === "gemini" ? "Gemini recommendation" : "Preview guidance"}
+              {recommendation.source === "gemini"
+                ? "Gemini recommendation"
+                : recommendation.source === "fallback"
+                  ? "Rule-based fallback"
+                  : "Preview guidance"}
               <button type="button" onClick={onOpen}>
                 Review insight <Icon name="arrow-right" size={14} />
               </button>
@@ -3819,17 +3894,30 @@ function IncidentsPage({
 
 function InsightsPage({
   recommendation,
+  recommendationStatus,
   reviewed,
   onReview,
   onGenerate,
   generating,
 }: {
   recommendation: Recommendation;
+  recommendationStatus: RecommendationViewStatus;
   reviewed: boolean;
   onReview: () => void;
   onGenerate: () => void;
   generating: boolean;
 }) {
+  const statusMessage =
+    recommendationStatus === "loading"
+      ? "Loading the saved recommendation from the API."
+      : recommendationStatus === "empty"
+        ? "No saved recommendation was found for this incident; sample preview guidance is shown below."
+        : recommendationStatus === "unavailable"
+          ? "The recommendation API is unavailable or returned invalid data; the card below is sample preview guidance."
+          : recommendationStatus === "restricted"
+            ? "The current account is not authorized to load recommendations; sample preview guidance is shown."
+            : "This is sample preview guidance. Connect the API and sign in as a Manager or Administrator to load live recommendations.";
+
   return (
     <>
       <section className="insights-welcome">
@@ -3849,6 +3937,11 @@ function InsightsPage({
           <Icon name="check" size={14} /> HUMAN-IN-THE-LOOP
         </span>
       </section>
+      {recommendationStatus !== "live" ? (
+        <p className="preview-note" role="status">
+          {statusMessage}
+        </p>
+      ) : null}
       <div className="insights-layout">
         <div className="insights-main-column">
           <div className="section-title-inline">
@@ -3866,6 +3959,7 @@ function InsightsPage({
             onReview={onReview}
             onGenerate={onGenerate}
             generating={generating}
+            loading={recommendationStatus === "loading"}
           />
           <div className="insight-supporting-grid">
             <article className="card supporting-card">
