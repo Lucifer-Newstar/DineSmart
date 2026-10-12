@@ -1403,6 +1403,14 @@ a {
   background: #ca7954;
   box-shadow: 0 0 0 3px rgb(202 121 84 / 12%);
 }
+.priority-dot-warning {
+  background: #b28b45;
+  box-shadow: 0 0 0 3px rgb(178 139 69 / 13%);
+}
+.priority-dot-info {
+  background: #6f8b72;
+  box-shadow: 0 0 0 3px rgb(111 139 114 / 13%);
+}
 .insight-teaser-card h2 {
   position: relative;
   z-index: 1;
@@ -2575,7 +2583,17 @@ a {
 }
 .incident-card {
   overflow: hidden;
-  padding: 20px 21px 0;
+  padding: 20px 21px;
+}
+.incident-list {
+  display: grid;
+  gap: 12px;
+}
+.incident-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 .incident-row-top {
   display: flex;
@@ -2606,9 +2624,41 @@ a {
   border-radius: 50%;
   background: #d29a58;
 }
+.incident-severity,
+.incident-record-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+.incident-severity-critical {
+  color: #a24f3c;
+  background: #fbede6;
+}
+.incident-severity-warning {
+  color: #896b2f;
+  background: #f8f2e5;
+}
+.incident-severity-info {
+  color: #527c70;
+  background: #edf5ee;
+}
+.incident-record-status-open {
+  color: #9c613e;
+  background: #fbf2ea;
+}
+.incident-record-status-resolved {
+  color: #5c7e65;
+  background: #edf5ee;
+}
 .incident-time {
-  color: #a2aaa3;
-  font-size: 8px;
+  color: #738178;
+  font-size: 10px;
 }
 .incident-card > h2 {
   max-width: 650px;
@@ -2627,7 +2677,7 @@ a {
   max-width: 680px;
   margin: 0;
   color: #89948b;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .incident-context-grid {
@@ -2644,14 +2694,16 @@ a {
   flex-direction: column;
   gap: 5px;
 }
-.incident-context-grid span {
-  color: #9aa49c;
-  font-size: 8px;
+.incident-context-grid dt {
+  color: #748178;
+  font-size: 11px;
 }
-.incident-context-grid strong {
-  color: #58675d;
-  font-size: 10px;
+.incident-context-grid dd {
+  margin: 0;
+  color: #34483b;
+  font-size: 13px;
   font-weight: 650;
+  overflow-wrap: anywhere;
 }
 .incident-actions-row {
   display: flex;
@@ -2665,10 +2717,65 @@ a {
   align-items: center;
   gap: 7px;
   color: #8c795f;
-  font-size: 9px;
+  font-size: 11px;
 }
 .incident-actions-row > span svg {
   color: #b48956;
+}
+.incident-feed-state {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid #e6ebe3;
+  border-radius: 9px;
+  color: #5d6d61;
+  background: #f7f9f5;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.incident-feed-state-preview {
+  border-color: #eadfc8;
+  color: #806843;
+  background: #fbf6ec;
+}
+.incident-feed-state-unavailable,
+.incident-feed-state-restricted {
+  border-color: #ebd6cd;
+  color: #8a4c3b;
+  background: #fcf2ee;
+}
+.incident-truncation-note {
+  margin: -4px 0 14px;
+  color: #7d7564;
+  font-size: 11px;
+}
+.incident-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 19px 20px;
+  color: #536358;
+}
+.incident-empty-state strong {
+  font-size: 14px;
+}
+.incident-empty-state span {
+  color: #79867d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.incident-lifecycle-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 18px 1px 0;
+  color: #727f75;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.incident-lifecycle-note svg {
+  flex: 0 0 15px;
+  margin-top: 1px;
+  color: #a47752;
 }
 .incident-history-head {
   display: flex;
@@ -2801,20 +2908,40 @@ a {
   font-size: 18px;
   font-weight: 500;
 }
-.incident-status-open {
+.incident-status-open,
+.incident-status-resolved,
+.incident-status-unavailable {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #a77b58;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 680;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
+}
+.incident-status-open {
+  color: #a77b58;
 }
 .incident-status-open i {
+  background: #ce8d61;
+}
+.incident-status-resolved {
+  color: #64806a;
+}
+.incident-status-resolved i {
+  background: #78977a;
+}
+.incident-status-unavailable {
+  color: #879188;
+}
+.incident-status-unavailable i {
+  background: #a3aca5;
+}
+.incident-status-open i,
+.incident-status-resolved i,
+.incident-status-unavailable i {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ce8d61;
 }
 .recommendation-card {
   overflow: hidden;
@@ -2970,19 +3097,41 @@ a {
   background: #eef4e9;
 }
 .supporting-card .card-overline {
-  font-size: 7px;
+  font-size: 8px;
 }
 .supporting-card h3 {
-  margin: 5px 0 4px;
+  margin: 5px 0 6px;
   color: #526157;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 660;
 }
 .supporting-card p {
   margin: 0;
-  color: #949f96;
-  font-size: 8px;
+  color: #728076;
+  font-size: 11px;
   line-height: 1.55;
+}
+.insight-trigger-snapshot {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.insight-trigger-snapshot > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.insight-trigger-snapshot small {
+  color: #7c897f;
+  font-size: 9px;
+}
+.insight-trigger-snapshot strong {
+  color: #3e5545;
+  font-size: 11px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
 }
 .insights-side-column {
   display: flex;
