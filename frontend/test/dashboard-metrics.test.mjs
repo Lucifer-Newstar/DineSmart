@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   ALL_ORDERS_FILTER,
   buildAnalyticsBars,
+  formatLoadedCount,
+  summarizeIncidents,
   summarizeOrders,
 } from "../src/app/dashboard-metrics.ts";
 
@@ -112,4 +114,41 @@ test("buildAnalyticsBars honours a custom floor and tolerates empty or flat seri
     zeros.map(({ heightPercent, isPeak }) => [heightPercent, isPeak]),
     [[2, false]],
   );
+});
+
+test("summarizeIncidents only renders records for live or preview feeds", () => {
+  const incidents = [
+    { id: "i-1", status: "open" },
+    { id: "i-2", status: "active" },
+    { id: "i-3", status: "resolved" },
+  ];
+
+  const live = summarizeIncidents(incidents, "live");
+  assert.deepEqual(
+    live.visible.map(({ id }) => id),
+    ["i-1", "i-2", "i-3"],
+  );
+  assert.deepEqual(
+    live.open.map(({ id }) => id),
+    ["i-1", "i-2"],
+  );
+  assert.deepEqual(
+    live.resolved.map(({ id }) => id),
+    ["i-3"],
+  );
+
+  assert.deepEqual(summarizeIncidents(incidents, "preview").open.length, 2);
+
+  for (const status of ["loading", "empty", "unavailable", "restricted"]) {
+    const hidden = summarizeIncidents(incidents, status);
+    assert.deepEqual(hidden, { visible: [], open: [], resolved: [] }, `${status} hides records`);
+  }
+});
+
+test("formatLoadedCount reports an explicit lower bound at the server cap", () => {
+  assert.equal(formatLoadedCount(200, true), "200+");
+  assert.equal(formatLoadedCount(201, true), "200+");
+  assert.equal(formatLoadedCount(200, false), 200);
+  assert.equal(formatLoadedCount(199, true), 199);
+  assert.equal(formatLoadedCount(0, true), 0);
 });
