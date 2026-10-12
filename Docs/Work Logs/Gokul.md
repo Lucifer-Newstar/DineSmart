@@ -49,5 +49,6 @@
 
 - Took a substantive frontend test sub-scope on `main`: added a TypeScript AST regression test that scans the app's TSX/JSX components and fails if a JSX `onClick` uses an empty block-bodied callback. It guards against regressions like the inert sample-range control removed by Dhanush's S3-07 fix.
 - **Gokul-authored test commit:** `e55b1d6` (`test(S3-07): guard against empty click handlers`).
-- **Validation via Node `24.21.0`:** the new targeted test passed; full frontend suite passed 21/21; Biome, typecheck, production build, and high-severity dependency audit passed.
-- The overall S3-07 bug-fixing task remains **In Progress**. This test does not replace browser E2E/responsive acceptance; no live API/database, remote CI, push, merge, or deployment is claimed.
+- **Gokul-authored test commits:** `e55b1d6` (empty click handlers), `38348a0` (buttons must declare an explicit `type`), and `14519b6` (form controls must expose an accessible name through `aria-label`/`aria-labelledby` or a wrapping label with visible text; placeholders alone are rejected). Verified the guard by temporarily introducing one violation of each type, then removing the probe file.
+- **Validation via Node `24.21.0`:** the three guards passed; the full frontend suite passed 23/23; Biome, typecheck, production build, and high-severity dependency audit passed.
+- The overall S3-07 bug-fixing task remains **In Progress**. These static checks do not replace browser E2E/responsive acceptance or a live accessibility audit; no live API/database, remote CI, push, merge, or deployment is claimed.

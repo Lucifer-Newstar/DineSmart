@@ -337,7 +337,7 @@
 
 ### 2026-10-12 — S3-07 frontend bug-fix checkpoint and shared documentation
 
-- Reviewed the local dashboard and corrected an inert sample revenue-period button by rendering the period as explicitly static preview text. Dhanush authored implementation commit `30f2ac4`; Gokul added an AST regression guard against empty JSX click callbacks in commit `e55b1d6`.
+- Reviewed the local dashboard and corrected an inert sample revenue-period button by rendering the period as explicitly static preview text. Dhanush authored implementation commit `30f2ac4`; Gokul extended the AST regression guard across three commits (`e55b1d6`, `38348a0`, `14519b6`) covering empty click handlers, missing button types, and unnamed form controls.
 - Updated the test plan with TC-31 and the S3-07 frontend sub-scope; corrected the stale S1-12 test-plan claim about manager-only manual incident resolution to match the approved automatic lifecycle. Updated frontend/root READMEs and marked S3-07 **In Progress** (broader bug triage and browser acceptance remain open). Backlog totals: 1 Complete, 26 Ready to Push, 13 In Progress, 4 To Do.
-- **Local verification via Node `24.21.0`:** 21 frontend tests passed; Biome checked 32 files; typecheck and Next.js production build passed; high-severity audit reported zero vulnerabilities.
+- **Local verification via Node `24.21.0`:** 23 frontend tests passed; Biome checked 32 files; typecheck and Next.js production build passed; high-severity audit reported zero vulnerabilities.
 - This checkpoint is frontend-only. No browser E2E/responsive review, backend modifications, live-service verification, remote CI, push, merge, or deployment is claimed.
