@@ -22,6 +22,23 @@ function toRecord(document: NotificationDocument & { _id: ObjectId }): Notificat
   };
 }
 
+/**
+ * Feed reads return only the fields the record mapper needs, which keeps the
+ * restricted recipient feed off the wire and lets the driver avoid shipping
+ * unused document fields.
+ */
+const NOTIFICATION_PROJECTION = {
+  _id: 1,
+  restaurantId: 1,
+  type: 1,
+  title: 1,
+  body: 1,
+  relatedEntity: 1,
+  createdAt: 1,
+  deliveredAt: 1,
+  readAt: 1,
+} as const;
+
 function recipientFilter(scope: NotificationRecipientScope): Filter<NotificationDocument> {
   if (scope.kind === "customer") return { recipientUserId: scope.userId };
   return { recipientUserId: scope.userId, restaurantId: scope.restaurantId };
@@ -52,7 +69,7 @@ export class MongoNotificationRepository implements NotificationRepository {
     limit: number,
   ): Promise<NotificationListResult> {
     const documents = await this.notifications
-      .find(recipientFilter(scope))
+      .find(recipientFilter(scope), { projection: NOTIFICATION_PROJECTION })
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .toArray();
@@ -76,7 +93,9 @@ export class MongoNotificationRepository implements NotificationRepository {
       { ...filter, readAt: null },
       { $set: { readAt, updatedAt: readAt } },
     );
-    const document = await this.notifications.findOne(filter);
+    const document = await this.notifications.findOne(filter, {
+      projection: NOTIFICATION_PROJECTION,
+    });
     return document ? toRecord(document) : null;
   }
 
@@ -90,7 +109,9 @@ export class MongoNotificationRepository implements NotificationRepository {
       { ...filter, deliveredAt: null },
       { $set: { deliveredAt, updatedAt: deliveredAt } },
     );
-    const document = await this.notifications.findOne(filter);
+    const document = await this.notifications.findOne(filter, {
+      projection: NOTIFICATION_PROJECTION,
+    });
     return document ? toRecord(document) : null;
   }
 }
