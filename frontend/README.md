@@ -18,7 +18,7 @@ The Incidents workspace reads the bounded `GET /api/v1/incidents` feed only for 
 - Reception sees Overview, Orders, Reservations, Inventory availability, and Settings; commercial analytics, incidents, and AI recommendations are hidden. Inventory remains read-only for this role.
 - Kitchen Staff sees Overview, relevant Orders, Kitchen, Inventory availability, and Settings; reservation, incident, analytics, and recommendation sections are hidden. Kitchen order updates remain item-level.
 - Manager and Administrator can reach the full restaurant workspace; tenant and permission enforcement remains server-side. A stale/unauthorized selected section resolves to Overview when the session role changes. Recommendation/review state is scope-keyed and falls back to preview/unreviewed immediately on an identity change; Analytics remounts for the new workspace and aborts its earlier request. Other tenant-bound feeds clear as their new session requests begin.
-- `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, and interactive-control regression suites on Node `24.21.0` (23 tests at this checkpoint). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
+- `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, interactive-control regression, and dashboard metric suites on Node `24.21.0` (29 tests at this checkpoint). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
 
 ## Requirements
 

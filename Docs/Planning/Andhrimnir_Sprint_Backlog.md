@@ -93,7 +93,7 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-07 | Bug Fixing | Entire Team | High | 5 | In Progress |
 | S3-08 | Frontend Deployment | Gokul | High | 2 | To Do |
 | S3-09 | Backend Deployment | Gokul | High | 2 | To Do |
-| S3-10 | Performance Optimization | Navin | Medium | 2 | To Do |
+| S3-10 | Performance Optimization | Navin | Medium | 2 | In Progress |
 | S3-11 | README | Navin | Medium | 2 | Ready to Push |
 | S3-12 | Presentation & Demo | Entire Team | High | 3 | To Do |
 | S3-13 | AI Fallback Implementation | Navin | Medium | 2 | In Progress |
