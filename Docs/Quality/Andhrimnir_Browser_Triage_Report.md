@@ -63,9 +63,33 @@ Remediating this is a design-token change (darkening the muted text scale and ra
 
 These are environment artifacts, not defects, but they mean the triage exercised **unavailable, empty, and preview states only**.
 
-## 5. Limits — what this pass does not cover
+## 5. API error-path triage
+
+13 direct HTTP probes against the API server (`PORT=3001`, no MongoDB), covering malformed input, oversized bodies, bad credentials, unsupported methods, CORS preflight, and unknown routes.
+
+| Probe | Result before | Result after | Verdict |
+| --- | --- | --- | --- |
+| `GET /api/v1/does-not-exist` | **404 `text/html`** — Express default page | 404 `application/json`, `{ error: { code: "route_not_found" } }`, `Cache-Control: no-store` | fixed (`63076f9`) |
+| `POST /api/v1/auth/login` malformed JSON | 400 JSON envelope, **no `cache-control`** | 400 JSON envelope **with** `no-store` | fixed (`63076f9`) |
+| `POST /api/v1/auth/login` 200 kb body | 413 JSON envelope, **no `cache-control`** | 413 JSON envelope **with** `no-store` | fixed (`63076f9`) |
+| `GET /health` | 200 JSON, **no `cache-control`** | 200 JSON with `no-store`, still uncompressed | fixed (`63076f9`) |
+| `POST /api/v1/auth/login` empty body | 400 `invalid_request` `no-store` | unchanged | pass |
+| `GET /api/v1/incidents` with/without bearer | 503 `incidents_unavailable` (no database) | unchanged | documented below |
+| `GET /api/v1/menu` repeated / invalid / valid `restaurantId` | 400 `invalid_restaurant_id`, 400, 503 `menu_unavailable` | unchanged | pass |
+| `DELETE /health` | 404 | unchanged (liveness is GET-only) | pass |
+| `OPTIONS /api/v1/orders` preflight | 204 with the configured CORS headers | unchanged | pass |
+| `GET /health` with an external `Origin` | 200, cross-origin header set by the CORS layer | unchanged | pass |
+
+Root cause of the four fixes: the `no-store` middleware was mounted **after** `express.json()`, so body-parser rejections short-circuited past it, and no versioned catch-all existed, so unknown `/api/v1/*` routes fell through to the framework's HTML 404 page. Both are corrected in `backend/src/app.ts`: the policy middleware now runs before body parsing, `/health` sets the header explicitly, and a `/api/v1` catch-all emits the JSON envelope.
+
+**Open observation (not changed):** with no reachable database, a protected route returns **503** even when the request carries no token, because each router opens its connection before authenticating. When the database is reachable the same request returns **401** (asserted in `app.test.ts` and now in `api-error-contract.test.ts`). The fail-closed behaviour is safe, but authenticating before opening a connection would make the status independent of database health. That reorders shared router composition and is left as a recommendation rather than a change in a triage pass.
+
+Regression guard: `backend/test/api-error-contract.test.ts` (Gokul, `6be7c47`) — 4 tests asserting the JSON 404, the envelope plus `no-store` on malformed and oversized bodies, the private uncompressed liveness probe, and that protected routes never return HTML.
+
+## 6. Limits — what this pass does not cover
 
 - No live MongoDB, so authenticated role flows, live data states, WebSocket delivery, and AI recommendation states were never rendered.
 - No manual visual design review: every check is DOM- or computed-style-based. Screenshots were captured but not visually inspected.
 - Single engine (Chromium headless); no Safari/Firefox, no touch-device or screen-reader testing.
 - No performance measurement in the browser (see the S3-10 section of the test plan).
+- API probes ran without MongoDB, so authenticated success paths and database-level errors (duplicate key, write conflicts) were not exercised.
