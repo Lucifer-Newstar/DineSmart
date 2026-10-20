@@ -25,6 +25,7 @@ class FakeIncidentRepository implements IncidentDetectionRepository {
     inventoryItems: [],
     reservations: [],
     tables: [],
+    waitlistEntries: [],
     truncatedSources: [],
   };
   incidents: IncidentRecord[] = [];
@@ -179,7 +180,7 @@ test("evaluation leaves incidents outside the supported rule set untouched", asy
   repository.incidents.push({
     id: new ObjectId(),
     restaurantId,
-    type: "table_congestion",
+    type: "staff_shortage",
     severity: "warning",
     status: "open",
     triggerSnapshot: {},

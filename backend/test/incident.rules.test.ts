@@ -20,6 +20,7 @@ function emptySnapshot(): IncidentDetectionSnapshot {
     inventoryItems: [],
     reservations: [],
     tables: [],
+    waitlistEntries: [],
     truncatedSources: [],
   };
 }
