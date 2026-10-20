@@ -123,3 +123,7 @@ jobs:
       # env examples, the seed CLI, Node pinning, and no committed .env files.
       - name: Run the demo readiness preflight
         run: node tools/demo-readiness.mjs --strict
+
+      # Fails when the frontend calls an API route that is not mounted.
+      - name: Check the frontend/API contract
+        run: node tools/api-contract-check.mjs --strict
