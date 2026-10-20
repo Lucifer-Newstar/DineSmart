@@ -1,0 +1,175 @@
+{
+  "baseUrl": "http://127.0.0.1:3000",
+  "capturedAt": "2026-10-20T08:24:03.357Z",
+  "steps": [
+    {
+      "step": "01-landing",
+      "title": "Public landing page",
+      "url": "http://127.0.0.1:3000/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "401 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "02-menu",
+      "title": "Live menu browsing",
+      "url": "http://127.0.0.1:3000/menu",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "401 http://127.0.0.1:3000/api/v1/auth/refresh",
+        "503 http://127.0.0.1:3000/api/v1/menu?restaurantId=710000000000000000000001&refresh=0"
+      ]
+    },
+    {
+      "step": "03-orders-signed-out",
+      "title": "Order history asks for identity",
+      "url": "http://127.0.0.1:3000/orders",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "401 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "04-register",
+      "title": "Registration with OTP verification",
+      "url": "http://127.0.0.1:3000/register",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "401 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "05-login",
+      "title": "Sign-in",
+      "url": "http://127.0.0.1:3000/login",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "401 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "06-booking",
+      "title": "Table reservation",
+      "url": "http://127.0.0.1:3000/book",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "401 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "07-dashboard-overview",
+      "title": "Operational workspace overview",
+      "url": "http://127.0.0.1:3000/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "429 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "08-dashboard-kitchen",
+      "title": "Kitchen queue",
+      "url": "http://127.0.0.1:3000/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": "Kitchen",
+      "navigationApplied": true,
+      "nonOkResponses": [
+        "429 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "09-dashboard-incidents",
+      "title": "Incidents with trigger evidence",
+      "url": "http://127.0.0.1:3000/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": "Incidents",
+      "navigationApplied": true,
+      "nonOkResponses": [
+        "429 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "10-dashboard-insights",
+      "title": "Advisory recommendations",
+      "url": "http://127.0.0.1:3000/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": "Insights",
+      "navigationApplied": true,
+      "nonOkResponses": [
+        "429 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "11-dashboard-analytics",
+      "title": "Operational analytics",
+      "url": "http://127.0.0.1:3000/dashboard",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "clicked": "Analytics",
+      "navigationApplied": true,
+      "nonOkResponses": [
+        "429 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    },
+    {
+      "step": "12-dashboard-mobile",
+      "title": "Phone-sized workspace",
+      "url": "http://127.0.0.1:3000/dashboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "clicked": null,
+      "navigationApplied": null,
+      "nonOkResponses": [
+        "429 http://127.0.0.1:3000/api/v1/auth/refresh"
+      ]
+    }
+  ]
+}
