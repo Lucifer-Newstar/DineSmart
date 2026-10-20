@@ -7,6 +7,14 @@ function oldestTicketMinutes(context: IncidentRecommendationContext): number {
   );
 }
 
+/**
+ * Trigger snapshots are advisory input, so a missing or non-finite field simply
+ * degrades the wording instead of producing a number the rules never supplied.
+ */
+function triggerNumber(value: string | number | boolean | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export function buildFallbackRecommendation(
   context: IncidentRecommendationContext,
 ): StructuredRecommendation {
@@ -74,11 +82,97 @@ export function buildFallbackRecommendation(
     };
   }
 
-  if (
-    type === "reservation_conflict" ||
-    type === "queue_congestion" ||
-    type === "table_congestion"
-  ) {
+  if (type === "queue_congestion") {
+    const trigger = context.incident.trigger;
+    const queueLength = triggerNumber(trigger.queueLength);
+    const waitedMinutes = triggerNumber(trigger.elapsedMinutes);
+    const thresholdMinutes = triggerNumber(trigger.thresholdMinutes);
+    const largestParty = triggerNumber(trigger.partySize);
+    const hasEvidence = queueLength !== null || waitedMinutes !== null;
+
+    return {
+      summary:
+        queueLength !== null
+          ? `${queueLength} parties are waiting${
+              largestParty !== null ? `; the largest is a party of ${largestParty}` : ""
+            }.`
+          : "The waiting queue has crossed a configured congestion threshold.",
+      rootCause:
+        waitedMinutes !== null && thresholdMinutes !== null
+          ? `The longest wait is about ${waitedMinutes} minutes against a configured threshold of ${thresholdMinutes} minutes. No guest identity is included in this recommendation context.`
+          : "The waiting queue crossed a configured party-count or wait threshold. No guest identity is included in this recommendation context.",
+      priority: context.incident.severity,
+      actions: [
+        {
+          description:
+            "Confirm the queue order at reception and re-quote the wait for the parties still waiting.",
+          rationale:
+            "A short queue check distinguishes a genuinely blocked floor from a stale list the team has already worked through.",
+          expectedImpact:
+            "Gives guests an accurate expectation and stops staff from re-checking parties that are about to be seated.",
+        },
+        {
+          description:
+            "Seat any waiting party a free table can accommodate before holding parties for a larger table.",
+          rationale:
+            "Turning the tables that fit reduces the longest wait without displacing a party that needs specific capacity.",
+          expectedImpact:
+            "Shortens the longest wait and lowers the chance of the queue reaching its critical threshold.",
+        },
+      ],
+      confidence: hasEvidence ? 0.66 : 0.5,
+    };
+  }
+
+  if (type === "table_congestion") {
+    const trigger = context.incident.trigger;
+    const freeTables = triggerNumber(trigger.available);
+    const largestCapacity = triggerNumber(trigger.capacity);
+    const largestParty = triggerNumber(trigger.partySize);
+    const waitedMinutes = triggerNumber(trigger.elapsedMinutes);
+    const hasEvidence = freeTables !== null || largestParty !== null;
+
+    return {
+      summary:
+        largestParty !== null
+          ? `A party of ${largestParty} is waiting${
+              freeTables === 0
+                ? " and no table is currently marked available."
+                : " with no available table that can seat it."
+            }`
+          : "Parties are waiting while no suitable table is available.",
+      rootCause:
+        freeTables === 0
+          ? "No table is currently marked available while parties are waiting. No guest identity is included in this recommendation context."
+          : largestCapacity !== null && largestParty !== null
+            ? `The largest free table seats ${largestCapacity}, which cannot take the waiting party of ${largestParty}${
+                waitedMinutes !== null ? ` after about ${waitedMinutes} minutes of waiting` : ""
+              }. No guest identity is included in this recommendation context.`
+            : "The floor has no table able to seat the parties that are waiting. No guest identity is included in this recommendation context.",
+      priority: context.incident.severity,
+      actions: [
+        {
+          description:
+            "Review the floor plan with the shift lead and combine, turn, or split a table only if service standards allow it.",
+          rationale:
+            "A supervised floor-plan change is the only safe way to seat a party larger than any single free table.",
+          expectedImpact:
+            "Converts blocked capacity into a seating without promising a table size the floor cannot provide.",
+        },
+        {
+          description:
+            "Give the affected party a realistic estimate and an alternative, such as waiting for a specific table or returning later.",
+          rationale:
+            "An honest estimate is safer than holding a party for a table that may not free up in time.",
+          expectedImpact:
+            "Protects the guest experience while the floor team resolves the capacity pressure.",
+        },
+      ],
+      confidence: hasEvidence ? 0.64 : 0.48,
+    };
+  }
+
+  if (type === "reservation_conflict") {
     return {
       summary: "Review the next seating window and re-confirm table capacity with the floor team.",
       rootCause:
