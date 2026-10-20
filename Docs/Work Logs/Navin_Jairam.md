@@ -392,3 +392,10 @@
 - Updated Test Plan section 36 with the capture, its verification, and the refreshed commit list. Updated the Gokul and Dhanush work logs for the same checkpoint.
 - **Local verification via Node `24.21.0`:** `node --test tools/demo-readiness.test.mjs` passed 4/4, `node --test tools/ci-workflow.test.mjs` passed 6/6, `node --test presentation/deck.test.mjs` passed 6/6, and `node tools/demo-readiness.mjs --strict` exited 0.
 - **Limits:** no rehearsal, live database capture, Gemini call, remote CI, push, merge, or deployment is claimed. The walkthrough is a screenshot capture, not a video.
+
+### S3-07 — Contract triage and CI enforcement
+
+- Added `tools/api-contract-check.mjs` (Dhanush `dcc8974`, Gokul `f9ee881`) to the CI preflight job in strict mode (`c781b97`), so a frontend call to an unmounted route fails the build.
+- Recorded the contract triage in the browser triage report (method, the 39 routes / 28 calls / 0 unmatched result, and the 14 intentionally uncalled routes) and in Test Plan section 34.1. Updated the member work logs for the same checkpoint.
+- **Local verification via Node `24.21.0`:** `node --test tools/api-contract-check.test.mjs` passed 6/6; `node tools/api-contract-check.mjs --strict` exited 0; `node --test tools/ci-workflow.test.mjs` passed 6/6; backend 300 and frontend 38 tests passed with Biome, typecheck, and both production builds clean.
+- **Limits:** this is a static check of routes and call sites, not a runtime contract test: it does not validate request bodies, response shapes, or authenticated behaviour. No live MongoDB, browser E2E of authenticated flows, remote CI, push, merge, or deployment is claimed.

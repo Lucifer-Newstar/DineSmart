@@ -114,3 +114,10 @@
 - **Gokul tool commit:** `581a09e`.
 - **Validation via Node `24.21.0`:** the tool captured 12 steps (1440x900 plus one at 390x844) with all four sidebar clicks applied; `presentation/deck.test.mjs` still passes 6/6.
 - The capture is a screenshot walkthrough, not a video recording: no live MongoDB, signed-in Manager session, Gemini call, rehearsal, remote CI, push, merge, or deployment is claimed.
+
+### S3-07 — Contract checker tests
+
+- Added `tools/api-contract-check.test.mjs` (6 tests): mount parsing from `app.ts`, route scanning that ignores handler-internal `request.get("origin")`, frontend call extraction with the GET default and template paths, the live repository result (routes found, calls found, no unmatched calls, no unresolvable factories), per-call file attribution, and a resolved route table whose entries all point at real router files.
+- **Gokul test commit:** `f9ee881`.
+- **Validation via Node `24.21.0`:** 6/6 passed; `node tools/api-contract-check.mjs --strict` exited 0.
+- These tests assert route and call-site shapes, not runtime behaviour: no payload validation, authenticated flow, live database, remote CI, push, merge, or deployment is claimed.

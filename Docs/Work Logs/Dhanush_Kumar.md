@@ -213,3 +213,10 @@
 - **Dhanush capture commit:** `2701412`.
 - **Local verification via Node `24.21.0`:** every step captured without page errors; the manifest records `navigationApplied: true` for all four sidebar clicks and lists only the expected 401 refresh and 503 menu responses.
 - **Status/limits:** the capture was taken without MongoDB, so dashboard steps show labelled preview/empty states. It must be re-captured after seeding and signing in as a Manager to show live operational screens; no rehearsal has been performed.
+
+### S3-07 — Frontend/API contract check
+
+- Built `tools/api-contract-check.mjs`: it resolves every `app.use("/api/v1/...", createXRouter(...))` mount to its router module, collects each `router.<method>("/path")` registration, collects every frontend `fetchWithTimeout` call with its method (defaulting to GET), and matches them with `${id}` and `:id` normalised to a wildcard. `--strict` fails on unmatched calls, an empty route table, or an unresolvable factory; `--json` prints the full result.
+- **Dhanush implementation commit:** `dcc8974`. Gokul covered it in `f9ee881`; Navin wired it into CI in `c781b97`.
+- **Local verification via Node `24.21.0`:** the check reports 39 mounted routes, 28 frontend calls, and 0 unmatched calls; the strict run exits 0. It also lists 14 routes no frontend call reaches (password reset, notifications, socket ticket, bills, staff, waitlist, tables) — expected today, since those APIs are not wired into the workspace yet.
+- **Status/limits:** static route/call-site matching only. It does not validate payloads, response shapes, or authenticated flows, and it was not run against live data.

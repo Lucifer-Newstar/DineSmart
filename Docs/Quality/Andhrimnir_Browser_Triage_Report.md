@@ -86,7 +86,23 @@ Root cause of the four fixes: the `no-store` middleware was mounted **after** `e
 
 Regression guard: `backend/test/api-error-contract.test.ts` (Gokul, `6be7c47`) — 4 tests asserting the JSON 404, the envelope plus `no-store` on malformed and oversized bodies, the private uncompressed liveness probe, and that protected routes never return HTML.
 
-## 6. Limits — what this pass does not cover
+## 6. Frontend/API contract triage
+
+Browser triage cannot reach authenticated flows without a database, so a static check covers the next class of defect: a frontend call to a route the API does not mount.
+
+`tools/api-contract-check.mjs` (Dhanush, `dcc8974`) reads both sides and compares them:
+
+- **Backend:** every `app.use("/api/v1/...", createXRouter(...))` mount in `app.ts` is resolved to its router module, and each `router.<method>("/path")` registration is collected. Handler-internal calls such as `request.get("origin")` are excluded by requiring a leading slash.
+- **Frontend:** every `fetchWithTimeout()` call in `frontend/src` is collected with its URL template and `method`, defaulting to `GET`.
+- **Matching:** template placeholders (`${id}`) and Express params (`:id`) both normalise to a wildcard, so dynamic paths still match.
+
+Result: **39 mounted routes, 28 frontend calls, 0 unmatched calls**. `--strict` fails on any unmatched call, an empty route table, or a mount whose factory cannot be resolved; the CI preflight job now runs it.
+
+The report also lists the 14 routes no frontend call reaches, which is expected today rather than a defect: password reset (browser flow not yet wired), notifications and the WebSocket socket ticket, bills, staff management, the waitlist queue, and table status. Those surfaces exist as APIs with local tests; connecting them to the workspace is follow-up work, not a broken call.
+
+Regression guard: `tools/api-contract-check.test.mjs` (Gokul, `f9ee881`) — 6 tests covering mount parsing, route scanning, call extraction with the `GET` default, the live repository result, per-call file attribution, and the resolved route table.
+
+## 7. Limits — what this pass does not cover
 
 - No live MongoDB, so authenticated role flows, live data states, WebSocket delivery, and AI recommendation states were never rendered.
 - No manual visual design review: every check is DOM- or computed-style-based. Screenshots were captured but not visually inspected.
