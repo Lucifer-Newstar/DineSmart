@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Andhrímnir — AI Incident Intelligence for Restaurants</title>
+    <style>
+      :root {
+        --ink: #14180f;
+        --paper: #fbfaf6;
+        --muted: #5d6455;
+        --brand: #2f6f3e;
+        --brand-soft: #e8f1e6;
+        --accent: #b4551d;
+        --line: #d9d7cc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #20241c;
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      .stage {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .slide {
+        display: none;
+        width: min(1080px, 100%);
+        min-height: 620px;
+        background: var(--paper);
+        border-radius: 18px;
+        padding: 56px 64px 92px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        flex-direction: column;
+      }
+      .slide.active {
+        display: flex;
+      }
+      .eyebrow {
+        font-size: 13px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      h1 {
+        font-size: 54px;
+        line-height: 1.08;
+        margin: 18px 0 10px;
+      }
+      h2 {
+        font-size: 38px;
+        line-height: 1.15;
+        margin: 14px 0 22px;
+      }
+      .lede {
+        font-size: 20px;
+        color: var(--muted);
+        max-width: 62ch;
+        margin: 0 0 26px;
+      }
+      ul {
+        margin: 0;
+        padding-left: 22px;
+        font-size: 19px;
+        line-height: 1.55;
+      }
+      li {
+        margin-bottom: 10px;
+      }
+      li strong {
+        color: var(--brand);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 34px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--brand);
+        background: #fff;
+        border-radius: 10px;
+        padding: 14px 18px;
+      }
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 17px;
+      }
+      .card p {
+        margin: 0;
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .table-scroll {
+        overflow-x: auto;
+        max-width: 100%;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 16px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .tag {
+        display: inline-block;
+        background: var(--brand-soft);
+        color: var(--brand);
+        border-radius: 999px;
+        padding: 3px 12px;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 6px 6px 0;
+      }
+      .note {
+        margin-top: auto;
+        padding-top: 22px;
+        font-size: 14px;
+        color: var(--muted);
+        font-style: italic;
+        border-top: 1px dashed var(--line);
+      }
+      .note.hidden {
+        display: none;
+      }
+      .bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 14px;
+        background: rgba(20, 24, 15, 0.92);
+        color: #f2f2ea;
+        font-size: 14px;
+      }
+      button {
+        font: inherit;
+        color: #f2f2ea;
+        background: #33382a;
+        border: 1px solid #4c5340;
+        border-radius: 8px;
+        padding: 8px 16px;
+        cursor: pointer;
+        min-height: 36px;
+      }
+      button:hover {
+        background: #454b39;
+      }
+      .counter {
+        min-width: 92px;
+        text-align: center;
+      }
+      @media (max-width: 820px) {
+        .slide {
+          padding: 32px 26px 84px;
+          min-height: 560px;
+        }
+        h1 {
+          font-size: 36px;
+        }
+        h2 {
+          font-size: 27px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        th,
+        td {
+          padding: 6px 8px;
+          font-size: 14px;
+        }
+      }
+      @media print {
+        html,
+        body {
+          background: #fff;
+        }
+        .bar {
+          display: none;
+        }
+        .slide {
+          display: flex !important;
+          box-shadow: none;
+          border-radius: 0;
+          page-break-after: always;
+          min-height: auto;
+        }
+        .note {
+          display: block !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <section class="slide active" data-slide="1">
+        <p class="eyebrow">Andhrímnir · Hackathon presentation</p>
+        <h1>AI incident intelligence for restaurants</h1>
+        <p class="lede">
+          Operational writes raise incidents, the platform explains them with bounded evidence, and
+          an advisory layer recommends next actions. Nothing is mutated by model output.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Repository</h3>
+            <p><code>DineSmart</code> — Next.js frontend, Express 5 + TypeScript API, MongoDB.</p>
+          </div>
+          <div class="card">
+            <h3>Format</h3>
+            <p>10-minute talk, 5-minute live demo, one presenter.</p>
+          </div>
+          <div class="card">
+            <h3>Team</h3>
+            <p>Frontend, backend, AI integration, and documentation/QA owners.</p>
+          </div>
+          <div class="card">
+            <h3>Honest baseline</h3>
+            <p>Locally verified on Node 24.21.0; deployment is deferred, not claimed.</p>
+          </div>
+        </div>
+        <p class="note">
+          Presenter: lead with a single detected incident. The deck is a preparation artifact — the
+          demo has not been rehearsed against live services.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="2">
+        <p class="eyebrow">Slide 2 · 0:45–1:45</p>
+        <h2>Incidents are discovered by customers, not systems</h2>
+        <ul>
+          <li>
+            <strong>Service delays</strong> surface as complaints long after the kitchen fell behind.
+          </li>
+          <li>
+            <strong>Stock-outs</strong> are noticed when a dish cannot be served, not when a
+            threshold is crossed.
+          </li>
+          <li>
+            <strong>Reservation conflicts</strong> and blocked tables appear at the door.
+          </li>
+          <li>
+            Existing dashboards show <em>state</em> — tables, orders, counts — but not the cause or
+            the next action.
+          </li>
+        </ul>
+        <p class="note">
+          Presenter: quantify with one local example (a 25-minute-old preparation item) rather than
+          industry statistics.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="3">
+        <p class="eyebrow">Slide 3 · 1:45–2:30</p>
+        <h2>Detect → contextualize → recommend → observe</h2>
+        <ul>
+          <li>
+            <strong>Detect:</strong> operational writes and scheduled sweeps evaluate rule-managed
+            conditions with configurable thresholds.
+          </li>
+          <li>
+            <strong>Contextualize:</strong> each incident stores a bounded, tenant-scoped trigger
+            snapshot — never free-text customer data.
+          </li>
+          <li>
+            <strong>Recommend:</strong> Gemini generates advisory actions; a deterministic fallback
+            keeps the flow usable when the provider is unavailable.
+          </li>
+          <li>
+            <strong>Observe:</strong> incidents resolve automatically when the trigger clears, and a
+            recurrence opens a fresh record.
+          </li>
+        </ul>
+        <p class="note">
+          Presenter: always say “advisory”. Model output never mutates operational records.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="4">
+        <p class="eyebrow">Slide 4 · 2:30–3:15</p>
+        <h2>Architecture</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Frontend</h3>
+            <p>Next.js 16 App Router, React 19, role-aware workspace with explicit states.</p>
+          </div>
+          <div class="card">
+            <h3>API</h3>
+            <p>Express 5 + TypeScript under <code>/api/v1</code>, stateless and tenant-scoped.</p>
+          </div>
+          <div class="card">
+            <h3>Data</h3>
+            <p>Official MongoDB Node driver, projected bounded reads, documented indexes.</p>
+          </div>
+          <div class="card">
+            <h3>Realtime</h3>
+            <p>WebSocket transport with ticketed auth and ACK-based delivery persistence.</p>
+          </div>
+          <div class="card">
+            <h3>Advisory layer</h3>
+            <p>Isolated provider module with strict output validation and fallback rules.</p>
+          </div>
+          <div class="card">
+            <h3>Scheduling</h3>
+            <p>Event hooks plus hourly sweeps for incidents and the health score.</p>
+          </div>
+        </div>
+        <p class="note">
+          Presenter: point at the SDD diagram if the projector allows; otherwise describe the request
+          path in one sentence.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="5">
+        <p class="eyebrow">Slide 5 · 3:15–4:15</p>
+        <h2>One workspace, five roles, server-authoritative permissions</h2>
+        <div class="table-scroll">
+          <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Sees</th>
+              <th>Guard</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Customer</td>
+              <td>Own orders, reservations, cross-restaurant menu browsing</td>
+              <td>Owner comparison after a tenant-filtered lookup</td>
+            </tr>
+            <tr>
+              <td>Reception</td>
+              <td>Reservations and the waitlist queue</td>
+              <td>Named permission + restaurant scope</td>
+            </tr>
+            <tr>
+              <td>Kitchen Staff</td>
+              <td>Kitchen queue and item preparation states</td>
+              <td>Named permission + restaurant scope</td>
+            </tr>
+            <tr>
+              <td>Manager</td>
+              <td>Operational views, incidents, health score, analytics</td>
+              <td>Named permission + restaurant scope</td>
+            </tr>
+            <tr>
+              <td>Administrator</td>
+              <td>Same-restaurant administration and staff management</td>
+              <td>Named permission + restaurant scope</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note">
+          Presenter: the tenant comes from the signed principal — a client-supplied
+          <code>restaurantId</code> that does not match is rejected.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="6">
+        <p class="eyebrow">Slide 6 · 4:15–5:15</p>
+        <h2>Incident intelligence</h2>
+        <div>
+          <span class="tag">kitchen_delay</span>
+          <span class="tag">order_delay</span>
+          <span class="tag">kitchen_congestion</span>
+          <span class="tag">inventory_shortage</span>
+          <span class="tag">reservation_conflict</span>
+          <span class="tag">queue_congestion</span>
+          <span class="tag">table_congestion</span>
+        </div>
+        <ul>
+          <li>Bounded detection: 2,000-record source scans, 200-record API responses, explicit truncation flags.</li>
+          <li>One active record per restaurant, type, and affected entity; severity and evidence update in place.</li>
+          <li>Automatic resolution when the condition clears; a recurrence opens a fresh identifier.</li>
+          <li>Queue and table congestion use the waitlist: party count, longest wait, and whether any free table can seat the largest waiting party.</li>
+        </ul>
+        <p class="note">
+          Presenter: staff-shortage detection is deliberately absent — it has no input in the current
+          data model.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="7">
+        <p class="eyebrow">Slide 7 · 5:15–6:00</p>
+        <h2>Health score: explainable, weighted, honest about missing data</h2>
+        <div class="table-scroll">
+          <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Weight</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Kitchen efficiency</td>
+              <td>25</td>
+            </tr>
+            <tr>
+              <td>Inventory health</td>
+              <td>20</td>
+            </tr>
+            <tr>
+              <td>Order completion rate</td>
+              <td>20</td>
+            </tr>
+            <tr>
+              <td>Reservation efficiency</td>
+              <td>15</td>
+            </tr>
+            <tr>
+              <td>Table utilization</td>
+              <td>10</td>
+            </tr>
+            <tr>
+              <td>Incident frequency</td>
+              <td>10</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note">
+          Presenter: components with too little data report <em>insufficient data</em> instead of a
+          flattering score; the cache is per-process and intentionally disposable.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="8">
+        <p class="eyebrow">Slide 8 · 6:00–6:45</p>
+        <h2>Operational analytics</h2>
+        <ul>
+          <li><code>7d</code> and <code>30d</code> windows with restaurant-local time buckets.</li>
+          <li>Order, reservation, and preparation counts — operational volume, not revenue.</li>
+          <li>Truncation is explicit: capped series are labelled rather than silently complete.</li>
+        </ul>
+        <p class="note">
+          Presenter: never call pre-bill subtotals revenue. Payment capture is out of scope by
+          design.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="9">
+        <p class="eyebrow">Slide 9 · 6:45–7:30</p>
+        <h2>Engineering quality</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Static checks</h3>
+            <p>Biome lint/format and <code>tsc --noEmit</code> across both packages.</p>
+          </div>
+          <div class="card">
+            <h3>Tests</h3>
+            <p>300 backend and 38 frontend tests on the Node test runner, co-located with modules.</p>
+          </div>
+          <div class="card">
+            <h3>CI</h3>
+            <p>Frontend, backend, and preflight jobs on Node 24.21.0 with lockfile installs and audits.</p>
+          </div>
+          <div class="card">
+            <h3>Secrets</h3>
+            <p>Placeholder-only <code>.env.example</code> files; no credentials committed.</p>
+          </div>
+          <div class="card">
+            <h3>Browser pass</h3>
+            <p>7 routes × 3 viewports: zero page errors, no horizontal overflow, 24 px minimum hit areas.</p>
+          </div>
+          <div class="card">
+            <h3>Resilience</h3>
+            <p>Every browser request has a 15-second deadline; API errors return the JSON envelope.</p>
+          </div>
+        </div>
+        <p class="note">
+          Presenter: these are local CI-equivalent checks — no GitHub Actions run has been observed
+          because no remote is configured.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="10">
+        <p class="eyebrow">Slide 10 · 7:30–10:00</p>
+        <h2>Live demo</h2>
+        <ol style="font-size: 19px; line-height: 1.6">
+          <li>Customer browses the menu and places an order.</li>
+          <li>Kitchen advances preparation; the order status is visible to the guest.</li>
+          <li>A threshold is crossed and an incident opens with its trigger snapshot.</li>
+          <li>Manager opens the incident and requests advisory recommendations.</li>
+          <li>Reservation and waitlist flows seat a party and free a table.</li>
+        </ol>
+        <p class="note">
+          Presenter: follow the runbook. If a service is unavailable, narrate the fallback — sample
+          content stays visibly labelled as preview.
+        </p>
+      </section>
+
+      <section class="slide" data-slide="11">
+        <p class="eyebrow">Slide 11 · 10:00–11:00</p>
+        <h2>Roadmap and stated limits</h2>
+        <ul>
+          <li><strong>Not built:</strong> payments or payment capture; pre-bill subtotals are not revenue.</li>
+          <li><strong>Not verified:</strong> live MongoDB/Atlas, indexes under real data, Gemini with a live key.</li>
+          <li><strong>Deferred:</strong> deployment (S3-08/S3-09) until the remaining non-deployment work is finished.</li>
+          <li><strong>Open:</strong> notification recipient policy, retention, wait-estimate formula, staff-shortage detection.</li>
+          <li><strong>Next:</strong> seeded database rehearsal, recorded backup demo, then deployment.</li>
+        </ul>
+        <p class="note">
+          Presenter: close on boundaries. Judges respond better to stated limits than to
+          overclaiming.
+        </p>
+      </section>
+    </main>
+
+    <nav class="bar" aria-label="Slide controls">
+      <button type="button" id="prev">Previous</button>
+      <span class="counter" id="counter">1 / 11</span>
+      <button type="button" id="next">Next</button>
+      <button type="button" id="notes" aria-pressed="false">Hide notes</button>
+    </nav>
+
+    <script>
+      (() => {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var counter = document.getElementById("counter");
+        var notesButton = document.getElementById("notes");
+        var index = 0;
+
+        function show(next) {
+          index = Math.min(Math.max(next, 0), slides.length - 1);
+          slides.forEach((slide, position) => {
+            slide.classList.toggle("active", position === index);
+          });
+          counter.textContent = index + 1 + " / " + slides.length;
+          if (window.location.hash !== "#" + (index + 1)) {
+            history.replaceState(null, "", "#" + (index + 1));
+          }
+        }
+
+        function toggleNotes() {
+          var hidden = document.body.classList.toggle("notes-hidden");
+          document.querySelectorAll(".note").forEach((note) => {
+            note.classList.toggle("hidden", hidden);
+          });
+          notesButton.setAttribute("aria-pressed", String(hidden));
+          notesButton.textContent = hidden ? "Show notes" : "Hide notes";
+        }
+
+        document.getElementById("prev").addEventListener("click", () => {
+          show(index - 1);
+        });
+        document.getElementById("next").addEventListener("click", () => {
+          show(index + 1);
+        });
+        notesButton.addEventListener("click", toggleNotes);
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+            event.preventDefault();
+            show(index + 1);
+          } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+            event.preventDefault();
+            show(index - 1);
+          } else if (event.key === "Home") {
+            show(0);
+          } else if (event.key === "End") {
+            show(slides.length - 1);
+          } else if (event.key === "n" || event.key === "N") {
+            toggleNotes();
+          }
+        });
+
+        var start = Number.parseInt(window.location.hash.replace("#", ""), 10);
+        show(Number.isFinite(start) && start > 0 ? start - 1 : 0);
+      })();
+    </script>
+  </body>
+</html>
