@@ -389,3 +389,15 @@ S3-12 is **In Progress**: the presentation outline, demo runbook, readiness pref
 - **Commits:** Navin `6850c43`, `1f24ea8`; Gokul `3e7464f`, `653ad71`, `9169140`; Jegatheesan `4c1d6a3`; Dhanush `2114926`.
 - **Local verification via Node `24.21.0`:** backend 286 tests passed; Biome checked 157 files; typecheck and production build passed; high-severity audit found zero vulnerabilities. Frontend 29 tests passed with Biome, typecheck, and Next.js production build clean. `node --test tools/demo-readiness.test.mjs` passed 4/4, and `node tools/demo-readiness.mjs --strict` exited 0.
 - **Limits:** no slide deck has been rendered, no rehearsal or recorded backup exists, and no live MongoDB/Gemini/deployed environment was available. The runbook's fallback paths are untested against real failures.
+
+## 37. S1-07 CI Workflow Hardening
+
+S1-07 stays **In Progress**; this checkpoint hardens the local workflow definition and guards it locally. No GitHub Actions run has been observed, because no remote is configured.
+
+- `.github/workflows/ci.yml` now declares `permissions: contents: read` and a `concurrency` group that cancels superseded runs on the same ref. The single job is split into `frontend`, `backend`, and `preflight` jobs, each with its own `timeout-minutes`, `actions/checkout@v7` with `persist-credentials: false`, `actions/setup-node@v7` reading `.nvmrc`, a cache keyed to that app's lockfile, and `npm ci` installation.
+- Every application job runs the same sequence — high-severity `npm audit`, `npm run lint`, `npm test`, `npm run typecheck`, then `npm run build` — so a typecheck failure stops the build step. The backend job keeps its `hashFiles('backend/package.json')` gate so the workflow is still valid on a branch without the backend package.
+- The new `preflight` job runs `node tools/demo-readiness.mjs --strict`, keeping the presentation prerequisites check in CI.
+- `tools/ci-workflow.test.mjs` (6 tests, dependency-free) asserts those invariants: least-privilege permissions, cancel-in-progress concurrency, no `pull_request_target` or piped shell installation, timeouts, pinned actions, `.nvmrc` pinning, `npm ci` instead of `npm install`, the audit/lint/test/typecheck/build order, the backend gate, and the strict preflight command.
+- **Commits:** Navin `272e7d3`; Gokul `7caa246`.
+- **Local verification via Node `24.21.0`:** `node --test tools/ci-workflow.test.mjs` passed 6/6; `node tools/demo-readiness.mjs --strict` exited 0 with 14/14 prerequisites; both packages pass `npm audit --audit-level=high` with zero vulnerabilities, Biome, typecheck, tests (backend 293, frontend 38), and production builds. The workflow file was parsed to confirm three jobs with the expected step counts.
+- **Limits:** this validates the workflow definition locally, not a GitHub Actions execution. No remote, runner matrix, secret, artifact, or deployment behaviour is claimed, and the workflow has never run on GitHub.

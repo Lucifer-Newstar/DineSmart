@@ -56,7 +56,7 @@ The API listens on `http://localhost:3001` by default. `GET /health` reports pro
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It installs from each app's lockfile, audits dependencies, checks Biome and TypeScript, runs configured tests, and builds both apps. The latest local CI-equivalent checks use Node `24.21.0`: the backend has 293 passing tests, the frontend has 38 passing unit tests, both packages pass Biome/typechecks/production builds, and both high-severity audits report zero vulnerabilities. This is local validation, not a GitHub Actions result. No remote is configured and nothing was pushed. Deployment/CD is not configured.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It declares `contents: read` permissions and a concurrency group that cancels superseded runs, then checks the frontend, the backend, and the demo preflight as separate jobs with their own timeouts, pinned actions, `persist-credentials: false`, the Node version from `.nvmrc`, `npm ci` installation, high-severity dependency audits, and the full lint/test/typecheck/build sequence. `tools/ci-workflow.test.mjs` guards those invariants locally. The latest local CI-equivalent checks use Node `24.21.0`: the backend has 293 passing tests, the frontend has 38 passing unit tests, both packages pass Biome/typechecks/production builds, and both high-severity audits report zero vulnerabilities. This is local validation, not a GitHub Actions result. No remote is configured and nothing was pushed. Deployment/CD is not configured.
 
 ## Documentation
 

@@ -85,3 +85,10 @@
 - **Gokul test commits:** `30f70bc`, `5a28526`.
 - **Validation via Node `24.21.0`:** backend 293/293 and frontend 38/38 passed; Biome, typecheck, and both production builds are clean.
 - These are unit/contract tests with stubbed fetch and recording doubles. No live database, real network timeout, browser E2E, remote CI, push, merge, or deployment is claimed.
+
+### S1-07 — CI workflow guard tests
+
+- Added `tools/ci-workflow.test.mjs`, a dependency-free guard (no YAML package) that reads the workflow line by line and asserts: least-privilege permissions, cancel-in-progress concurrency, no `pull_request_target` or piped shell installation, per-job timeouts, pinned checkout/setup-node actions with `persist-credentials: false`, Node pinning from `.nvmrc`, `npm ci` rather than `npm install`, the audit/lint/test/typecheck/build order with typecheck before build, the backend `hashFiles` gate, and the strict preflight command.
+- **Gokul test commit:** `7caa246`.
+- **Validation via Node `24.21.0`:** 6/6 tests passed; `node tools/demo-readiness.mjs --strict` exited 0 with 14/14 prerequisites satisfied.
+- This checks the workflow definition, not an execution: no GitHub Actions run, remote, runner matrix, secret, artifact, or deployment verification is claimed.

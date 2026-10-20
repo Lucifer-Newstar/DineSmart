@@ -363,3 +363,11 @@
 - Added Test Plan section 34.1 for the browser pass, extended section 35 with the new projections and the bounded request client, and refreshed the verification counts (backend 293, frontend 38). Updated all three member work logs for the same checkpoints.
 - **Local verification via Node `24.21.0`:** backend 293 tests and frontend 38 tests passed; Biome checked 159 backend and 37 frontend files; typecheck and both production builds passed; high-severity audit clean. A 21-route browser pass after the fixes showed zero page errors and zero failed requests.
 - Single browser engine, no live MongoDB, and no manual visual review: only preview/unavailable/empty states were rendered in the browser. No screen-reader, touch, performance, remote CI, push, merge, or deployment testing is claimed.
+
+### S1-07 — CI workflow hardening
+
+- Rewrote `.github/workflows/ci.yml` as three jobs (frontend, backend, preflight) with least-privilege `permissions: contents: read`, a concurrency group that cancels superseded runs, per-job timeouts, pinned `actions/checkout@v7` with `persist-credentials: false`, `actions/setup-node@v7` reading `.nvmrc`, lockfile installation, and the same audit → lint → test → typecheck → build sequence for both apps.
+- Kept the `hashFiles('backend/package.json')` gate so the workflow is still valid on a branch without the backend package, and added a preflight job that runs `node tools/demo-readiness.mjs --strict` so the presentation prerequisites are enforced in CI.
+- **Navin commit:** `272e7d3`. Gokul guarded the invariants in `7caa246`.
+- **Local verification via Node `24.21.0`:** `node --test tools/ci-workflow.test.mjs` passed 6/6; `node tools/demo-readiness.mjs --strict` exited 0 (14/14 prerequisites); both packages pass Biome, typecheck, tests (backend 293, frontend 38), production builds, and a high-severity audit with zero vulnerabilities.
+- **Status/limits:** S1-07 remains **In Progress**. This validates the workflow definition locally; no GitHub Actions run, runner matrix, secret, artifact, or deployment behaviour was observed, because no remote is configured.
