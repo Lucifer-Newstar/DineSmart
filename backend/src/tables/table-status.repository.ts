@@ -58,6 +58,23 @@ function normalizeLinkedStatus(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+// Status reads only need the fields the API serializes, plus the three
+// assignment pointers the transition guards validate.
+const TABLE_STATUS_PROJECTION = {
+  tableNumber: 1,
+  capacity: 1,
+  zone: 1,
+  status: 1,
+  createdAt: 1,
+  updatedAt: 1,
+  currentReservationId: 1,
+  currentOrderId: 1,
+  currentWaitlistId: 1,
+} as const;
+
+// Assignment guards compare the linked table and the linked record's status.
+const LINKED_REFERENCE_PROJECTION = { tableId: 1, status: 1 } as const;
+
 function toRecord(document: WithId<TableDocument>): TableStatusRecord {
   const status = normalizeState(document.status) as TableOperationalStatus;
   return {
@@ -106,7 +123,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     status: TableOperationalStatus,
     now: Date,
   ): Promise<TableStatusUpdateResult | null> {
-    const current = await this.tables.findOne({ _id: tableId, restaurantId });
+    const current = await this.tables.findOne(
+      { _id: tableId, restaurantId },
+      { projection: TABLE_STATUS_PROJECTION },
+    );
     if (!current?._id) return null;
 
     const currentStatus = normalizeState(current.status);
@@ -153,12 +173,19 @@ export class MongoTableStatusRepository implements TableStatusRepository {
         $set: { status, updatedAt: now },
         ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
       },
-      { returnDocument: "after", includeResultMetadata: false },
+      {
+        returnDocument: "after",
+        includeResultMetadata: false,
+        projection: TABLE_STATUS_PROJECTION,
+      },
     );
 
     if (updated?._id) return { table: toRecord(updated), changed: true };
 
-    const latest = await this.tables.findOne({ _id: tableId, restaurantId });
+    const latest = await this.tables.findOne(
+      { _id: tableId, restaurantId },
+      { projection: TABLE_STATUS_PROJECTION },
+    );
     if (!latest?._id) return null;
     if (
       normalizeState(latest.status) === status &&
@@ -174,10 +201,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     table: WithId<TableDocument>,
   ): Promise<void> {
     if (hasReference(table.currentReservationId)) {
-      const reservation = await this.reservations.findOne({
-        _id: table.currentReservationId,
-        restaurantId,
-      });
+      const reservation = await this.reservations.findOne(
+        { _id: table.currentReservationId, restaurantId },
+        { projection: LINKED_REFERENCE_PROJECTION },
+      );
       if (
         !reservation?._id ||
         !matchesObjectId(reservation.tableId, table._id) ||
@@ -190,7 +217,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     }
 
     if (hasReference(table.currentOrderId)) {
-      const order = await this.orders.findOne({ _id: table.currentOrderId, restaurantId });
+      const order = await this.orders.findOne(
+        { _id: table.currentOrderId, restaurantId },
+        { projection: LINKED_REFERENCE_PROJECTION },
+      );
       if (
         !order?._id ||
         !matchesObjectId(order.tableId, table._id) ||
@@ -203,12 +233,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     }
 
     if (hasReference(table.currentWaitlistId)) {
-      const entry = await this.waitlist.findOne({
-        _id: table.currentWaitlistId,
-        restaurantId,
-        tableId: table._id,
-        status: "seated",
-      });
+      const entry = await this.waitlist.findOne(
+        { _id: table.currentWaitlistId, restaurantId, tableId: table._id, status: "seated" },
+        { projection: { _id: 1 } },
+      );
       if (!entry?._id) throw new TableStatusReferenceError();
     } else if (table.currentWaitlistId != null) {
       throw new TableStatusReferenceError();
@@ -220,10 +248,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     table: WithId<TableDocument>,
   ): Promise<void> {
     if (hasReference(table.currentReservationId)) {
-      const reservation = await this.reservations.findOne({
-        _id: table.currentReservationId,
-        restaurantId,
-      });
+      const reservation = await this.reservations.findOne(
+        { _id: table.currentReservationId, restaurantId },
+        { projection: LINKED_REFERENCE_PROJECTION },
+      );
       if (
         !reservation?._id ||
         !matchesObjectId(reservation.tableId, table._id) ||
@@ -236,7 +264,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     }
 
     if (hasReference(table.currentOrderId)) {
-      const order = await this.orders.findOne({ _id: table.currentOrderId, restaurantId });
+      const order = await this.orders.findOne(
+        { _id: table.currentOrderId, restaurantId },
+        { projection: LINKED_REFERENCE_PROJECTION },
+      );
       if (
         !order?._id ||
         !matchesObjectId(order.tableId, table._id) ||
@@ -249,12 +280,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     }
 
     if (hasReference(table.currentWaitlistId)) {
-      const entry = await this.waitlist.findOne({
-        _id: table.currentWaitlistId,
-        restaurantId,
-        tableId: table._id,
-        status: "seated",
-      });
+      const entry = await this.waitlist.findOne(
+        { _id: table.currentWaitlistId, restaurantId, tableId: table._id, status: "seated" },
+        { projection: { _id: 1 } },
+      );
       if (!entry?._id) throw new TableStatusReferenceError();
     } else if (table.currentWaitlistId != null) {
       throw new TableStatusReferenceError();
@@ -270,10 +299,10 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     }
     if (!table.currentReservationId) return;
     if (!hasReference(table.currentReservationId)) throw new TableStatusReferenceError();
-    const reservation = await this.reservations.findOne({
-      _id: table.currentReservationId,
-      restaurantId,
-    });
+    const reservation = await this.reservations.findOne(
+      { _id: table.currentReservationId, restaurantId },
+      { projection: LINKED_REFERENCE_PROJECTION },
+    );
     if (
       !reservation?._id ||
       !matchesObjectId(reservation.tableId, table._id) ||
