@@ -416,3 +416,13 @@ S1-07 stays **In Progress**; this checkpoint hardens the local workflow definiti
 - **Commits:** Navin `272e7d3`; Gokul `7caa246`.
 - **Local verification via Node `24.21.0`:** `node --test tools/ci-workflow.test.mjs` passed 6/6; `node tools/demo-readiness.mjs --strict` exited 0 with 14/14 prerequisites; both packages pass `npm audit --audit-level=high` with zero vulnerabilities, Biome, typecheck, tests (backend 293, frontend 38), and production builds. The workflow file was parsed to confirm three jobs with the expected step counts.
 - **Limits:** this validates the workflow definition locally, not a GitHub Actions execution. No remote, runner matrix, secret, artifact, or deployment behaviour is claimed, and the workflow has never run on GitHub.
+
+## 38. S3-13 Deterministic Fallback Verification
+
+S3-13 stays **In Progress** because the live Gemini path is unverified, but the deterministic fallback — the behaviour that keeps recommendations usable without a key — now has dedicated coverage.
+
+- `buildFallbackRecommendation` previously grouped `queue_congestion` and `table_congestion` with `reservation_conflict`, so the two types added in S2-12 received seating guidance that ignored their trigger snapshot. Each now has a branch that cites the evidence the rules actually supply.
+- `backend/test/ai-fallback.test.ts` (5 tests) covers: queue guidance citing queue length, largest party, wait, and threshold; table guidance distinguishing "no table free" from "no table large enough"; both types degrading to generic, lower-confidence wording on an empty snapshot; the absence of emails, phone-shaped strings, `undefined`, and `NaN` in the output; and the unchanged behaviour of the inventory, delay, reservation, and unknown-type branches.
+- **Commits:** Navin `538bc94`; Gokul `76f3a9e`.
+- **Local verification via Node `24.21.0`:** backend 305 tests passed; frontend 38 tests passed; Biome, typecheck, and both production builds clean; high-severity audits reported zero vulnerabilities.
+- **Limits:** these are unit tests over the context object. No live Gemini call, quota/timeout rehearsal, or invalid-provider-output test against the real API was performed, because no credential exists in this workspace.

@@ -399,3 +399,10 @@
 - Recorded the contract triage in the browser triage report (method, the 39 routes / 28 calls / 0 unmatched result, and the 14 intentionally uncalled routes) and in Test Plan section 34.1. Updated the member work logs for the same checkpoint.
 - **Local verification via Node `24.21.0`:** `node --test tools/api-contract-check.test.mjs` passed 6/6; `node tools/api-contract-check.mjs --strict` exited 0; `node --test tools/ci-workflow.test.mjs` passed 6/6; backend 300 and frontend 38 tests passed with Biome, typecheck, and both production builds clean.
 - **Limits:** this is a static check of routes and call sites, not a runtime contract test: it does not validate request bodies, response shapes, or authenticated behaviour. No live MongoDB, browser E2E of authenticated flows, remote CI, push, merge, or deployment is claimed.
+
+### S3-13 — Congestion-specific deterministic fallback
+
+- Gave `queue_congestion` and `table_congestion` their own fallback branches in `backend/src/ai/fallback.recommendations.ts`. Each cites the bounded trigger evidence the rules supply (queue length, longest wait, configured threshold, largest waiting party, free-table count, largest free capacity), distinguishes an empty floor from a too-small free table, degrades to generic lower-confidence wording when the snapshot is empty, and still never repeats guest identity or invents a number.
+- **Navin implementation commit:** `538bc94`. Gokul covered it in `76f3a9e`.
+- **Local verification via Node `24.21.0`:** backend 305 tests passed with Biome, typecheck, production build, and high-severity audit clean.
+- **Status/limits:** unit-level only. No live Gemini call, quota/timeout rehearsal, or real invalid-output test was performed, since no credential exists here.

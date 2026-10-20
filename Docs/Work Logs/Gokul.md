@@ -121,3 +121,10 @@
 - **Gokul test commit:** `f9ee881`.
 - **Validation via Node `24.21.0`:** 6/6 passed; `node tools/api-contract-check.mjs --strict` exited 0.
 - These tests assert route and call-site shapes, not runtime behaviour: no payload validation, authenticated flow, live database, remote CI, push, merge, or deployment is claimed.
+
+### S3-13 — Fallback branch tests
+
+- Added `backend/test/ai-fallback.test.ts` (5 tests): queue congestion citing the queue, largest party, wait, and threshold; table congestion distinguishing no free table from no large enough table; both types degrading to generic, lower-confidence wording on an empty snapshot with non-empty action text; a serialized-output check for emails, phone-shaped strings, `undefined`, and `NaN`; and unchanged inventory/delay/reservation/unknown-type behaviour. This is the first dedicated unit coverage for the fallback builder, which was previously only exercised through the service tests.
+- **Gokul test commit:** `76f3a9e`.
+- **Validation via Node `24.21.0`:** 5/5 passed and the full backend suite passed 305/305.
+- These tests build the context object directly: no live provider, quota, timeout, network failure, remote CI, push, merge, or deployment is claimed.
