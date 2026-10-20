@@ -76,8 +76,13 @@ a {
 .skip-link:focus {
   transform: translateY(0);
 }
+/* Anchored so a visually hidden label can never widen the page: without an
+   explicit offset the absolute box keeps its static position and escapes the
+   clipping of an overflow container such as .table-scroll. */
 .sr-only {
   position: absolute;
+  top: auto;
+  left: 0;
   width: 1px;
   height: 1px;
   padding: 0;
@@ -315,9 +320,10 @@ a {
 }
 .sidebar-tip button {
   display: inline-flex;
+  min-height: 24px;
   align-items: center;
   gap: 6px;
-  padding: 0;
+  padding: 0 2px;
   border: 0;
   color: #dbe9ca;
   background: transparent;
@@ -1137,11 +1143,14 @@ a {
   font-weight: 660;
   vertical-align: 2px;
 }
+/* Standalone text controls keep a 24px minimum hit area (WCAG 2.5.8); the
+   visual design is unchanged because the control stays transparent. */
 .text-link {
   display: inline-flex;
+  min-height: 24px;
   align-items: center;
   gap: 6px;
-  padding: 4px 0;
+  padding: 4px 2px;
   border: 0;
   color: #68846b;
   background: transparent;
@@ -1153,7 +1162,10 @@ a {
 .text-link:hover {
   color: #334f3d;
 }
+/* Positioned so absolutely positioned descendants (visually hidden labels)
+   are clipped by this scroll container instead of widening the document. */
 .table-scroll {
+  position: relative;
   width: 100%;
   overflow-x: auto;
 }
@@ -1497,10 +1509,11 @@ a {
 }
 .insight-teaser-footer button {
   display: inline-flex;
+  min-height: 24px;
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  padding: 0;
+  padding: 0 2px;
   border: 0;
   color: #8c6b4c;
   background: transparent;
@@ -1851,7 +1864,8 @@ a {
   font-size: 8px;
 }
 .app-footer button {
-  padding: 0;
+  min-height: 24px;
+  padding: 0 2px;
   border: 0;
   color: #7f9082;
   background: transparent;
