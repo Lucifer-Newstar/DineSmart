@@ -7,16 +7,18 @@ on:
       - main
   workflow_dispatch:
 
+# Least privilege: the jobs only read the repository.
 permissions:
   contents: read
 
+# Superseded runs on the same ref are cancelled to keep feedback fast.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Monorepo quality checks
+  frontend:
+    name: Frontend quality checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,23 +32,25 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: '**/package-lock.json'
+          cache-dependency-path: frontend/package-lock.json
 
+      # npm ci installs exactly what the lockfile records, so a drifted
+      # package.json fails the build instead of silently resolving new versions.
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
       - name: Audit frontend dependencies
         working-directory: frontend
-        run: npm audit
+        run: npm audit --audit-level=high
 
       - name: Lint and check formatting
         working-directory: frontend
         run: npm run lint
 
-      - name: Run frontend tests when configured
+      - name: Run frontend tests
         working-directory: frontend
-        run: npm run test --if-present
+        run: npm test
 
       - name: Typecheck frontend
         working-directory: frontend
@@ -56,15 +60,66 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      # Keep the backend checks gated so this workflow also works on the
-      # prerequisite branch before backend/package.json is merged.
-      - name: Install and verify backend when present
-        if: ${{ hashFiles('backend/package.json') != '' }}
-        run: |
-          cd backend
-          npm ci
-          npm audit
-          npm run lint
-          npm run test --if-present
-          npm run typecheck
-          npm run build
+  backend:
+    name: Backend quality checks
+    # Kept gated so this workflow also runs on a prerequisite branch that has
+    # not merged the backend package yet; it is a no-op there.
+    if: ${{ hashFiles('backend/package.json') != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Audit backend dependencies
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+      - name: Lint and check formatting
+        working-directory: backend
+        run: npm run lint
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
+
+      - name: Typecheck backend
+        working-directory: backend
+        run: npm run typecheck
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+  preflight:
+    name: Demo readiness preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # Dependency-free guard for the presentation checks: required documents,
+      # env examples, the seed CLI, Node pinning, and no committed .env files.
+      - name: Run the demo readiness preflight
+        run: node tools/demo-readiness.mjs --strict
