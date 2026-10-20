@@ -52,7 +52,16 @@ Run `node tools/demo-readiness.mjs` from the repository root to print the prereq
 - Incidents resolve automatically when their condition clears; there is no manual close control, so do not promise one.
 - Role switching is the strongest evidence of the permission model: sign in per role rather than describing the matrix.
 
-## 5. Post-demo checklist
+## 5. Recorded backup demo
+
+If the live environment cannot run during the slot, present the captured walkthrough instead of narrating from memory.
+
+- `tools/capture-demo.mjs` walks the browser-visible steps, captures one screenshot per step, and writes a single self-contained `demo-capture/index.html` whose screenshots are embedded as data URIs, so it opens offline with no network access. Playwright is deliberately not a project dependency; install it on demand with `npm i -D playwright && npx playwright install chromium`.
+- Run it with the stack already up: `node tools/capture-demo.mjs --base-url http://127.0.0.1:3000 --out demo-capture`. Dashboard sections are component state rather than routes, so the tool clicks the sidebar item and records whether the navigation applied (`navigationApplied` in `demo-capture/manifest.json`).
+- The committed capture was produced without MongoDB, so its dashboard steps show the labelled preview/empty states. Re-capture it after seeding the database and signing in as a Manager to replace steps 7–11 with live operational screens; the narrations already say which parts are preview-only.
+- Presenter note: this replaces a video recording, which is not possible in this workspace. Say it is a captured walkthrough, not a live run.
+
+## 6. Post-demo checklist
 
 - Capture any defect observed during the run into S3-07 bug triage with a reproduction note.
 - Record which environment variables were set (names only, never values) in the work log.

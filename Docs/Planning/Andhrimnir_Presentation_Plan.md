@@ -60,6 +60,6 @@ Scope: a 10-minute hackathon presentation plus a 5-minute live demo, aligned wit
 
 ## 6. Open preparation items
 
-- A recorded backup demo in case the live environment is unavailable during the slot.
+- Re-capture the backup demo against a seeded database and a signed-in Manager session; the current capture was taken without MongoDB and shows preview states for the dashboard steps.
 - Rehearsal against live MongoDB and a real Gemini key once credentials exist.
 - Slide 9's test counts (backend 300, frontend 38) must be refreshed if the suites grow before the talk.

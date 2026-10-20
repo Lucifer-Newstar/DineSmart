@@ -206,3 +206,10 @@
 - **Dhanush implementation commit:** `5053704`. Gokul covered it in `b78db04`.
 - **Local verification via Node `24.21.0`:** a Chromium pass at 1280x800, 820x1180, and 390x844 reported zero page errors and zero horizontal overflow on every slide.
 - **Status/limits:** this is a rendered outline, not a rehearsed talk. No recording, live-service run, or design review has been performed.
+
+### S3-12 — Captured backup walkthrough
+
+- Ran the capture tool against the local stack and committed `demo-capture/`: 12 steps, an offline `index.html` with embedded screenshots, and the manifest. Steps cover the landing page, the public menu (unavailable state without a database), orders/register/login/booking, the dashboard overview, and the Kitchen, Incidents, Insights, and Analytics sections, plus the 390 px workspace.
+- **Dhanush capture commit:** `2701412`.
+- **Local verification via Node `24.21.0`:** every step captured without page errors; the manifest records `navigationApplied: true` for all four sidebar clicks and lists only the expected 401 refresh and 503 menu responses.
+- **Status/limits:** the capture was taken without MongoDB, so dashboard steps show labelled preview/empty states. It must be re-captured after seeding and signing in as a Manager to show live operational screens; no rehearsal has been performed.

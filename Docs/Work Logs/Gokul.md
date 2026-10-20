@@ -107,3 +107,10 @@
 - **Gokul test commit:** `b78db04`.
 - **Validation via Node `24.21.0`:** 6/6 passed.
 - These are static-content and structure checks. No visual design review, rehearsal, recorded demo, remote CI, push, merge, or deployment is claimed.
+
+### S3-12 — Backup demo capture tool
+
+- Added `tools/capture-demo.mjs`: it walks the browser-visible runbook steps with Playwright, clicks the dashboard sidebar item for section steps (sections are component state, not routes), records whether the navigation applied, and writes a self-contained `demo-capture/index.html` with every screenshot embedded as a data URI plus a `manifest.json` of URLs, viewports, click outcomes, and non-2xx responses. Playwright is installed on demand and is not a project dependency, so the tool degrades to a clear instruction message when it is missing.
+- **Gokul tool commit:** `581a09e`.
+- **Validation via Node `24.21.0`:** the tool captured 12 steps (1440x900 plus one at 390x844) with all four sidebar clicks applied; `presentation/deck.test.mjs` still passes 6/6.
+- The capture is a screenshot walkthrough, not a video recording: no live MongoDB, signed-in Manager session, Gemini call, rehearsal, remote CI, push, merge, or deployment is claimed.

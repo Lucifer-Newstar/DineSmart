@@ -385,3 +385,10 @@
 - Updated Test Plan section 36 with the deck, its verification, and the refreshed counts (backend 300, frontend 38). Updated the member work logs for the same checkpoint.
 - **Local verification via Node `24.21.0`:** `node --test presentation/deck.test.mjs` passed 6/6; backend 300 and frontend 38 tests passed; Biome, typecheck, and both production builds clean.
 - **Limits:** the deck was checked for structure, self-containment, and layout at three viewports — not reviewed as a design artifact. No rehearsal, recorded backup, live MongoDB/Gemini run, remote CI, push, merge, or deployment is claimed.
+
+### S3-12 — Backup demo documentation
+
+- Added runbook section 5 covering the backup walkthrough: how to run the capture tool, why Playwright is an on-demand install, how dashboard-section clicks are handled, and that the committed capture shows preview states that must be re-captured after seeding. Replaced the presentation plan's "recorded backup demo" open item with the re-capture and rehearsal items.
+- Updated Test Plan section 36 with the capture, its verification, and the refreshed commit list. Updated the Gokul and Dhanush work logs for the same checkpoint.
+- **Local verification via Node `24.21.0`:** `node --test tools/demo-readiness.test.mjs` passed 4/4, `node --test tools/ci-workflow.test.mjs` passed 6/6, `node --test presentation/deck.test.mjs` passed 6/6, and `node tools/demo-readiness.mjs --strict` exited 0.
+- **Limits:** no rehearsal, live database capture, Gemini call, remote CI, push, merge, or deployment is claimed. The walkthrough is a screenshot capture, not a video.
