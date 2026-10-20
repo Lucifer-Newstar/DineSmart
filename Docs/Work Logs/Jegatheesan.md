@@ -182,7 +182,7 @@
 
 - Extended read projections to the table-status path (current table read, conditional update, re-read after a lost race, and the linked reservation/order/waitlist guards) and to every incident-context read (incident, restaurant thresholds, active orders, low-stock items, upcoming reservations).
 - **Jegatheesan implementation commit:** `403fd74`. Gokul covered the exact projection keys in `30f70bc`.
-- **Local verification via Node `24.21.0`:** all 293 backend tests passed; Biome checked 159 files; typecheck and production build passed; high-severity audit found zero vulnerabilities.
+- **Local verification via Node `24.21.0`:** all 293 backend tests passed; Biome checked 160 files; typecheck and production build passed; high-severity audit found zero vulnerabilities.
 - **Status/limits:** these are query-shape changes verified with recording doubles, not measurements against a live database or indexes. No p95 measurement, live MongoDB, remote CI, push, merge, or deployment is claimed.
 
 ### S2-12 — Waitlist-driven incident rules
