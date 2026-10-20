@@ -192,3 +192,10 @@
 - **Dhanush implementation commit:** `11406a1`. Gokul covered the client in `5a28526`.
 - **Local verification via Node `24.21.0`:** frontend 38/38 tests passed; Biome checked 37 files; typecheck and the Next.js production build passed; a 21-route browser pass after the change showed zero page errors and zero failed requests.
 - **Status/limits:** the deadline is unit-tested with a stubbed fetch; no real stalled-network run, slow-backend rehearsal, remote CI, push, merge, or deployment is claimed.
+
+### S2-12 — Congestion incident labels
+
+- Added `Queue congestion` and `Table congestion` labels to the incident type map in `frontend/src/app/dashboard.tsx` so the two new rule-managed types render as readable names instead of raw slugs.
+- **Dhanush implementation commit:** `514b6d7`.
+- **Local verification via Node `24.21.0`:** frontend 38/38 tests passed with Biome, typecheck, and the Next.js production build clean.
+- **Status/limits:** the labels were not rendered in a browser against live incident data, since no MongoDB-backed incidents exist in this environment.

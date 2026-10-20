@@ -371,3 +371,10 @@
 - **Navin commit:** `272e7d3`. Gokul guarded the invariants in `7caa246`.
 - **Local verification via Node `24.21.0`:** `node --test tools/ci-workflow.test.mjs` passed 6/6; `node tools/demo-readiness.mjs --strict` exited 0 (14/14 prerequisites); both packages pass Biome, typecheck, tests (backend 293, frontend 38), production builds, and a high-severity audit with zero vulnerabilities.
 - **Status/limits:** S1-07 remains **In Progress**. This validates the workflow definition locally; no GitHub Actions run, runner matrix, secret, artifact, or deployment behaviour was observed, because no remote is configured.
+
+### S2-12 — Waitlist-driven congestion rules and documentation
+
+- Recorded the new rule-managed types, the four configurable queue thresholds with their defaults, and the rationale for gating table congestion behind a wait threshold in the implementation decisions, and corrected the stale statement that the S2-12 rules did not consume waitlist data.
+- Added Test Plan section 23.1 for the new rules and refreshed the two stale AC-05 notes about waitlist-dependent detection. Updated all three member work logs for the same checkpoint.
+- **Local verification via Node `24.21.0`:** backend 300 tests and frontend 38 tests passed; Biome, typecheck, and both production builds clean; high-severity audits reported zero vulnerabilities.
+- **Limits:** no live MongoDB snapshot, browser incident UI, wait-estimate formula, remote CI, push, merge, or deployment is claimed. Staff-shortage detection remains out of scope because it has no input.

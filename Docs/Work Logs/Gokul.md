@@ -92,3 +92,11 @@
 - **Gokul test commit:** `7caa246`.
 - **Validation via Node `24.21.0`:** 6/6 tests passed; `node tools/demo-readiness.mjs --strict` exited 0 with 14/14 prerequisites satisfied.
 - This checks the workflow definition, not an execution: no GitHub Actions run, remote, runner matrix, secret, artifact, or deployment verification is claimed.
+
+### S2-12 — Waitlist incident rule tests
+
+- Added `backend/test/incident-rules-waitlist.test.ts` (7 tests): default and validated queue thresholds (integer pairs, inverted-pair fallback), a short queue under every threshold, escalation to critical by count and by longest wait, table congestion when no free table can seat the largest waiting party, clearing once a large enough table frees up, an empty floor escalating to critical, quiet behaviour for short waits with no free table, and exclusion of seated/cancelled/no-show entries.
+- Updated two existing fixtures for the widened rule set: the incident-service test now uses `staff_shortage` as its example of a type outside the rule set, because `table_congestion` became rule-managed.
+- **Gokul test commit:** `be2c242`.
+- **Validation via Node `24.21.0`:** backend 300/300 passed with Biome, typecheck, production build, and high-severity audit clean.
+- These are fake-snapshot unit tests: no live MongoDB queue, wait-estimate formula, browser incident UI, remote CI, push, merge, or deployment is claimed.

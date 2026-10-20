@@ -184,3 +184,11 @@
 - **Jegatheesan implementation commit:** `403fd74`. Gokul covered the exact projection keys in `30f70bc`.
 - **Local verification via Node `24.21.0`:** all 293 backend tests passed; Biome checked 159 files; typecheck and production build passed; high-severity audit found zero vulnerabilities.
 - **Status/limits:** these are query-shape changes verified with recording doubles, not measurements against a live database or indexes. No p95 measurement, live MongoDB, remote CI, push, merge, or deployment is claimed.
+
+### S2-12 — Waitlist-driven incident rules
+
+- Extended the detection snapshot with bounded, projected waitlist entries (`status: "waiting"`, `partySize`/`createdAt`), including `waitlist` in `truncatedSources` when the source bound is reached.
+- Added two rule-managed types to `incident.rules.ts`: `queue_congestion` (restaurant-scoped, warning at 4 waiting parties or a 25-minute longest wait, critical at 7 parties or 45 minutes) and `table_congestion` (no available table can seat the largest still-waiting party once a queue or wait threshold is already crossed, so an ordinary short wait for a large table stays quiet). Both use only trigger fields the AI context already whitelists.
+- **Jegatheesan implementation commit:** `451472a`. Gokul covered the rules in `be2c242`; Dhanush added the dashboard labels in `514b6d7`.
+- **Local verification via Node `24.21.0`:** backend 300 tests passed; Biome, typecheck, and production build clean; high-severity audit found zero vulnerabilities.
+- **Status/limits:** verified with unit snapshots, not live MongoDB data. Staff-shortage detection still has no input and the wait-estimate formula remains undecided, so no wait prediction is produced. No live MongoDB, remote CI, push, merge, or deployment is claimed.
