@@ -12,10 +12,12 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 /** Raised when a request exceeds its deadline. */
 export class ApiTimeoutError extends Error {
   readonly kind = "timeout";
+  readonly timeoutMs: number;
 
-  constructor(readonly timeoutMs: number) {
+  constructor(timeoutMs: number) {
     super(`The request did not complete within ${timeoutMs} ms.`);
     this.name = "ApiTimeoutError";
+    this.timeoutMs = timeoutMs;
   }
 }
 
