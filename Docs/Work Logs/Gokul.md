@@ -69,3 +69,19 @@
 - **Gokul-authored commits:** `3e7464f` (preflight script), `653ad71` (preflight tests), `9169140` (fixture summary tests).
 - **Validation via Node `24.21.0`:** `node --test tools/demo-readiness.test.mjs` passed 4/4; the backend suite passed 286/286 with Biome, typecheck, production build, and high-severity audit clean.
 - This is preparation work. No live demo, rehearsal, database run, remote CI, push, merge, or deployment has been performed.
+
+### S3-07 — Browser triage and API error-contract tests
+
+- Added `frontend/test/styles-contract.test.mjs`: `.sr-only` must stay anchored and clipped, `.table-scroll` must be a positioned scroller, and the four standalone text-control rules must declare `min-height >= 24px`; the skip-link and reduced-motion rules are asserted present.
+- Added `backend/test/api-error-contract.test.ts`: the JSON 404 envelope for unknown versioned routes, `no-store` plus the envelope on malformed and oversized bodies, the private uncompressed liveness probe, and that protected routes never answer with HTML.
+- **Gokul test commits:** `99dea5c`, `6be7c47`.
+- **Validation via Node `24.21.0`:** frontend 32/32 and backend 290/290 passed; both packages pass Biome, typecheck, production build, and high-severity audit.
+- The contrast finding from the browser pass is deliberately uncovered by tests: remediating it changes shared design tokens that are pending an owner decision.
+
+### S3-10 — Projection and request-deadline tests
+
+- Added `backend/test/repository-projections-reads.test.ts`, which replays the incident-context and table-status flows against a per-collection recording double and asserts the exact projection keys for each read, including the re-read after a lost conditional update.
+- Added `frontend/test/api-client.test.mjs`: a fast response is forwarded untouched, a stalled request rejects with `ApiTimeoutError` after its deadline and aborts the socket, a caller abort keeps its own reason and wins over the deadline, an already-aborted signal rejects with the caller's reason, and timeouts/aborts/errors classify differently.
+- **Gokul test commits:** `30f70bc`, `5a28526`.
+- **Validation via Node `24.21.0`:** backend 293/293 and frontend 38/38 passed; Biome, typecheck, and both production builds are clean.
+- These are unit/contract tests with stubbed fetch and recording doubles. No live database, real network timeout, browser E2E, remote CI, push, merge, or deployment is claimed.

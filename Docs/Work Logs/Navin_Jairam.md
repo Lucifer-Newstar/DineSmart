@@ -355,3 +355,11 @@
 - Added Test Plan section 36, marked S3-12 **In Progress** in the canonical backlog, and updated the root README (backend 286 tests). Backlog totals: 1 Complete, 26 Ready to Push, 15 In Progress, 2 To Do.
 - **Local verification via Node `24.21.0`:** backend 286 tests passed; Biome checked 157 files; typecheck and production build passed; high-severity audit clean. `node --test tools/demo-readiness.test.mjs` passed 4/4 and `node tools/demo-readiness.mjs --strict` exited 0.
 - No slide deck has been rendered, no rehearsal or recorded backup exists, and no live MongoDB/Gemini/deployed environment was available. The runbook's fallback paths are untested against real failures. Atlas and deployment remain deferred.
+
+### 2026-10-12 — S3-07 browser triage report and S3-10 verification update
+
+- Wrote `Docs/Quality/Andhrimnir_Browser_Triage_Report.md`: method (7 routes x 3 viewports against the production build in headless Chromium), five findings with statuses, the two applied fixes, the open contrast table, the regression guards, expected console output, and an explicit limits section. Recorded the API error-path probes and their four fixes, plus the documented observation that routers connect before authenticating (503 instead of 401 when the database is unreachable).
+- Deliberately left the contrast finding open: 108 elements across 91 colour/size combinations fall below AA, and fixing it changes shared design tokens whose palette and conformance level await an owner decision. The report states the recommendation instead of implying approval.
+- Added Test Plan section 34.1 for the browser pass, extended section 35 with the new projections and the bounded request client, and refreshed the verification counts (backend 293, frontend 38). Updated all three member work logs for the same checkpoints.
+- **Local verification via Node `24.21.0`:** backend 293 tests and frontend 38 tests passed; Biome checked 159 backend and 37 frontend files; typecheck and both production builds passed; high-severity audit clean. A 21-route browser pass after the fixes showed zero page errors and zero failed requests.
+- Single browser engine, no live MongoDB, and no manual visual review: only preview/unavailable/empty states were rendered in the browser. No screen-reader, touch, performance, remote CI, push, merge, or deployment testing is claimed.

@@ -168,3 +168,19 @@
 - **Jegatheesan implementation commit:** `4c1d6a3`. Gokul covered the summary with `9169140`.
 - **Local verification via Node `24.21.0`:** all 286 backend tests passed; Biome checked 157 files; TypeScript typecheck and production build passed; `npm audit --audit-level=high` found zero vulnerabilities. `npm run demo:fixtures` printed 40 seeded records across 15 collections.
 - **Status/limits:** this describes the fixtures; it does not seed or verify a live database. The seeded scenario has not been demonstrated against live MongoDB, and no deployment or remote CI is claimed.
+
+### S3-07 — API error-path fixes
+
+- Made unknown `/api/v1/*` routes answer with the JSON error envelope (`404 route_not_found`) instead of the framework's HTML 404 page, so API clients never parse a page as data.
+- Moved the `no-store` policy middleware ahead of body parsing so 400 and 413 parser rejections carry the header too, and gave the liveness probe an explicit `Cache-Control: no-store` while keeping it outside the compression path.
+- **Jegatheesan implementation commit:** `63076f9`. Gokul covered the contract in `6be7c47`.
+- **Local verification via Node `24.21.0`:** all 290 backend tests passed; Biome checked 158 files; typecheck and production build passed; high-severity `npm audit` found zero vulnerabilities. Re-probed the running API: unknown route, malformed JSON, oversized body, and `/health` all return JSON with `no-store`.
+- **Documented, not changed:** protected routes return 503 when the database is unreachable even without a token, because each router connects before authenticating. That is fail-closed and safe, but the recommendation to authenticate before opening a connection is recorded in the triage report rather than applied in a triage pass.
+- **Status/limits:** no live MongoDB was available, so authenticated success paths and database-level errors were not exercised. No push, merge, remote CI, or deployment is claimed.
+
+### S3-10 — Table status and incident-context projections
+
+- Extended read projections to the table-status path (current table read, conditional update, re-read after a lost race, and the linked reservation/order/waitlist guards) and to every incident-context read (incident, restaurant thresholds, active orders, low-stock items, upcoming reservations).
+- **Jegatheesan implementation commit:** `403fd74`. Gokul covered the exact projection keys in `30f70bc`.
+- **Local verification via Node `24.21.0`:** all 293 backend tests passed; Biome checked 159 files; typecheck and production build passed; high-severity audit found zero vulnerabilities.
+- **Status/limits:** these are query-shape changes verified with recording doubles, not measurements against a live database or indexes. No p95 measurement, live MongoDB, remote CI, push, merge, or deployment is claimed.

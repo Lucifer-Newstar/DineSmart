@@ -10,7 +10,7 @@ Manager and Administrator Insights load the saved recommendation for the seeded 
 
 ## Incident dashboard (S3-05)
 
-The Incidents workspace reads the bounded `GET /api/v1/incidents` feed only for Manager/Administrator sessions. It validates IDs, statuses, timestamps, root-cause text, and whitelisted trigger fields before rendering. Open and resolved records are read-only; the approved lifecycle resolves rule-managed incidents when their trigger clears, so there is no manual close control. Loading, empty, unavailable, restricted, partial-list, and sample-preview states are explicit; requests are cancelled when the workspace identity changes. The Overview incident count is driven by the loaded feed when available, and preview notification content is labelled as sample data. Local parser tests/build pass; live API/MongoDB and browser E2E remain outstanding.
+The Incidents workspace reads the bounded `GET /api/v1/incidents` feed only for Manager/Administrator sessions. It validates IDs, statuses, timestamps, root-cause text, and whitelisted trigger fields before rendering. Open and resolved records are read-only; the approved lifecycle resolves rule-managed incidents when their trigger clears, so there is no manual close control. Loading, empty, unavailable, restricted, partial-list, and sample-preview states are explicit; requests are cancelled when the workspace identity changes and bounded by a 15-second deadline, so a stalled request surfaces an explicit timeout instead of a permanent loading state. The Overview incident count is driven by the loaded feed when available, and preview notification content is labelled as sample data. Local parser tests/build pass; live API/MongoDB and browser E2E remain outstanding.
 
 ## Role-based workspaces
 
@@ -18,7 +18,7 @@ The Incidents workspace reads the bounded `GET /api/v1/incidents` feed only for 
 - Reception sees Overview, Orders, Reservations, Inventory availability, and Settings; commercial analytics, incidents, and AI recommendations are hidden. Inventory remains read-only for this role.
 - Kitchen Staff sees Overview, relevant Orders, Kitchen, Inventory availability, and Settings; reservation, incident, analytics, and recommendation sections are hidden. Kitchen order updates remain item-level.
 - Manager and Administrator can reach the full restaurant workspace; tenant and permission enforcement remains server-side. A stale/unauthorized selected section resolves to Overview when the session role changes. Recommendation/review state is scope-keyed and falls back to preview/unreviewed immediately on an identity change; Analytics remounts for the new workspace and aborts its earlier request. Other tenant-bound feeds clear as their new session requests begin.
-- `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, interactive-control regression, and dashboard metric suites on Node `24.21.0` (29 tests at this checkpoint). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
+- `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, interactive-control regression, dashboard metric, stylesheet-contract, and request-deadline suites on Node `24.21.0` (38 tests at this checkpoint). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
 
 ## Demo walkthrough (S3-12)
 

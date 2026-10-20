@@ -176,3 +176,19 @@
 - **Dhanush documentation commit:** `2114926`.
 - **Local verification:** the README change is documentation only; frontend Biome, typecheck, tests, and the Next.js production build were unaffected.
 - **Status/limits:** no browser demo, responsive review, or live-service run has been performed; the runbook's frontend steps are untested against real services.
+
+### S3-07 — Hidden-label clipping and control hit areas
+
+- Fixed the mobile `/dashboard` horizontal overflow: `.sr-only` was an unanchored absolute box escaping its unpositioned `.table-scroll` ancestor, growing the document to 583 px on a 390 px viewport. Anchored it with `top: auto; left: 0` and made `.table-scroll` a containing block.
+- Raised six dashboard controls that measured 12-23 px tall to at least 24 px (WCAG 2.5.8 AA) with `min-height: 24px` and 2 px horizontal padding on `.text-link`, `.insight-teaser-footer button`, `.sidebar-tip button`, and `.app-footer button`. The visual design is unchanged because the controls stay transparent.
+- **Dhanush implementation commit:** `09f1e89`.
+- **Local verification via Node `24.21.0`:** frontend 32/32 tests passed with Biome, typecheck, and the Next.js production build clean. Re-ran the Playwright pass afterwards: zero routes overflow at 1440x900, 820x1180, or 390x844, and zero page errors or failed requests across 21 route/viewport loads.
+- **Status/limits:** single browser engine (headless Chromium), no live MongoDB, so only preview/unavailable states were rendered. No screen-reader, touch, or manual visual review was performed.
+
+### S3-10 — Bounded browser requests
+
+- Added `frontend/src/app/api-client.ts`: `fetchWithTimeout` combines the caller's abort signal (used when the dashboard workspace changes) with a 15-second deadline, so a stalled request resolves into an explicit `ApiTimeoutError` instead of leaving a panel in its loading state.
+- Routed every dashboard, menu, orders, booking, and auth request through it, replaced the inline `AbortError` checks with `classifyRequestError`, and added a dismissible "live data is slow to respond" banner that appears when a read exceeds the deadline.
+- **Dhanush implementation commit:** `11406a1`. Gokul covered the client in `5a28526`.
+- **Local verification via Node `24.21.0`:** frontend 38/38 tests passed; Biome checked 37 files; typecheck and the Next.js production build passed; a 21-route browser pass after the change showed zero page errors and zero failed requests.
+- **Status/limits:** the deadline is unit-tested with a stubbed fetch; no real stalled-network run, slow-backend rehearsal, remote CI, push, merge, or deployment is claimed.
