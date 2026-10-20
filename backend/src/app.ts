@@ -29,7 +29,7 @@ import { connectToDatabase } from "./database.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
-import { sendNoStoreApiResponse } from "./http/cache-policy.js";
+import { NO_STORE_CACHE_CONTROL, sendNoStoreApiResponse } from "./http/cache-policy.js";
 import { MongoIncidentDetectionRepository } from "./incidents/incident.repository.js";
 import { createIncidentRouter } from "./incidents/incident.router.js";
 import { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
@@ -158,12 +158,13 @@ export function createApp(options: AppOptions = {}) {
       allowedHeaders: ["Content-Type", "Authorization"],
     }),
   );
-  app.use(express.json({ limit: "16kb" }));
-  // Every API response is private by default; routers opt out explicitly.
+  // Registered before body parsing so parser rejections also carry the header.
   app.use("/api/v1", sendNoStoreApiResponse);
+  app.use(express.json({ limit: "16kb" }));
 
   // Infrastructure liveness only; this must not depend on database/auth readiness.
   app.get("/health", (_request, response) => {
+    response.setHeader("Cache-Control", NO_STORE_CACHE_CONTROL);
     response.status(200).json({ status: "ok" });
   });
 
@@ -456,6 +457,14 @@ export function createApp(options: AppOptions = {}) {
       },
     }),
   );
+
+  // Unknown versioned routes return the JSON error envelope instead of the
+  // framework's HTML 404, so API clients never parse a page as data.
+  app.use("/api/v1", (_request, response) => {
+    response.status(404).json({
+      error: { code: "route_not_found", message: "The requested API route does not exist." },
+    });
+  });
 
   const handleApiError: ErrorRequestHandler = (error, _request, response, next) => {
     if (response.headersSent) {
