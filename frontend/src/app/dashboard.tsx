@@ -10,6 +10,7 @@ import {
   type AnalyticsRange,
   parseAnalyticsData,
 } from "./analytics-data";
+import { classifyRequestError, DEFAULT_REQUEST_TIMEOUT_MS, fetchWithTimeout } from "./api-client";
 import { type AuthUser, useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
 import {
@@ -1481,6 +1482,8 @@ export function Dashboard() {
   const [demoBannerVisible, setDemoBannerVisible] = useState(true);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Several panels can time out at once, so the hint is a single shared state.
+  const [slowDataNoticeVisible, setSlowDataNoticeVisible] = useState(false);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [ordersStatus, setOrdersStatus] = useState<OrderFeedStatus>("preview");
   const [ordersTruncated, setOrdersTruncated] = useState(false);
@@ -1582,7 +1585,7 @@ export function Dashboard() {
     setRecommendationReviewed(false);
     setRecommendationScopeKey(workspaceScopeKey);
     setRecommendationViewStatus("loading");
-    void fetch(
+    void fetchWithTimeout(
       `${API_BASE}/recommendations?incidentId=${encodeURIComponent(INCIDENT_INVENTORY_ID)}`,
       {
         cache: "no-store",
@@ -1637,7 +1640,7 @@ export function Dashboard() {
     setIncidentTruncated(false);
     setIncidentScopeKey(workspaceScopeKey);
     setIncidentViewStatus("loading");
-    void fetch(`${API_BASE}/incidents`, {
+    void fetchWithTimeout(`${API_BASE}/incidents`, {
       cache: incidentRefreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -1658,8 +1661,8 @@ export function Dashboard() {
         setIncidentViewStatus(parsed.incidents.length === 0 ? "empty" : "live");
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
-          return;
+        if (classifyRequestError(error) === "abort") return;
+        if (classifyRequestError(error) === "timeout") setSlowDataNoticeVisible(true);
         setIncidents([]);
         setIncidentTruncated(false);
         setIncidentViewStatus("unavailable");
@@ -1680,7 +1683,7 @@ export function Dashboard() {
     setOrders([]);
     setOrdersTruncated(false);
     setOrdersStatus("loading");
-    void fetch(`${API_BASE}/orders`, {
+    void fetchWithTimeout(`${API_BASE}/orders`, {
       cache: ordersRefreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -1697,8 +1700,8 @@ export function Dashboard() {
         setOrdersStatus("live");
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
-          return;
+        if (classifyRequestError(error) === "abort") return;
+        if (classifyRequestError(error) === "timeout") setSlowDataNoticeVisible(true);
         setOrders([]);
         setOrdersTruncated(false);
         setOrdersStatus("unavailable");
@@ -1722,7 +1725,7 @@ export function Dashboard() {
     setKitchenTickets([]);
     setKitchenQueueTruncated(false);
     setKitchenQueueStatus("loading");
-    void fetch(`${API_BASE}/kitchen/queue`, {
+    void fetchWithTimeout(`${API_BASE}/kitchen/queue`, {
       cache: kitchenQueueRefreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -1739,8 +1742,8 @@ export function Dashboard() {
         setKitchenQueueStatus("live");
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
-          return;
+        if (classifyRequestError(error) === "abort") return;
+        if (classifyRequestError(error) === "timeout") setSlowDataNoticeVisible(true);
         setKitchenTickets([]);
         setKitchenQueueTruncated(false);
         setKitchenQueueStatus("unavailable");
@@ -1761,7 +1764,7 @@ export function Dashboard() {
     setInventory([]);
     setInventoryTruncated(false);
     setInventoryStatus("loading");
-    void fetch(`${API_BASE}/inventory`, {
+    void fetchWithTimeout(`${API_BASE}/inventory`, {
       cache: inventoryRefreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -1778,8 +1781,8 @@ export function Dashboard() {
         setInventoryStatus("live");
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
-          return;
+        if (classifyRequestError(error) === "abort") return;
+        if (classifyRequestError(error) === "timeout") setSlowDataNoticeVisible(true);
         setInventory([]);
         setInventoryTruncated(false);
         setInventoryStatus("unavailable");
@@ -1800,7 +1803,7 @@ export function Dashboard() {
     setReservations([]);
     setReservationsTruncated(false);
     setReservationsStatus("loading");
-    void fetch(`${API_BASE}/reservations`, {
+    void fetchWithTimeout(`${API_BASE}/reservations`, {
       cache: reservationsRefreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -1817,8 +1820,8 @@ export function Dashboard() {
         setReservationsStatus("live");
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError"))
-          return;
+        if (classifyRequestError(error) === "abort") return;
+        if (classifyRequestError(error) === "timeout") setSlowDataNoticeVisible(true);
         setReservations([]);
         setReservationsTruncated(false);
         setReservationsStatus("unavailable");
@@ -1840,7 +1843,7 @@ export function Dashboard() {
     setHealthScoreLoading(true);
     setHealthScoreError("");
 
-    void fetch(`${API_BASE}/healthscore`, {
+    void fetchWithTimeout(`${API_BASE}/healthscore`, {
       cache: healthScoreRefreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -1859,7 +1862,8 @@ export function Dashboard() {
         setHealthScore(payload);
       })
       .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") return;
+        if (classifyRequestError(error) === "abort") return;
+        if (classifyRequestError(error) === "timeout") setSlowDataNoticeVisible(true);
         setHealthScore(null);
         setHealthScoreError(
           error instanceof Error ? error.message : "The health-score service is unavailable.",
@@ -1910,7 +1914,7 @@ export function Dashboard() {
         return;
       }
       try {
-        const response = await fetch(`${API_BASE}/orders/${currentOrder.id}/status`, {
+        const response = await fetchWithTimeout(`${API_BASE}/orders/${currentOrder.id}/status`, {
           method: "PATCH",
           credentials: "include",
           headers: {
@@ -2000,7 +2004,7 @@ export function Dashboard() {
     if (!preparationStatus) return;
 
     try {
-      const response = await fetch(`${API_BASE}/kitchen/queue/${orderId}`, {
+      const response = await fetchWithTimeout(`${API_BASE}/kitchen/queue/${orderId}`, {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -2050,7 +2054,7 @@ export function Dashboard() {
         return false;
       }
       try {
-        const response = await fetch(`${API_BASE}/inventory/${item.id}`, {
+        const response = await fetchWithTimeout(`${API_BASE}/inventory/${item.id}`, {
           method: "PUT",
           credentials: "include",
           headers: {
@@ -2105,7 +2109,7 @@ export function Dashboard() {
     if (reservationsStatus === "live" && accessToken) {
       setSavingReservationId(id);
       try {
-        const response = await fetch(`${API_BASE}/reservations/${id}`, {
+        const response = await fetchWithTimeout(`${API_BASE}/reservations/${id}`, {
           method: "PUT",
           credentials: "include",
           headers: {
@@ -2153,7 +2157,7 @@ export function Dashboard() {
         );
         return;
       }
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${API_BASE}/incidents/${INCIDENT_INVENTORY_ID}/recommendations`,
         {
           method: "POST",
@@ -2584,6 +2588,28 @@ export function Dashboard() {
               kitchenQueueStatus={kitchenQueueStatus}
               canManageInventory={canManageInventory}
             />
+          ) : null}
+
+          {slowDataNoticeVisible ? (
+            <div className="demo-banner" role="status">
+              <span className="demo-banner-icon">
+                <Icon name="clock" size={16} />
+              </span>
+              <div>
+                <strong>Live data is slow to respond</strong>
+                <p>
+                  A request passed the {DEFAULT_REQUEST_TIMEOUT_MS / 1000}-second deadline, so this
+                  panel is showing its unavailable state. Refresh the section to try again.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="demo-banner-link"
+                onClick={() => setSlowDataNoticeVisible(false)}
+              >
+                Dismiss
+              </button>
+            </div>
           ) : null}
 
           {currentSection === "Overview" ? (
@@ -4459,7 +4485,7 @@ function AnalyticsPage() {
     setData(null);
     setError("");
     setState("loading");
-    void fetch(`${API_BASE}/analytics?range=${range}`, {
+    void fetchWithTimeout(`${API_BASE}/analytics?range=${range}`, {
       cache: refreshKey > 0 ? "reload" : "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -4804,7 +4830,7 @@ function SettingsPage({
   const checkConnection = async () => {
     setApiState("checking");
     try {
-      const response = await fetch("/health", { cache: "no-store" });
+      const response = await fetchWithTimeout("/health", { cache: "no-store" });
       setApiState(response.ok ? "online" : "offline");
       onToast(
         response.ok ? "DineSmart API is reachable." : "The API did not return a healthy response.",
@@ -5065,7 +5091,7 @@ function CustomerPortal({
     setOrderHistoryTruncated(false);
     setOrderHistoryError("");
     setOrderHistoryState("loading");
-    void fetch(`${API_BASE}/orders/history`, {
+    void fetchWithTimeout(`${API_BASE}/orders/history`, {
       cache: "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -5108,7 +5134,7 @@ function CustomerPortal({
     const controller = new AbortController();
     setReservations([]);
     setReservationState("loading");
-    void fetch(`${API_BASE}/reservations`, {
+    void fetchWithTimeout(`${API_BASE}/reservations`, {
       cache: "no-store",
       credentials: "include",
       headers: { authorization: `Bearer ${accessToken}` },
@@ -5148,7 +5174,7 @@ function CustomerPortal({
     setReservationError("");
     setSavingReservationId(reservationId);
     try {
-      const response = await fetch(`${API_BASE}/reservations/${reservationId}`, {
+      const response = await fetchWithTimeout(`${API_BASE}/reservations/${reservationId}`, {
         method: "PUT",
         credentials: "include",
         headers: {

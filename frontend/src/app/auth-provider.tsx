@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { fetchWithTimeout } from "./api-client";
 
 const API_BASE = "/api/v1";
 
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const restoreSession = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const response = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, [restoreSession]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/login`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
@@ -95,7 +96,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const signInWithGoogle = useCallback(async (idToken: string) => {
-    const response = await fetch(`${API_BASE}/auth/google`, {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/google`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const response = await fetch(`${API_BASE}/auth/register`, {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/register`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
@@ -116,7 +117,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const requestOtp = useCallback(async (email: string) => {
-    const response = await fetch(`${API_BASE}/auth/otp/request`, {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/otp/request`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
@@ -126,7 +127,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const verifyOtp = useCallback(async (email: string, code: string) => {
-    const response = await fetch(`${API_BASE}/auth/otp/verify`, {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/otp/verify`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const signOut = useCallback(async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, {
+      await fetchWithTimeout(`${API_BASE}/auth/logout`, {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
+import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 
@@ -119,7 +120,7 @@ export default function BookTablePage() {
     const localStart = `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+05:30`;
     setSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/reservations`, {
+      const response = await fetchWithTimeout(`${API_BASE}/reservations`, {
         method: "POST",
         credentials: "include",
         headers: {

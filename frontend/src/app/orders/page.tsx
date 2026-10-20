@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { formatMinorCurrency } from "../currency";
@@ -153,11 +154,14 @@ export default function OrdersPage() {
       setLoading(true);
       setError("");
       try {
-        const response = await fetch(`${API_BASE}/orders/history?refresh=${refreshKey}`, {
-          headers: { authorization: `Bearer ${accessToken}` },
-          credentials: "include",
-          signal,
-        });
+        const response = await fetchWithTimeout(
+          `${API_BASE}/orders/history?refresh=${refreshKey}`,
+          {
+            headers: { authorization: `Bearer ${accessToken}` },
+            credentials: "include",
+            signal,
+          },
+        );
         if (!response.ok) throw new Error(await responseError(response));
         const parsed = parseHistory(await response.json());
         if (!parsed) throw new Error("The order history response was invalid.");
@@ -193,7 +197,7 @@ export default function OrdersPage() {
     setCancelError("");
     setCancelingOrderId(orderId);
     try {
-      const response = await fetch(`${API_BASE}/orders/${orderId}/cancel`, {
+      const response = await fetchWithTimeout(`${API_BASE}/orders/${orderId}/cancel`, {
         method: "PUT",
         credentials: "include",
         headers: {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { formatMinorCurrency } from "../currency";
@@ -168,7 +169,7 @@ export default function MenuPage() {
           restaurantId: RESTAURANT_ID,
           refresh: String(reloadMenu),
         });
-        const response = await fetch(`${API_BASE}/menu?${query.toString()}`, {
+        const response = await fetchWithTimeout(`${API_BASE}/menu?${query.toString()}`, {
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -326,7 +327,7 @@ export default function MenuPage() {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/orders`, {
+      const response = await fetchWithTimeout(`${API_BASE}/orders`, {
         method: "POST",
         credentials: "include",
         headers: {
