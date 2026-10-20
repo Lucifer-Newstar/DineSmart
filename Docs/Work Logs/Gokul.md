@@ -100,3 +100,10 @@
 - **Gokul test commit:** `be2c242`.
 - **Validation via Node `24.21.0`:** backend 300/300 passed with Biome, typecheck, production build, and high-severity audit clean.
 - These are fake-snapshot unit tests: no live MongoDB queue, wait-estimate formula, browser incident UI, remote CI, push, merge, or deployment is claimed.
+
+### S3-12 — Deck guard tests
+
+- Added `presentation/deck.test.mjs` (6 tests): eleven ordered slides each with a heading and real content, no absolute URLs/link/img/@import or CDN references, inline styles and script with all four controls and keyboard handlers and no network calls, honest-limits wording (advisory AI, unverified live services, payment boundary, deployment), every rule-managed incident type listed on slide 6, and a print stylesheet plus a presenter note on each slide.
+- **Gokul test commit:** `b78db04`.
+- **Validation via Node `24.21.0`:** 6/6 passed.
+- These are static-content and structure checks. No visual design review, rehearsal, recorded demo, remote CI, push, merge, or deployment is claimed.

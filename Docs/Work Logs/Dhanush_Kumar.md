@@ -199,3 +199,10 @@
 - **Dhanush implementation commit:** `514b6d7`.
 - **Local verification via Node `24.21.0`:** frontend 38/38 tests passed with Biome, typecheck, and the Next.js production build clean.
 - **Status/limits:** the labels were not rendered in a browser against live incident data, since no MongoDB-backed incidents exist in this environment.
+
+### S3-12 — Rendered presentation deck
+
+- Built `presentation/andhrimnir-deck.html` from the presentation plan: 11 slides with inline styles and script only, keyboard navigation (arrows, Home/End, `n` for notes), hash links per slide, and a print stylesheet that prints every slide with its notes. Tables are wrapped in horizontal scrollers so the deck stays overflow-free on a phone.
+- **Dhanush implementation commit:** `5053704`. Gokul covered it in `b78db04`.
+- **Local verification via Node `24.21.0`:** a Chromium pass at 1280x800, 820x1180, and 390x844 reported zero page errors and zero horizontal overflow on every slide.
+- **Status/limits:** this is a rendered outline, not a rehearsed talk. No recording, live-service run, or design review has been performed.

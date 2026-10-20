@@ -378,3 +378,10 @@
 - Added Test Plan section 23.1 for the new rules and refreshed the two stale AC-05 notes about waitlist-dependent detection. Updated all three member work logs for the same checkpoint.
 - **Local verification via Node `24.21.0`:** backend 300 tests and frontend 38 tests passed; Biome, typecheck, and both production builds clean; high-severity audits reported zero vulnerabilities.
 - **Limits:** no live MongoDB snapshot, browser incident UI, wait-estimate formula, remote CI, push, merge, or deployment is claimed. Staff-shortage detection remains out of scope because it has no input.
+
+### S3-12 — Rendered deck and documentation sync
+
+- Documented the rendered deck in the presentation plan (section 5), replacing the "deck authoring" open item with the deck's controls, print behaviour, guard tests, and the remaining open items (recorded backup demo, live rehearsal, and refreshing the test counts on slide 9).
+- Updated Test Plan section 36 with the deck, its verification, and the refreshed counts (backend 300, frontend 38). Updated the member work logs for the same checkpoint.
+- **Local verification via Node `24.21.0`:** `node --test presentation/deck.test.mjs` passed 6/6; backend 300 and frontend 38 tests passed; Biome, typecheck, and both production builds clean.
+- **Limits:** the deck was checked for structure, self-containment, and layout at three viewports — not reviewed as a design artifact. No rehearsal, recorded backup, live MongoDB/Gemini run, remote CI, push, merge, or deployment is claimed.

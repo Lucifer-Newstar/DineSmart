@@ -54,8 +54,12 @@ Scope: a 10-minute hackathon presentation plus a 5-minute live demo, aligned wit
 - Never describe pre-bill subtotals as revenue, and never imply payment capture.
 - Close on the documented limits; judges respond better to stated boundaries than to overclaiming.
 
-## 5. Open preparation items
+## 5. Rendered deck
 
-- Slide deck authoring (this plan is the outline, not the rendered deck).
+[`presentation/andhrimnir-deck.html`](../../presentation/andhrimnir-deck.html) is a self-contained rendering of this outline: 11 slides, inline styles and script only, no external fonts, images, or network calls. Controls: arrow keys or the Previous/Next buttons, `Home`/`End` for the first and last slide, `n` to toggle presenter notes, and `#3`-style links to open a specific slide. The layout is print-friendly — every slide prints with its notes. `presentation/deck.test.mjs` guards the slide count and order, the absence of external resources, the keyboard controls, the honest-limits wording, the full rule-managed type list on slide 6, and a presenter note per slide. A Chromium check at 1280x800, 820x1180, and 390x844 reported zero page errors and zero horizontal overflow.
+
+## 6. Open preparation items
+
 - A recorded backup demo in case the live environment is unavailable during the slot.
 - Rehearsal against live MongoDB and a real Gemini key once credentials exist.
+- Slide 9's test counts (backend 300, frontend 38) must be refreshed if the suites grow before the talk.
