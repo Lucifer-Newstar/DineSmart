@@ -3985,6 +3985,8 @@ function incidentTypeLabel(type: string): string {
     kitchen_congestion: "Kitchen congestion",
     inventory_shortage: "Inventory shortage",
     reservation_conflict: "Reservation conflict",
+    queue_congestion: "Queue congestion",
+    table_congestion: "Table congestion",
   };
   return labels[type] ?? type.replaceAll("_", " ");
 }
