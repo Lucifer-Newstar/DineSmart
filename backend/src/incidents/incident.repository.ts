@@ -8,6 +8,7 @@ import {
   type ReservationDocument,
   type RestaurantDocument,
   type TableDocument,
+  type WaitlistDocument,
 } from "../database/schema.js";
 import type {
   DetectionInventoryItem,
@@ -15,6 +16,7 @@ import type {
   DetectionOrderItem,
   DetectionReservation,
   DetectionTable,
+  DetectionWaitlistEntry,
   IncidentCandidate,
   IncidentDetectionRepository,
   IncidentDetectionSnapshot,
@@ -73,6 +75,7 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
   private readonly reservations;
   private readonly restaurants;
   private readonly tables;
+  private readonly waitlist;
 
   constructor(db: Db) {
     this.incidents = db.collection<IncidentDocument>(COLLECTIONS.incidents);
@@ -82,6 +85,7 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
     this.reservations = db.collection<ReservationDocument>(COLLECTIONS.reservations);
     this.restaurants = db.collection<RestaurantDocument>(COLLECTIONS.restaurants);
     this.tables = db.collection<TableDocument>(COLLECTIONS.tables);
+    this.waitlist = db.collection<WaitlistDocument>(COLLECTIONS.waitlist);
   }
 
   async listActiveRestaurantIds(): Promise<ObjectId[]> {
@@ -94,45 +98,57 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
 
   async getSnapshot(restaurantId: ObjectId, now: Date): Promise<IncidentDetectionSnapshot> {
     const truncatedSources = new Set<string>();
-    const [restaurant, orderRecords, inventoryRecords, reservationRecords, tableRecords] =
-      await Promise.all([
-        this.restaurants.findOne({ _id: restaurantId }, { projection: { thresholds: 1 } }),
-        this.orders
-          .find(
-            { restaurantId, status: { $in: ["Accepted", "Preparing", "Ready"] } },
-            { projection: { status: 1, createdAt: 1, statusTimestamps: 1 } },
-          )
-          .sort({ createdAt: 1, _id: 1 })
-          .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
-          .toArray(),
-        this.inventoryItems
-          .find({ restaurantId }, { projection: { quantity: 1, lowStockThreshold: 1, unit: 1 } })
-          .sort({ _id: 1 })
-          .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
-          .toArray(),
-        this.reservations
-          .find(
-            {
-              restaurantId,
-              status: { $in: ["Confirmed", "Seated"] },
-              endAt: { $gt: now },
-            },
-            { projection: { partySize: 1, startAt: 1, endAt: 1, tableId: 1, status: 1 } },
-          )
-          .sort({ startAt: 1, _id: 1 })
-          .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
-          .toArray(),
-        this.tables
-          .find({ restaurantId }, { projection: { capacity: 1, status: 1 } })
-          .sort({ _id: 1 })
-          .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
-          .toArray(),
-      ]);
+    const [
+      restaurant,
+      orderRecords,
+      inventoryRecords,
+      reservationRecords,
+      tableRecords,
+      waitlistRecords,
+    ] = await Promise.all([
+      this.restaurants.findOne({ _id: restaurantId }, { projection: { thresholds: 1 } }),
+      this.orders
+        .find(
+          { restaurantId, status: { $in: ["Accepted", "Preparing", "Ready"] } },
+          { projection: { status: 1, createdAt: 1, statusTimestamps: 1 } },
+        )
+        .sort({ createdAt: 1, _id: 1 })
+        .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
+        .toArray(),
+      this.inventoryItems
+        .find({ restaurantId }, { projection: { quantity: 1, lowStockThreshold: 1, unit: 1 } })
+        .sort({ _id: 1 })
+        .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
+        .toArray(),
+      this.reservations
+        .find(
+          {
+            restaurantId,
+            status: { $in: ["Confirmed", "Seated"] },
+            endAt: { $gt: now },
+          },
+          { projection: { partySize: 1, startAt: 1, endAt: 1, tableId: 1, status: 1 } },
+        )
+        .sort({ startAt: 1, _id: 1 })
+        .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
+        .toArray(),
+      this.tables
+        .find({ restaurantId }, { projection: { capacity: 1, status: 1 } })
+        .sort({ _id: 1 })
+        .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
+        .toArray(),
+      this.waitlist
+        .find({ restaurantId, status: "waiting" }, { projection: { partySize: 1, createdAt: 1 } })
+        .sort({ createdAt: 1, _id: 1 })
+        .limit(INCIDENT_SOURCE_RECORD_LIMIT + 1)
+        .toArray(),
+    ]);
 
     const visibleOrders = bounded("orders", orderRecords, truncatedSources);
     const visibleInventory = bounded("inventoryItems", inventoryRecords, truncatedSources);
     const visibleReservations = bounded("reservations", reservationRecords, truncatedSources);
     const visibleTables = bounded("tables", tableRecords, truncatedSources);
+    const visibleWaitlist = bounded("waitlist", waitlistRecords, truncatedSources);
     const orderIds = visibleOrders.map((order) => order._id);
     const orderItemRecords =
       orderIds.length === 0
@@ -182,6 +198,12 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
       capacity: table.capacity,
       status: table.status,
     }));
+    const waitlistEntries: DetectionWaitlistEntry[] = visibleWaitlist.map((entry) => ({
+      id: entry._id,
+      partySize: entry.partySize,
+      status: entry.status,
+      createdAt: entry.createdAt,
+    }));
 
     return {
       restaurantId,
@@ -191,6 +213,7 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
       inventoryItems: inventory,
       reservations,
       tables,
+      waitlistEntries,
       truncatedSources: [...truncatedSources],
     };
   }

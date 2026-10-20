@@ -17,6 +17,10 @@ export const DEFAULT_INCIDENT_THRESHOLDS = {
   kitchenCongestionWarningOrders: 8,
   kitchenCongestionCriticalOrders: 12,
   kitchenCongestionOldestCriticalMinutes: 30,
+  queueCongestionWarningParties: 4,
+  queueCongestionCriticalParties: 7,
+  queueCongestionWarningWaitMinutes: 25,
+  queueCongestionCriticalWaitMinutes: 45,
 } as const;
 
 const ACTIVE_KITCHEN_STATUSES = new Set(["Accepted", "Preparing", "Ready"]);
@@ -34,6 +38,10 @@ interface NormalizedThresholds {
   kitchenCongestionWarningOrders: number;
   kitchenCongestionCriticalOrders: number;
   kitchenCongestionOldestCriticalMinutes: number;
+  queueCongestionWarningParties: number;
+  queueCongestionCriticalParties: number;
+  queueCongestionWarningWaitMinutes: number;
+  queueCongestionCriticalWaitMinutes: number;
 }
 
 function positiveNumber(value: unknown, fallback: number, integer = false): number {
@@ -89,6 +97,32 @@ export function normalizeIncidentThresholds(value: Record<string, unknown>): Nor
       value.kitchenCongestionOldestCriticalMinutes,
       DEFAULT_INCIDENT_THRESHOLDS.kitchenCongestionOldestCriticalMinutes,
     ),
+    ...queueCongestionThresholds(value),
+  };
+}
+
+function queueCongestionThresholds(value: Record<string, unknown>): {
+  queueCongestionWarningParties: number;
+  queueCongestionCriticalParties: number;
+  queueCongestionWarningWaitMinutes: number;
+  queueCongestionCriticalWaitMinutes: number;
+} {
+  const [queueCongestionWarningParties, queueCongestionCriticalParties] = thresholdPair(
+    value,
+    "queueCongestionWarningParties",
+    "queueCongestionCriticalParties",
+    true,
+  );
+  const [queueCongestionWarningWaitMinutes, queueCongestionCriticalWaitMinutes] = thresholdPair(
+    value,
+    "queueCongestionWarningWaitMinutes",
+    "queueCongestionCriticalWaitMinutes",
+  );
+  return {
+    queueCongestionWarningParties,
+    queueCongestionCriticalParties,
+    queueCongestionWarningWaitMinutes,
+    queueCongestionCriticalWaitMinutes,
   };
 }
 
@@ -309,11 +343,15 @@ function evaluateInventoryRules(
   }
 }
 
-function normalizedTableStatus(status: string): string {
+function normalizeState(status: string): string {
   return status
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, "_");
+}
+
+function normalizedTableStatus(status: string): string {
+  return normalizeState(status);
 }
 
 function validActiveReservation(reservation: DetectionReservation, now: Date): boolean {
@@ -407,6 +445,93 @@ function evaluateReservationRules(
   }
 }
 
+/**
+ * Queue rules are scoped to the restaurant: one `queue_congestion` incident for
+ * the whole waiting queue, and one `table_congestion` incident when no free
+ * table can seat the largest party that is still waiting.
+ */
+function evaluateQueueRules(
+  snapshot: IncidentDetectionSnapshot,
+  now: Date,
+  thresholds: NormalizedThresholds,
+  incidents: Map<string, IncidentCandidate>,
+  nextChecks: Date[],
+): void {
+  const waiting = snapshot.waitlistEntries.filter(
+    (entry) => normalizeState(entry.status) === "waiting",
+  );
+  if (waiting.length === 0) return;
+
+  const queueLength = waiting.length;
+  const oldestStartedAt = waiting.reduce(
+    (oldest, entry) => (entry.createdAt < oldest ? entry.createdAt : oldest),
+    waiting[0].createdAt,
+  );
+  const oldestWaitMinutes = elapsedMinutes(oldestStartedAt, now);
+  const largestParty = waiting.reduce((largest, entry) => Math.max(largest, entry.partySize), 0);
+
+  for (const entry of waiting) {
+    addNextTime(
+      nextChecks,
+      entry.createdAt,
+      [thresholds.queueCongestionWarningWaitMinutes, thresholds.queueCongestionCriticalWaitMinutes],
+      now,
+    );
+  }
+
+  const overCount = queueLength >= thresholds.queueCongestionWarningParties;
+  const overWait =
+    elapsedMs(oldestStartedAt, now) > thresholds.queueCongestionWarningWaitMinutes * MINUTE_MS;
+  if (!overCount && !overWait) return;
+
+  const critical =
+    queueLength >= thresholds.queueCongestionCriticalParties ||
+    elapsedMs(oldestStartedAt, now) > thresholds.queueCongestionCriticalWaitMinutes * MINUTE_MS;
+
+  addIncident(incidents, {
+    type: managedType("queue_congestion"),
+    severity: critical ? "critical" : "warning",
+    affectedEntity: { type: "restaurant", id: snapshot.restaurantId },
+    triggerSnapshot: {
+      queueLength,
+      partySize: largestParty,
+      elapsedMinutes: oldestWaitMinutes,
+      thresholdMinutes: critical
+        ? thresholds.queueCongestionCriticalWaitMinutes
+        : thresholds.queueCongestionWarningWaitMinutes,
+    },
+    rootCause:
+      "The waiting queue has crossed the configured party-count or longest-wait threshold.",
+  });
+
+  const availableTables = snapshot.tables.filter(
+    (table) => normalizeState(table.status) === "available",
+  );
+  const largestAvailableCapacity = availableTables.reduce(
+    (largest, table) => Math.max(largest, table.capacity),
+    0,
+  );
+  const canSeatSomeone = availableTables.some((table) => table.capacity >= largestParty);
+  if (availableTables.length > 0 && canSeatSomeone) return;
+
+  addIncident(incidents, {
+    type: managedType("table_congestion"),
+    severity: critical ? "critical" : "warning",
+    affectedEntity: { type: "restaurant", id: snapshot.restaurantId },
+    triggerSnapshot: {
+      queueLength,
+      partySize: largestParty,
+      available: availableTables.length,
+      capacity: largestAvailableCapacity,
+      elapsedMinutes: oldestWaitMinutes,
+    },
+    rootCause:
+      availableTables.length === 0
+        ? "No table is available while parties are waiting."
+        : "No available table can seat the largest waiting party.",
+  });
+}
+
 export function evaluateIncidentRules(
   snapshot: IncidentDetectionSnapshot,
   now: Date,
@@ -418,6 +543,7 @@ export function evaluateIncidentRules(
   evaluateOrderAndKitchenRules(snapshot, now, thresholds, incidents, nextChecks);
   evaluateInventoryRules(snapshot, incidents);
   evaluateReservationRules(snapshot, now, incidents, nextChecks);
+  evaluateQueueRules(snapshot, now, thresholds, incidents, nextChecks);
 
   const nextEvaluationAt = nextChecks.reduce<Date | null>(
     (earliest, candidate) => (earliest && earliest <= candidate ? earliest : candidate),

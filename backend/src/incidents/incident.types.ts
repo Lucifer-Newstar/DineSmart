@@ -7,6 +7,8 @@ export const RULE_MANAGED_INCIDENT_TYPES = [
   "kitchen_congestion",
   "inventory_shortage",
   "reservation_conflict",
+  "queue_congestion",
+  "table_congestion",
 ] as const;
 
 export type RuleManagedIncidentType = (typeof RULE_MANAGED_INCIDENT_TYPES)[number];
@@ -80,6 +82,13 @@ export interface DetectionTable {
   status: string;
 }
 
+export interface DetectionWaitlistEntry {
+  id: ObjectId;
+  partySize: number;
+  status: string;
+  createdAt: Date;
+}
+
 export interface IncidentDetectionSnapshot {
   restaurantId: ObjectId;
   thresholds: Record<string, unknown>;
@@ -88,6 +97,7 @@ export interface IncidentDetectionSnapshot {
   inventoryItems: DetectionInventoryItem[];
   reservations: DetectionReservation[];
   tables: DetectionTable[];
+  waitlistEntries: DetectionWaitlistEntry[];
   truncatedSources: string[];
 }
 
