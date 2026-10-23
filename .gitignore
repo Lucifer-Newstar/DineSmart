@@ -25,6 +25,10 @@ coverage/
 next-env.d.ts
 **/next-env.d.ts
 
+# Python bytecode (tools/docx_to_markdown.py)
+__pycache__/
+*.py[cod]
+
 # Local/editor files
 .DS_Store
 *.pem
