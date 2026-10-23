@@ -140,7 +140,7 @@ test("password reset request rejects malformed email and fails closed without a 
 
   for (const config of [
     { nodeEnvironment: "production", emailProvider: "mock" },
-    { nodeEnvironment: "development", emailProvider: "smtp" },
+    { nodeEnvironment: "development", emailProvider: "sendmail" },
   ]) {
     const unavailable = createService(
       new FakePasswordResetRepository(),

@@ -3,11 +3,23 @@ import type { Db } from "mongodb";
 import { createApp } from "./app.js";
 import { initializeDatabaseSchema } from "./database/schema.js";
 import { closeDatabase, connectToDatabase } from "./database.js";
+import { assertEmailConfiguration, EmailConfigurationError } from "./email/email-transport.js";
 import type { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 import type { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
 import type { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
 
 const port = Number(process.env.PORT ?? 3001);
+const nodeEnvironment = process.env.NODE_ENV ?? "development";
+
+try {
+  assertEmailConfiguration(process.env, nodeEnvironment);
+} catch (error) {
+  if (error instanceof EmailConfigurationError) {
+    console.error(`Email is not configured: ${error.message}`);
+    process.exit(1);
+  }
+  throw error;
+}
 
 if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   throw new Error("PORT must be an integer between 1 and 65535.");

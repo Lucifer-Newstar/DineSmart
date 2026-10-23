@@ -26,6 +26,12 @@ import { MongoBillRepository } from "./bills/bill.repository.js";
 import { createBillRouter } from "./bills/bill.router.js";
 import { BillService } from "./bills/bill.service.js";
 import { connectToDatabase } from "./database.js";
+import {
+  AuthEmailSender,
+  createEmailTransport,
+  EmailConfigurationError,
+  type EmailTransport,
+} from "./email/email-transport.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
@@ -70,6 +76,8 @@ export interface AppOptions {
   getGoogleClientId?: () => string | undefined;
   webOrigin?: string;
   nodeEnvironment?: string;
+  /** Overrides the EMAIL_PROVIDER-selected transport (tests). */
+  emailTransport?: EmailTransport;
 }
 
 export function createApp(options: AppOptions = {}) {
@@ -147,6 +155,22 @@ export function createApp(options: AppOptions = {}) {
     return { db, repository, secret, service: new AuthService(repository, secret) };
   }
 
+  let emailTransport: EmailTransport | undefined;
+  function getEmailTransport(): EmailTransport {
+    if (!emailTransport) {
+      try {
+        emailTransport =
+          options.emailTransport ?? createEmailTransport(process.env, nodeEnvironment);
+      } catch (error) {
+        if (error instanceof EmailConfigurationError) {
+          throw new AuthConfigurationError(error.message);
+        }
+        throw error;
+      }
+    }
+    return emailTransport;
+  }
+
   app.disable("x-powered-by");
   if (nodeEnvironment === "production") app.set("trust proxy", 1);
 
@@ -176,25 +200,25 @@ export function createApp(options: AppOptions = {}) {
       createService: async () => (await createAuthRuntime()).service,
       createEmailOtpService: async () => {
         const { db, secret, service } = await createAuthRuntime();
-        const emailProvider =
-          process.env.EMAIL_PROVIDER ?? (nodeEnvironment === "production" ? "" : "mock");
+        const transport = getEmailTransport();
         return new EmailOtpService(
           new MongoRegistrationOtpRepository(db),
           service,
           secret,
-          emailProvider,
+          transport.provider,
           nodeEnvironment,
+          new AuthEmailSender(transport),
         );
       },
       createPasswordResetService: async () => {
         const { db, secret } = await createAuthRuntime();
-        const emailProvider =
-          process.env.EMAIL_PROVIDER ?? (nodeEnvironment === "production" ? "" : "mock");
+        const transport = getEmailTransport();
         return new PasswordResetService(
           new MongoPasswordResetRepository(db),
           secret,
-          emailProvider,
+          transport.provider,
           nodeEnvironment,
+          new AuthEmailSender(transport),
         );
       },
       googleSession: async (idToken) => {

@@ -152,10 +152,10 @@ export class PasswordResetService {
   }
 
   private assertEmailProvider(): void {
-    if (this.emailProvider !== "mock") {
-      throw new AuthConfigurationError("The configured email provider is not implemented.");
+    if (!["mock", "smtp", "resend"].includes(this.emailProvider)) {
+      throw new AuthConfigurationError("The configured email provider is not supported.");
     }
-    if (this.nodeEnvironment === "production") {
+    if (this.emailProvider === "mock" && this.nodeEnvironment === "production") {
       throw new AuthConfigurationError("The mock email provider is not permitted in production.");
     }
   }
