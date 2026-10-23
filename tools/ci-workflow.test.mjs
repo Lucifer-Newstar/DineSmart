@@ -132,11 +132,16 @@ test("both application jobs install from the lockfile and run the full check seq
 	}
 });
 
-test("the backend job stays gated so the workflow also runs without the backend package", () => {
-	assert.match(
-		job("backend"),
-		/if:\s*\$\{\{\s*hashFiles\('backend\/package\.json'\)\s*!=\s*''\s*\}\}/,
-	);
+test("no job-level condition calls hashFiles, which GitHub rejects outside steps", () => {
+	for (const name of ["frontend", "backend", "preflight"]) {
+		const jobLevel = job(name)
+			.split("\n")
+			.filter((line) => /^ {4}\S/.test(line));
+		assert.ok(
+			!jobLevel.some((line) => /^ {4}if:.*hashFiles\(/.test(line)),
+			`${name} must not use hashFiles() in its job-level if`,
+		);
+	}
 });
 
 test("the preflight job enforces demo readiness in strict mode", () => {
