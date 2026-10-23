@@ -33,6 +33,7 @@ import {
   parseStaffOrderResponse,
 } from "./_dashboard/parsers";
 import { ReservationsPage } from "./_dashboard/reservations-page";
+import { useServiceClock } from "./_dashboard/service-clock";
 import { KitchenPage, OrdersPage } from "./_dashboard/service-pages";
 import { SettingsPage } from "./_dashboard/settings-page";
 import { StaffPanel } from "./_dashboard/staff-panel";
@@ -118,6 +119,7 @@ export function Dashboard() {
   const [healthScoreLoading, setHealthScoreLoading] = useState(false);
   const [healthScoreRefreshKey, setHealthScoreRefreshKey] = useState(0);
   // Live restaurant events (S2-13) refetch only the panels whose data changed.
+  const { greeting, todayEyebrow, servicePeriod } = useServiceClock();
   const notificationFeed = useNotifications(accessToken, (envelope) => {
     const bump = (current: number) => current + 1;
     for (const target of refreshTargetsForEvent(envelope.event)) {
@@ -846,8 +848,8 @@ export function Dashboard() {
   const headingBySection: Record<Section, { eyebrow: string; title: string; description: string }> =
     {
       Overview: {
-        eyebrow: "SATURDAY · 10 OCTOBER 2026",
-        title: `Good evening, ${greetingName}.`,
+        eyebrow: todayEyebrow,
+        title: `${greeting}, ${greetingName}.`,
         description: "Here’s the rhythm of your restaurant, at a glance.",
       },
       Orders: {
@@ -1043,7 +1045,11 @@ export function Dashboard() {
               className={`connection-pill ${isDemo ? "connection-demo" : "connection-preview"}`}
             >
               <span />
-              {isDemo ? "Preview mode" : "Signed-in preview"}
+              {isDemo
+                ? "Preview mode"
+                : notificationFeed.realtime === "live"
+                  ? "Live"
+                  : "Signed in"}
             </span>
             <NotificationBell
               feed={user ? notificationFeed : null}
@@ -1060,7 +1066,7 @@ export function Dashboard() {
             <span className="topbar-divider" />
             <div className="topbar-date">
               <Icon name="sun" size={16} />
-              <span>Evening service</span>
+              <span>{servicePeriod}</span>
             </div>
           </div>
         </header>
