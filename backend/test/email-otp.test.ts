@@ -40,6 +40,8 @@ class FakeRegistrationRepository implements RegistrationOtpRepository {
     codeHash: string,
     expiresAt: Date,
     resendAvailableAt: Date,
+    pendingExpiresAt: Date,
+    name?: string,
   ): Promise<WithId<UserDocument> | null> {
     const user = [...this.users.values()].find((candidate) => candidate._id.equals(userId));
     if (
@@ -54,6 +56,8 @@ class FakeRegistrationRepository implements RegistrationOtpRepository {
     user.emailOtpExpiresAt = expiresAt;
     user.emailOtpResendAt = resendAvailableAt;
     user.emailOtpAttempts = 0;
+    user.pendingExpiresAt = pendingExpiresAt;
+    if (name) user.name = name;
     user.updatedAt = currentTime;
     return user;
   }
@@ -62,6 +66,7 @@ class FakeRegistrationRepository implements RegistrationOtpRepository {
     normalizedEmail: string,
     codeHash: string,
     now: Date,
+    passwordHash: string,
   ): Promise<WithId<UserDocument> | null> {
     const user = this.users.get(normalizedEmail);
     if (user?.status !== "pending") return null;
@@ -74,7 +79,9 @@ class FakeRegistrationRepository implements RegistrationOtpRepository {
     ) {
       user.status = "active";
       user.authProvider = "email";
+      user.passwordHash = passwordHash;
       user.updatedAt = now;
+      delete user.pendingExpiresAt;
       delete user.emailOtpCodeHash;
       delete user.emailOtpExpiresAt;
       delete user.emailOtpResendAt;
@@ -197,7 +204,7 @@ test("registration stores only a keyed OTP hash, enforces resend cooldown, then 
     user.emailOtpCodeHash,
     hashRegistrationOtp(JWT_SECRET, "test.customer@example.com", sender.sent[0].code),
   );
-  assert.ok(user.passwordHash?.startsWith("$argon2id$"));
+  assert.equal(user.passwordHash, undefined, "a pending sign-up stores no password");
 
   await otpService.requestRegistrationOtp("test.customer@example.com");
   assert.equal(sender.sent.length, 1, "cooldown should suppress a resend");
@@ -208,14 +215,20 @@ test("registration stores only a keyed OTP hash, enforces resend cooldown, then 
   assert.notEqual(sender.sent[1].code, sender.sent[0].code);
 
   await assert.rejects(
-    otpService.verifyRegistrationOtp("test.customer@example.com", sender.sent[0].code),
+    otpService.verifyRegistrationOtp(
+      "test.customer@example.com",
+      sender.sent[0].code,
+      REGISTRATION_PASSWORD,
+    ),
     (error: unknown) => error instanceof AuthError && error.statusCode === 401,
   );
   const session = await otpService.verifyRegistrationOtp(
     "test.customer@example.com",
     sender.sent[1].code,
+    REGISTRATION_PASSWORD,
   );
   assert.equal(user.status, "active");
+  assert.ok(String(user.passwordHash).startsWith("$argon2id$"));
   assert.equal(user.emailOtpCodeHash, undefined);
   assert.equal(authRepository.sessions.length, 1);
   assert.equal(
@@ -237,13 +250,14 @@ test("a registration code is locked after five invalid attempts", async () => {
       otpService.verifyRegistrationOtp(
         "locked@example.com",
         code === "000000" ? "000001" : "000000",
+        REGISTRATION_PASSWORD,
       ),
       (error: unknown) => error instanceof AuthError && error.statusCode === 401,
     );
   }
 
   await assert.rejects(
-    otpService.verifyRegistrationOtp("locked@example.com", code),
+    otpService.verifyRegistrationOtp("locked@example.com", code, REGISTRATION_PASSWORD),
     (error: unknown) => error instanceof AuthError && error.statusCode === 401,
   );
   assert.equal(registrationRepository.users.get("locked@example.com")?.status, "pending");
@@ -313,7 +327,11 @@ test("OTP HTTP routes expose a development code only in mock development and est
     const verification = await fetch(`${baseUrl}/api/v1/auth/otp/verify`, {
       method: "POST",
       headers: { "content-type": "application/json", origin: "http://localhost:3000" },
-      body: JSON.stringify({ email: "otp@example.com", code: registrationBody.developmentCode }),
+      body: JSON.stringify({
+        email: "otp@example.com",
+        code: registrationBody.developmentCode,
+        password: REGISTRATION_PASSWORD,
+      }),
     });
     assert.equal(verification.status, 200);
     assert.match(verification.headers.get("set-cookie") ?? "", /HttpOnly/i);

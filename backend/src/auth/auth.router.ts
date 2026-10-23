@@ -216,11 +216,16 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
 
   router.post("/otp/verify", otpVerifyRateLimit, async (request: Request, response: Response) => {
     const body: unknown = request.body;
-    if (!isRecord(body) || typeof body.email !== "string" || typeof body.code !== "string") {
+    if (
+      !isRecord(body) ||
+      typeof body.email !== "string" ||
+      typeof body.code !== "string" ||
+      typeof body.password !== "string"
+    ) {
       response.status(400).json({
         error: {
           code: "invalid_request",
-          message: "A valid email and six-digit code are required.",
+          message: "A valid email, six-digit code, and password are required.",
         },
       });
       return;
@@ -231,6 +236,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       const session = await (await options.createEmailOtpService()).verifyRegistrationOtp(
         body.email,
         body.code,
+        body.password,
       );
       sendSession(response, session, options.nodeEnvironment);
     } catch (error) {

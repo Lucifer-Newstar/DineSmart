@@ -34,7 +34,7 @@ interface AuthContextValue {
   signInWithGoogle: (idToken: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<CodeResponse>;
   requestOtp: (email: string) => Promise<CodeResponse>;
-  verifyOtp: (email: string, code: string) => Promise<void>;
+  verifyOtp: (email: string, code: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -126,12 +126,12 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     return parseResponse<CodeResponse>(response);
   }, []);
 
-  const verifyOtp = useCallback(async (email: string, code: string) => {
+  const verifyOtp = useCallback(async (email: string, code: string, password: string) => {
     const response = await fetchWithTimeout(`${API_BASE}/auth/otp/verify`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, code }),
+      body: JSON.stringify({ email, code, password }),
     });
     const authenticated = await parseResponse<SessionResponse>(response);
     setSession(authenticated);

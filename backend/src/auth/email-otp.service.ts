@@ -1,5 +1,6 @@
 import { createHmac, randomInt } from "node:crypto";
-import { normalizeEmail } from "../database/schema.js";
+import type { WithId } from "mongodb";
+import { normalizeEmail, type UserDocument } from "../database/schema.js";
 import {
   AuthConfigurationError,
   AuthError,
@@ -12,6 +13,8 @@ import type { RegistrationOtpRepository } from "./registration.repository.js";
 export const REGISTRATION_OTP_TTL_MS = 10 * 60 * 1_000;
 export const REGISTRATION_OTP_RESEND_COOLDOWN_MS = 60 * 1_000;
 export const REGISTRATION_OTP_MAX_ATTEMPTS = 5;
+/** Unverified sign-ups are deleted by the users_pending_signup_ttl index after this. */
+export const PENDING_REGISTRATION_TTL_MS = 24 * 60 * 60 * 1_000;
 const MAX_PASSWORD_BYTES = 1_024;
 const OTP_PATTERN = /^\d{6}$/;
 const GENERIC_REQUEST_MESSAGE = "If registration can proceed, a verification code has been sent.";
@@ -54,6 +57,14 @@ function validEmail(email: string): string | null {
   return normalizedEmail;
 }
 
+function validPassword(password: unknown): password is string {
+  return (
+    typeof password === "string" &&
+    Array.from(password).length >= 12 &&
+    Buffer.byteLength(password, "utf8") <= MAX_PASSWORD_BYTES
+  );
+}
+
 function isDuplicateKeyError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
 }
@@ -69,6 +80,12 @@ export class EmailOtpService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
+  /**
+   * Starts (or restarts) an Email/OTP sign-up. The password is validated here so the
+   * form fails early, but it is stored only by verifyRegistrationOtp together with a
+   * valid code. Registering an address that is still pending re-issues the code to
+   * that inbox instead of keeping whatever the first requester chose.
+   */
   async register(name: string, email: string, password: string): Promise<OtpRequestResult> {
     const normalizedEmail = validEmail(email);
     if (
@@ -76,9 +93,7 @@ export class EmailOtpService {
       !name.trim() ||
       Array.from(name.trim()).length > 120 ||
       !normalizedEmail ||
-      typeof password !== "string" ||
-      Array.from(password).length < 12 ||
-      Buffer.byteLength(password, "utf8") > MAX_PASSWORD_BYTES
+      !validPassword(password)
     ) {
       throw new AuthError(
         400,
@@ -89,11 +104,13 @@ export class EmailOtpService {
 
     this.assertEmailProvider();
     const existing = await this.repository.findUserByNormalizedEmail(normalizedEmail);
+    if (existing?._id && existing.status === "pending") {
+      return this.reissuePendingCode(existing, normalizedEmail, name.trim());
+    }
     if (existing) return { message: GENERIC_REQUEST_MESSAGE };
 
     const now = this.clock();
     const code = this.generateCode();
-    const passwordHash = await hashPassword(password);
     try {
       await this.repository.createPendingUser({
         name: name.trim(),
@@ -103,11 +120,11 @@ export class EmailOtpService {
         restaurantId: null,
         status: "pending",
         authProvider: "email",
-        passwordHash,
         emailOtpCodeHash: hashRegistrationOtp(this.jwtSecret, normalizedEmail, code),
         emailOtpExpiresAt: new Date(now.getTime() + REGISTRATION_OTP_TTL_MS),
         emailOtpResendAt: new Date(now.getTime() + REGISTRATION_OTP_RESEND_COOLDOWN_MS),
         emailOtpAttempts: 0,
+        pendingExpiresAt: new Date(now.getTime() + PENDING_REGISTRATION_TTL_MS),
         createdAt: now,
         updatedAt: now,
       });
@@ -132,6 +149,48 @@ export class EmailOtpService {
       return { message: GENERIC_REQUEST_MESSAGE };
     }
 
+    return this.reissuePendingCode(user, normalizedEmail);
+  }
+
+  async verifyRegistrationOtp(email: string, code: string, password: string): Promise<AuthSession> {
+    const normalizedEmail = validEmail(email);
+    if (
+      !normalizedEmail ||
+      typeof code !== "string" ||
+      !OTP_PATTERN.test(code) ||
+      !validPassword(password)
+    ) {
+      throw new AuthError(
+        400,
+        "invalid_request",
+        "A valid email, six-digit verification code, and password of at least 12 characters are required.",
+      );
+    }
+
+    this.assertEmailProvider();
+    const passwordHash = await hashPassword(password);
+    const user = await this.repository.verifyRegistrationOtp(
+      normalizedEmail,
+      hashRegistrationOtp(this.jwtSecret, normalizedEmail, code),
+      this.clock(),
+      passwordHash,
+    );
+    if (!user?._id) {
+      throw new AuthError(
+        401,
+        "invalid_verification_code",
+        "The verification code is invalid or expired.",
+      );
+    }
+
+    return this.authService.issueSessionForUser(user);
+  }
+
+  private async reissuePendingCode(
+    user: WithId<UserDocument>,
+    normalizedEmail: string,
+    name?: string,
+  ): Promise<OtpRequestResult> {
     const now = this.clock();
     if (user.emailOtpResendAt && user.emailOtpResendAt > now) {
       return { message: GENERIC_REQUEST_MESSAGE };
@@ -144,38 +203,13 @@ export class EmailOtpService {
       hashRegistrationOtp(this.jwtSecret, normalizedEmail, code),
       new Date(now.getTime() + REGISTRATION_OTP_TTL_MS),
       new Date(now.getTime() + REGISTRATION_OTP_RESEND_COOLDOWN_MS),
+      new Date(now.getTime() + PENDING_REGISTRATION_TTL_MS),
+      name,
     );
     if (!updated) return { message: GENERIC_REQUEST_MESSAGE };
 
-    await this.sender.sendRegistrationCode(user.email, code);
+    await this.sender.sendRegistrationCode(updated.email, code);
     return this.requestResult(code);
-  }
-
-  async verifyRegistrationOtp(email: string, code: string): Promise<AuthSession> {
-    const normalizedEmail = validEmail(email);
-    if (!normalizedEmail || typeof code !== "string" || !OTP_PATTERN.test(code)) {
-      throw new AuthError(
-        400,
-        "invalid_request",
-        "A valid email and six-digit verification code are required.",
-      );
-    }
-
-    this.assertEmailProvider();
-    const user = await this.repository.verifyRegistrationOtp(
-      normalizedEmail,
-      hashRegistrationOtp(this.jwtSecret, normalizedEmail, code),
-      this.clock(),
-    );
-    if (!user?._id) {
-      throw new AuthError(
-        401,
-        "invalid_verification_code",
-        "The verification code is invalid or expired.",
-      );
-    }
-
-    return this.authService.issueSessionForUser(user);
   }
 
   private assertEmailProvider(): void {

@@ -63,7 +63,7 @@ export default function RegisterPage() {
     setError("");
     setSubmitting(true);
     try {
-      await verifyOtp(email.trim(), code.trim());
+      await verifyOtp(email.trim(), code.trim(), password);
       router.push(returnPath());
     } catch (requestError) {
       setError(

@@ -56,6 +56,8 @@ interface UserBaseDocument extends TimestampedDocument {
   emailOtpExpiresAt?: Date;
   emailOtpResendAt?: Date;
   emailOtpAttempts?: number;
+  /** Set only on pending sign-ups; the TTL index deletes them after it passes. */
+  pendingExpiresAt?: Date;
   passwordResetCodeHash?: string;
   passwordResetExpiresAt?: Date;
   passwordResetResendAt?: Date;
@@ -253,6 +255,12 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
       partialFilterExpression: { googleSubject: { $type: "string" } },
     },
     { key: { restaurantId: 1, role: 1, status: 1 }, name: "users_restaurant_role_status" },
+    {
+      key: { pendingExpiresAt: 1 },
+      name: "users_pending_signup_ttl",
+      expireAfterSeconds: 0,
+      partialFilterExpression: { status: "pending" },
+    },
   ],
   refreshSessions: [
     { key: { tokenHash: 1 }, name: "refresh_sessions_token_hash_unique", unique: true },

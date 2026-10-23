@@ -9,11 +9,12 @@ export interface NewPendingUser {
   restaurantId: null;
   status: "pending";
   authProvider: "email";
-  passwordHash: string;
   emailOtpCodeHash: string;
   emailOtpExpiresAt: Date;
   emailOtpResendAt: Date;
   emailOtpAttempts: number;
+  /** Unverified sign-ups are removed by a TTL index once this passes. */
+  pendingExpiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,11 +28,19 @@ export interface RegistrationOtpRepository {
     codeHash: string,
     expiresAt: Date,
     resendAvailableAt: Date,
+    pendingExpiresAt: Date,
+    name?: string,
   ): Promise<WithId<UserDocument> | null>;
+  /**
+   * Activates a pending sign-up and stores the password supplied together with the
+   * code. A pending account never carries a password before this point, so whoever
+   * started the sign-up cannot choose the password of an address they do not own.
+   */
   verifyRegistrationOtp(
     normalizedEmail: string,
     codeHash: string,
     now: Date,
+    passwordHash: string,
   ): Promise<WithId<UserDocument> | null>;
 }
 
@@ -57,6 +66,8 @@ export class MongoRegistrationOtpRepository implements RegistrationOtpRepository
     codeHash: string,
     expiresAt: Date,
     resendAvailableAt: Date,
+    pendingExpiresAt: Date,
+    name?: string,
   ): Promise<WithId<UserDocument> | null> {
     return this.users.findOneAndUpdate(
       {
@@ -70,6 +81,8 @@ export class MongoRegistrationOtpRepository implements RegistrationOtpRepository
           emailOtpExpiresAt: expiresAt,
           emailOtpResendAt: resendAvailableAt,
           emailOtpAttempts: 0,
+          pendingExpiresAt,
+          ...(name ? { name } : {}),
           updatedAt: currentTime,
         },
       },
@@ -81,6 +94,7 @@ export class MongoRegistrationOtpRepository implements RegistrationOtpRepository
     normalizedEmail: string,
     codeHash: string,
     now: Date,
+    passwordHash: string,
   ): Promise<WithId<UserDocument> | null> {
     const activated = await this.users.findOneAndUpdate(
       {
@@ -91,8 +105,14 @@ export class MongoRegistrationOtpRepository implements RegistrationOtpRepository
         emailOtpAttempts: { $lt: 5 },
       },
       {
-        $set: { status: "active", authProvider: "email", updatedAt: now },
+        $set: {
+          status: "active",
+          authProvider: "email",
+          passwordHash,
+          updatedAt: now,
+        },
         $unset: {
+          pendingExpiresAt: "",
           emailOtpCodeHash: "",
           emailOtpExpiresAt: "",
           emailOtpResendAt: "",
