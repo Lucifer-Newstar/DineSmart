@@ -5,7 +5,8 @@
  * Frontend code can drift from the routes the API actually mounts. This tool reads
  * both sides and reports the difference:
  *
- *   - every `fetchWithTimeout(...)` call in `frontend/src` (URL template + method)
+ *   - every `fetchWithTimeout(...)` call in `frontend/src` (URL template + method),
+ *     plus the dashboard's `useApiResource(path)` and `apiSend(path, token, method)` helpers
  *   - every route registered in the routers mounted by `backend/src/app.ts`
  *
  * Template placeholders (`${id}`) and Express params (`:id`) both normalise to a
@@ -87,10 +88,21 @@ export function collectCalls(source) {
 			body.match(/`\$\{API_BASE\}([^`]*)`/) ??
 			body.match(/["'](\/api\/v1[^"']*)["']/);
 		if (!urlMatch) continue;
+		// A bare `${API_BASE}${path}` is the shared helper; its callers are read below.
+		if (/^\$\{[A-Za-z_]+\}$/.test(urlMatch[1] ?? "")) continue;
 		const methodMatch = body.match(/method:\s*["']([A-Z]+)["']/);
 		calls.push({
 			url: urlMatch[1] || "",
 			method: (methodMatch?.[1] ?? "GET").toUpperCase(),
+		});
+	}
+	// Dashboard helpers: useApiResource(path, ...) reads, apiSend(path, token, method, ...) writes.
+	const helperPattern =
+		/\b(useApiResource|apiSend)(?:<[^>(]*>)?\(\s*(["'`])(\/[^"'`]*)\2\s*(?:,\s*[A-Za-z_.]+\s*(?:,\s*["']([A-Z]+)["'])?)?/g;
+	for (const match of source.matchAll(helperPattern)) {
+		calls.push({
+			url: match[3],
+			method: match[1] === "apiSend" ? (match[4] ?? "GET") : "GET",
 		});
 	}
 	return calls;

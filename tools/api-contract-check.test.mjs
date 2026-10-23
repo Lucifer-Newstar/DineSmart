@@ -55,6 +55,20 @@ test("frontend calls keep the template path and default to GET", () => {
 	]);
 });
 
+test("dashboard helper calls are read with their method", () => {
+	const calls = collectCalls(`
+    const waitlist = useApiResource("/waitlist", accessToken, parseWaitlist, refreshKey);
+    const result = await apiSend(\`/tables/\${table.id}/status\`, accessToken, "PUT", { status });
+    const bill = await apiSend<unknown>("/bills", accessToken, "POST", { orderId });
+    void fetchWithTimeout(\`\${API_BASE}\${path}\`, { cache: "no-store" });
+  `);
+	assert.deepEqual(calls, [
+		{ url: "/waitlist", method: "GET" },
+		{ url: "/tables/${table.id}/status", method: "PUT" },
+		{ url: "/bills", method: "POST" },
+	]);
+});
+
 test("the live repository has no frontend call without a mounted route", () => {
 	const result = evaluate();
 	assert.ok(result.routeCount > 0, "the backend scan must find routes");
