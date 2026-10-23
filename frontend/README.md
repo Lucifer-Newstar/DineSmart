@@ -18,7 +18,7 @@ The Incidents workspace reads the bounded `GET /api/v1/incidents` feed only for 
 - Reception sees Overview, Orders, Reservations, Inventory availability, and Settings; commercial analytics, incidents, and AI recommendations are hidden. Inventory remains read-only for this role.
 - Kitchen Staff sees Overview, relevant Orders, Kitchen, Inventory availability, and Settings; reservation, incident, analytics, and recommendation sections are hidden. Kitchen order updates remain item-level.
 - Manager and Administrator can reach the full restaurant workspace; tenant and permission enforcement remains server-side. A stale/unauthorized selected section resolves to Overview when the session role changes. Recommendation/review state is scope-keyed and falls back to preview/unreviewed immediately on an identity change; Analytics remounts for the new workspace and aborts its earlier request. Other tenant-bound feeds clear as their new session requests begin.
-- `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, interactive-control regression, dashboard metric, stylesheet-contract, and request-deadline suites on Node `24.21.0` (38 tests at this checkpoint). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
+- `npm test` runs the frontend role/access, menu/cart, recommendation-response, incident-response, interactive-control regression, dashboard metric, stylesheet-contract, and request-deadline suites, plus session renewal, realtime notification and floor-view helpers, on Node `24.21.0` (50 tests). Local frontend checks pass; component-level browser E2E and live MongoDB persistence/index validation remain outstanding.
 
 ## Demo walkthrough (S3-12)
 
@@ -91,4 +91,4 @@ npm run typecheck  # TypeScript check
 npm run build      # Production build
 ```
 
-The package uses Next.js `16.4.0`, React `19.3.0`, Tailwind CSS `4.3.3`, and Biome `2.5.15`. `package-lock.json` is authoritative for resolved dependency versions.
+The package uses Next.js `16.4.2`, React `19.3.0`, Tailwind CSS `4.3.3`, and Biome `2.5.15`. `package-lock.json` is authoritative for resolved dependency versions.
