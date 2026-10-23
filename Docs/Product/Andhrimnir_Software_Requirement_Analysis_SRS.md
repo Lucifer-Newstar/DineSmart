@@ -244,7 +244,7 @@ Deferred
 - Multi-Branch Management
 - Enterprise Analytics
 - Supplier Management
-- Voice AI Assistant
+- Voice AI Team
 - Automated Workforce Scheduling
 ## 10. Requirement Priority (MoSCoW)
 
