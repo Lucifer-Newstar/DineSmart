@@ -145,3 +145,13 @@ test("invalid status, missing tables, invalid transitions, assignments, and writ
     (error: unknown) => error instanceof TableStatusServiceError && error.statusCode === 409,
   );
 });
+
+test("table list reads the signed restaurant with the documented cap", async () => {
+  const repository = new FakeTableStatusRepository();
+  const service = new TableStatusService(repository);
+  const result = await service.list(restaurantId);
+  assert.equal(result.tables.length, 1);
+  assert.equal(repository.listCalls.length, 1);
+  assert.ok(repository.listCalls[0].restaurantId.equals(restaurantId));
+  assert.equal(repository.listCalls[0].limit, 200);
+});

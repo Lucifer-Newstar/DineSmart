@@ -224,3 +224,52 @@ test("table status PUT maps missing table, active assignment, and transition con
     assert.equal(noToken.status, 401);
   });
 });
+
+test("table list returns the signed restaurant's tables without tenant or assignment IDs", async () => {
+  const service = new FakeTableStatusService();
+  await withServer(createApp(service), async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/tables`, {
+      headers: { authorization: `Bearer ${authToken}` },
+    });
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      tables: Array<Record<string, unknown>>;
+      truncated: boolean;
+    };
+    assert.equal(body.truncated, false);
+    assert.equal(body.tables.length, 1);
+    assert.equal(body.tables[0].status, "available");
+    assert.equal("restaurantId" in body.tables[0], false);
+    assert.equal("currentWaitlistId" in body.tables[0], false);
+    assert.ok(service.listedFor[0].equals(restaurantId));
+
+    const filtered = await fetch(
+      `${baseUrl}/api/v1/tables?restaurantId=${new ObjectId().toHexString()}`,
+      {
+        headers: { authorization: `Bearer ${authToken}` },
+      },
+    );
+    assert.equal(filtered.status, 403, "a client-chosen tenant is refused");
+
+    const statusFilter = await fetch(`${baseUrl}/api/v1/tables?status=available`, {
+      headers: { authorization: `Bearer ${authToken}` },
+    });
+    assert.equal(statusFilter.status, 400, "list filters are not supported");
+  });
+
+  for (const role of ["Customer", "Kitchen Staff"]) {
+    await withServer(
+      createApp(new FakeTableStatusService(), {
+        userId: managerId.toHexString(),
+        role,
+        restaurantId: role === "Customer" ? null : restaurantId.toHexString(),
+      }),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/api/v1/tables`, {
+          headers: { authorization: `Bearer ${authToken}` },
+        });
+        assert.equal(response.status, 403, `${role} cannot list tables`);
+      },
+    );
+  }
+});
