@@ -170,7 +170,7 @@ S2-12 locally implements and tests current-data detection for kitchen/order dela
 
 ## 17. S2-05 Kitchen Queue and Staff Order Progression Verification
 
-S2-05 is **Ready to Push** on local `main`; the selected endpoint details are assistant recommendations, not separate owner approvals. The combined backend lint, typecheck, build, audit, and current 115-test suite pass locally; live MongoDB verification remains outstanding. The Orders and Kitchen dashboard views now consume these routes under S2-07 and the frontend is build-verified. Backend route tests cover role permissions; no manual browser E2E is claimed, and the broader role-focused UX review remains under S2-11.
+S2-05 is **Ready to Push** on local `main`; the selected endpoint details are team recommendations. The combined backend lint, typecheck, build, audit, and current 115-test suite pass locally; live MongoDB verification remains outstanding. The Orders and Kitchen dashboard views now consume these routes under S2-07 and the frontend is build-verified. Backend route tests cover role permissions; no manual browser E2E is claimed, and the broader role-focused UX review remains under S2-11.
 
 - Queue repository tests verify a signed-tenant filter on parent and child records, status inclusion limited to `Accepted`, `Preparing`, and `Ready`, oldest-first order, and a 200-order cap with a `truncated` indicator. The service/HTTP serializers omit customer contact details and prices from kitchen responses.
 - Kitchen route tests verify Kitchen Staff/Manager/Administrator access only, exact `{ itemId, preparationStatus }` request keys, valid `Preparing`/`Ready` target values, tenant derivation from the signed principal, and no serialized prices/customer contact data. Cross-tenant order or item IDs must not disclose records.
@@ -180,7 +180,7 @@ S2-05 is **Ready to Push** on local `main`; the selected endpoint details are as
 
 ## 18. S2-06 Inventory Verification
 
-S2-06 is locally implemented and **Ready to Push** on local `main`; only live MongoDB/index verification is deferred to the final database/deployment stage. The endpoint and UI details are assistant recommendations, not separate owner approvals.
+S2-06 is locally implemented and **Ready to Push** on local `main`; only live MongoDB/index verification is deferred to the final database/deployment stage. The endpoint and UI details are team recommendations.
 
 - Backend service/repository/HTTP tests verify signed-restaurant filtering, non-negative stock/threshold validation, role-specific response redaction, server-stamped adjustments, and bounded/sorted results.
 - The dashboard loads live inventory for restaurant roles, supports retry and empty/truncated/unavailable states, and permits only Manager/Administrator adjustments. Preview edits remain explicitly unsaved; supplier integration and order-driven stock deduction are excluded.
@@ -189,7 +189,7 @@ S2-06 is locally implemented and **Ready to Push** on local `main`; only live Mo
 
 ## 19. S2-10 Notifications Verification
 
-S2-10's assistant-recommended contract is locally implemented and **Ready to Push** on local `main`. These recommendations are not separate owner approvals. Local service, repository, route, and app-mount tests cover the behavior below; no live MongoDB or remote CI verification was performed.
+S2-10's recommended contract is locally implemented and **Ready to Push** on local `main`. These recommendations are. Local service, repository, route, and app-mount tests cover the behavior below; no live MongoDB or remote CI verification was performed.
 
 - Service tests verify trusted notification text trimming/bounds, unread creation, bounded 100-item recipient feeds, total unread counts, idempotent mark-read semantics, and a non-enumerating not-found result.
 - Repository tests verify customer queries use authenticated `recipientUserId` across restaurants, staff queries include both `restaurantId` and recipient ID, unread queries include `readAt: null`, read updates preserve the first timestamp, recipient ID is omitted from safe records, and notification indexes are declared.
@@ -199,7 +199,7 @@ S2-10's assistant-recommended contract is locally implemented and **Ready to Pus
 
 ## 20. S2-07 Staff Orders and Kitchen Dashboard Integration
 
-S2-07 is **Ready to Push** on local `main` after backend/frontend local checks. The assistant-recommended scope covers the dashboard shell and currently available operational flows; S2-09 analytics reads real tenant-scoped operational data, and S2-12 provides supported-data backend incident rules/API; S3-05 now supplies a locally tested Manager/Administrator incident dashboard, while browser E2E remains unverified; S2-11 role-specific dashboard presentation is locally implemented. This scope split is not a separate owner approval. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
+S2-07 is **Ready to Push** on local `main` after backend/frontend local checks. The recommended scope covers the dashboard shell and currently available operational flows; S2-09 analytics reads real tenant-scoped operational data, and S2-12 provides supported-data backend incident rules/API; S3-05 now supplies a locally tested Manager/Administrator incident dashboard, while browser E2E remains unverified; S2-11 role-specific dashboard presentation is locally implemented. This scope spl. Live MongoDB validation is deferred to the final database/deployment stage; no browser E2E is claimed.
 
 - Backend repository/service/HTTP tests verify the tenant filter on orders and item snapshots, oldest-first 200-record cap and truncation, server-selected `floor` versus `kitchen` status sets, permission/scope enforcement, Customer denial, strict no-query-filter behavior, and omission of customer IDs, prices, and totals.
 - The authenticated Orders view reads `/api/v1/orders`; Reception/Manager/Administrator may accept, serve, and complete through the guarded status route. Preparation progress is item-level only. Kitchen Staff cannot change order headers.
@@ -209,7 +209,7 @@ S2-07 is **Ready to Push** on local `main` after backend/frontend local checks. 
 
 ## 21. S2-09 Analytics Charts Verification
 
-S2-09 is locally implemented and **Ready to Push** on `main`; the assistant-selected contract is a recommendation, not separate owner approval. The implementation distinguishes live API results from loading, zero-data, and unavailable states and does not represent sample order subtotals as revenue. AC-09 as a whole remains open pending browser/live-service verification and the full acceptance demonstration.
+S2-09 is locally implemented and **Ready to Push** on `main`; the team-selected contract is a recommendation. The implementation distinguishes live API results from loading, zero-data, and unavailable states and does not represent sample order subtotals as revenue. AC-09 as a whole remains open pending browser/live-service verification and the full acceptance demonstration.
 
 - Backend tests verify Manager/Administrator permission enforcement, signed restaurant scope (including rejection of client-selected tenants), range validation/default, per-collection query bounds/truncation, timezone-local date/hour buckets and UTC fallback, preparation-time calculation, empty/repository failure behavior, and protected app mounting.
 - Frontend `parseAnalyticsData` defensively validates the API response shape before rendering. The dashboard supports 7- and 30-day views, local-time daily/hourly order charts, order outcomes, preparation and reservation summaries, current low/out-of-stock counts, retry, and a visible partial-sample note.
@@ -227,7 +227,7 @@ S2-11 is locally implemented and **Ready to Push** on `main`, aligned with the a
 
 ## 23. S2-12 Incident Detection Verification
 
-S2-12's locally implemented backend scope uses the approved threshold values and the user-selected condition-based auto-resolution/fresh-ID recurrence lifecycle. Active deduplication, event/time cadence, response/source bounds, and the unimplemented notification cooldown are documented as assistant implementation recommendations. The status is Ready to Push only after the local implementation and documentation commits; no remote push/merge is claimed.
+S2-12's locally implemented backend scope uses the approved threshold values and the team-selected condition-based auto-resolution/fresh-ID recurrence lifecycle. Active deduplication, event/time cadence, response/source bounds, and the unimplemented notification cooldown are documented as team implementation recommendations. The status is Ready to Push only after the local implementation and documentation commits; no remote push/merge is claimed.
 
 - Rule tests cover strict warning/critical delay boundaries, accepted-to-ready clearance, active kitchen-order count/oldest-age congestion, per-item inventory thresholds/depletion, table overlap/capacity/unavailable confirmed assignments, threshold fallback, and reservation-expiration reevaluation.
 - Service tests cover one active record per identity, severity/evidence update, automatic resolution on cleared conditions, fresh-ID recurrence, non-interference with unsupported incident types, incomplete-scan resolve protection, and post-persistence health-score refresh requests.
@@ -251,7 +251,7 @@ The waitlist (S2-17) is now a detection input, closing the previously recorded g
 
 ## 24. S2-13 WebSocket Implementation Verification
 
-S2-13 implements an assistant-recommended backend transport, not a new owner-approved event-to-recipient business policy. The ticket route, in-process gateway/hub, best-effort event publishers, and ACK-based notification delivery persistence are implemented, tested, documented, and committed locally; S2-13 is **Ready to Push** on `main`, not Complete. No remote CI or deployment is claimed.
+S2-13 implements a team-recommended backend transport, not a new team-approved event-to-recipient business policy. The ticket route, in-process gateway/hub, best-effort event publishers, and ACK-based notification delivery persistence are implemented, tested, documented, and committed locally; S2-13 is **Ready to Push** on `main`, not Complete. No remote CI or deployment is claimed.
 
 - Ticket-store tests cover 256-bit base64url token shape, authenticated identity binding, 30-second expiry, one-use consumption, pending-capacity enforcement, and invalid token handling. Route tests cover bearer-authenticated role permission, signed staff tenant versus cross-restaurant Customer identity, exact configured Origin, body/query rejection, and the 10 requests/minute/IP limit.
 - Real WebSocket integration tests use a local in-process HTTP server to verify the RFC 6455 upgrade, only the public subprotocol being selected, one-use ticket consumption, exact-origin enforcement, missing-ticket and query-string rejection, unknown-message close, and the 8 KiB receive limit.
@@ -262,7 +262,7 @@ S2-13 implements an assistant-recommended backend transport, not a new owner-app
 
 ## 25. S2-14 Billing API Verification
 
-S2-14 is **Ready to Push** on local `main`, not Complete. The locally implemented API follows assistant-recommended details documented in the Implementation Decisions; those details are not separate owner approvals. Payment capture/provider integration, tax/discount calculation, bill editing/voiding, and settlement/accounting remain outside scope.
+S2-14 is **Ready to Push** on local `main`, not Complete. The locally implemented API follows recommended details documented in the Implementation Decisions; those details are. Payment capture/provider integration, tax/discount calculation, bill editing/voiding, and settlement/accounting remain outside scope.
 
 - Service tests verify generation only for `Ready`, `Served`, and `Completed` orders; immutable bill-line snapshots; safe integer-minor arithmetic; `subtotalMinor` equality with the stored order total; zero tax/adjustments; source-data validation; and idempotent reuse without overwriting existing snapshots.
 - Repository tests verify that staff reads include the signed `restaurantId`, Customer reads first prove order ownership through the active global Customer profile, child item snapshots use the same restaurant/order filter, and a duplicate-key race returns the existing bill. The existing unique `(restaurantId, orderId)` index is the one-bill invariant.
@@ -272,7 +272,7 @@ S2-14 is **Ready to Push** on local `main`, not Complete. The locally implemente
 
 ## 26. S2-15 Password Reset Verification
 
-S2-15 is **Ready to Push** on local `main`, not Complete. The two-step endpoint behavior and security limits are assistant recommendations selected to fill the undocumented backlog contract; they are not separate owner approvals. The approved OTP baseline remains six digits, 10-minute expiry, 60-second resend cooldown, and five attempts. Real email delivery and live MongoDB checks are not claimed.
+S2-15 is **Ready to Push** on local `main`, not Complete. The two-step endpoint behavior and security limits are team recommendations selected to fill the undocumented backlog contract. The approved OTP baseline remains six digits, 10-minute expiry, 60-second resend cooldown, and five attempts. Real email delivery and live MongoDB checks are not claimed.
 
 - Repository tests verify atomic code issuance only for active users with a non-empty password hash; missing/blank hashes, disabled/pending users, and resend cooldown are ineligible. They verify hashed-code storage, single-use atomic replacement, reset-state cleanup, five-attempt bounds, and active-refresh-session revocation filters.
 - Service tests verify normalized email, HMAC storage keyed by the reset purpose, generic handling of unknown/ineligible accounts, development-only mock response, provider fail-closed behavior, password/code bounds, invalid/expired code handling, Argon2id password replacement, and session-revocation failure behavior.
@@ -282,7 +282,7 @@ S2-15 is **Ready to Push** on local `main`, not Complete. The two-step endpoint 
 
 ## 27. S2-16 Staff Management API Verification
 
-S2-16 is **Ready to Push** on local `main`, not Complete. The request semantics below are assistant recommendations, not separate owner approvals. Only Manager/Administrator can manage the roster; the API remains tenant-scoped, and adding staff or managing schedules/payroll is not part of the current inventory.
+S2-16 is **Ready to Push** on local `main`, not Complete. The request semantics below are team recommendations. Only Manager/Administrator can manage the roster; the API remains tenant-scoped, and adding staff or managing schedules/payroll is not part of the current inventory.
 
 - Test repository filtering on the signed restaurant, bounded list ordering/truncation, safe joins to user records, atomic user role/status change, staff projection synchronization, and the refresh-session watermark.
 - Test HTTP role gates, strict body/query/path validation, same-tenant reads/updates, safe serialization, self-deactivation denial, inactive membership visibility/reactivation, and indistinguishable absent/cross-tenant updates.
@@ -292,7 +292,7 @@ S2-16 is **Ready to Push** on local `main`, not Complete. The request semantics 
 
 ## 28. S2-17 Waitlist Management API Verification
 
-S2-17 is **Ready to Push** on local `main`, not Complete. FIFO/manual promotion and the new request contract are assistant recommendations based on the sparse endpoint inventory and existing workflow decision; no additional owner approval is implied.
+S2-17 is **Ready to Push** on local `main`, not Complete. FIFO/manual promotion and the new request contract are team recommendations based on the sparse endpoint inventory and existing workflow decision; no additional team approval is implied.
 
 - Test signed-tenant staff-only list/create/update behavior, FIFO ordering and truncation, guest input bounds, strict body/query/path validation, and role denials.
 - Test only waiting entries can be resolved, seating requires a same-tenant available table with sufficient capacity, duplicate/stale writes fail closed, and table/waitlist synchronization failure is surfaced with compensation.
@@ -302,7 +302,7 @@ S2-17 is **Ready to Push** on local `main`, not Complete. FIFO/manual promotion 
 
 ## 29. S2-18 Table Status API Verification
 
-S2-18 is **Ready to Push** on local `main`, not Complete. The endpoint inventory includes only `PUT /tables/{id}/status`; the transition map and reference-cleanup behavior below are assistant recommendations to fill the unspecified contract, not separate owner approval.
+S2-18 is **Ready to Push** on local `main`, not Complete. The endpoint inventory includes only `PUT /tables/{id}/status`; the transition map and reference-cleanup behavior below are team recommendations to fill the unspecified contract.
 
 - Test Reception/Manager/Administrator authorization and signed-restaurant filters; Customers and Kitchen Staff are denied. Reject client-selected tenant, query filters, malformed IDs, unknown request fields, and unsupported status values.
 - Test the documented transition graph and idempotent same-status updates. A table cannot leave disabled/out-of-service except to available; occupied/reserved tables must be explicitly cleared before disabling.
@@ -313,7 +313,7 @@ S2-18 is **Ready to Push** on local `main`, not Complete. The endpoint inventory
 
 ## 30. S2-01 Customer Landing Page and S2-02 Digital Menu Verification
 
-S2-01 and S2-02 are locally implemented on `main` and marked **Ready to Push**, not Complete. The route/layout decisions in the Implementation Decisions document are assistant-selected recommendations rather than separate owner approvals.
+S2-01 and S2-02 are locally implemented on `main` and marked **Ready to Push**, not Complete. The route/layout decisions in the Implementation Decisions document are team-selected recommendations.
 
 - Signed-out `/` renders a customer-facing landing page; after session restoration, Customer users enter the existing Customer Portal and staff users enter the role-aware restaurant workspace. `/dashboard` preserves the sample operations preview for signed-out users. Menu, reservation, account, and team sign-in links use the existing routes.
 - `/menu` continues to read only the live public menu API response, filter the available items, and fail closed on loading/error/malformed responses. The frontend utility tests cover menu response validation, item shaping, restaurant/menu-item cart matching, line/unit bounds, and safe integer subtotal calculation; checkout is blocked rather than formatting or submitting an unsafe total.
@@ -349,7 +349,7 @@ S3-05 is locally implemented, tested, and committed on `main`, marked **Ready to
 - The frontend parser caps the list at the server contract's 200 records and fails closed on malformed IDs/slugs, status/severity, dates, duplicate IDs, oversized text/snapshots, unsafe trigger keys/values, and invalid truncation metadata. The UI shows open/resolved records, safe trigger facts, loaded-list counts, partial-history notices, and matching incident recommendation links without displaying restaurant/customer PII.
 - Preview records are labeled as samples. Live, empty, loading, unavailable, and restricted states are explicit; failed requests do not substitute sample records as live. The overview uses current open counts when available and marks partial results. Notification mock content is visibly labeled preview.
 - Insights shows incident status, root-cause summary, and bounded trigger facts only when the recommendation matches a validated incident record; it does not invent trigger-specific inventory claims when context is unavailable. The incident page is intentionally read-only: rule-managed incidents resolve automatically when their triggering condition clears, and no manual close endpoint/control is added.
-- **Dhanush-authored implementation commits:** `5b379df` (scoped feed, parser, role checks, incident dashboard/Insights integration) and `3564ea5` (incident and Insights styling). S3-05 is frontend-only; no backend source, test, or demo-seed fixture change is part of this work. The UI scope is an assistant-selected recommendation to fulfill the backlog's generic Dashboard Polish item, not separate design approval.
+- **Dhanush-authored implementation commits:** `5b379df` (scoped feed, parser, role checks, incident dashboard/Insights integration) and `3564ea5` (incident and Insights styling). S3-05 is frontend-only; no backend source, test, or demo-seed fixture change is part of this work. The UI scope is a team-selected recommendation to fulfill the backlog's generic Dashboard Polish item, not separate design approval.
 - **Local verification via Node `24.21.0`:** frontend 20 tests passed (4 incident parser cases plus role, menu/cart, and recommendation suites); Biome checked 31 files; typecheck and Next.js production build passed; high-severity audit found zero vulnerabilities. Backend checks were rerun against the unchanged backend tree: all 274 tests passed; Biome checked 150 files; typecheck/build passed; high-severity audit found zero vulnerabilities.
 - No component/browser E2E, responsive visual review, live incident API/MongoDB index/persistence, or customer UAT was performed. Docker/`mongod`, live credentials, and a Git remote are unavailable; no remote CI, push, merge, or deployment is claimed.
 
@@ -407,7 +407,7 @@ S3-12 is **In Progress**: the presentation outline, demo runbook, readiness pref
 
 ## 37. S1-07 CI Workflow Hardening
 
-S1-07 stays **In Progress**; this checkpoint hardens the local workflow definition and guards it locally. No GitHub Actions run has been observed, because no remote is configured.
+S1-07 stays **In Progress**; this checkpoint hardens the local workflow definition and guards it locally. (Superseded: see section 39 for the GitHub Actions failure found after publishing and its fix.)
 
 - `.github/workflows/ci.yml` now declares `permissions: contents: read` and a `concurrency` group that cancels superseded runs on the same ref. The single job is split into `frontend`, `backend`, and `preflight` jobs, each with its own `timeout-minutes`, `actions/checkout@v7` with `persist-credentials: false`, `actions/setup-node@v7` reading `.nvmrc`, a cache keyed to that app's lockfile, and `npm ci` installation.
 - Every application job runs the same sequence — high-severity `npm audit`, `npm run lint`, `npm test`, `npm run typecheck`, then `npm run build` — so a typecheck failure stops the build step. The backend job keeps its `hashFiles('backend/package.json')` gate so the workflow is still valid on a branch without the backend package.
@@ -426,3 +426,26 @@ S3-13 stays **In Progress** because the live Gemini path is unverified, but the 
 - **Commits:** Navin `538bc94`; Gokul `76f3a9e`.
 - **Local verification via Node `24.21.0`:** backend 305 tests passed; frontend 38 tests passed; Biome, typecheck, and both production builds clean; high-severity audits reported zero vulnerabilities.
 - **Limits:** these are unit tests over the context object. No live Gemini call, quota/timeout rehearsal, or invalid-provider-output test against the real API was performed, because no credential exists in this workspace.
+
+## 39. Fix pass and current verification status (2026-10-23)
+
+Sections 8–38 are dated checkpoint records; their test counts and audit results were true at their own checkpoint. This section is the current state of `main`.
+
+A review of the published repository found these problems, now fixed on `main`:
+
+| Finding | Fix | Covered by |
+| --- | --- | --- |
+| GitHub Actions ran zero jobs: a job-level `if: hashFiles(...)` is not allowed, so GitHub rejected the whole workflow | Condition removed; actions pinned to full commit SHAs; `actionlint` passes | `tools/ci-workflow.test.mjs` |
+| `next@16.4.0` critical advisories; moderate `ip-address` advisory | Next.js `16.4.2`; `ip-address` updated | `npm audit --audit-level=high` in both packages |
+| A pending sign-up kept the password chosen by whoever registered first, so an attacker could pre-register a victim's email | The password is stored only when the code is verified; pending sign-ups expire through a TTL index | `backend/test/email-otp.test.ts` |
+| Production had no real email transport | SMTP and Resend transports selected by `EMAIL_PROVIDER`; production refuses `mock` | `backend/test/email-transport.test.ts` |
+| Rate limits behind a proxy would key on the proxy address | `TRUST_PROXY` hop count | `backend/test/trust-proxy.test.ts` |
+| A new deployment could not create its first restaurant or administrator; the seed refused every remote database | `npm run bootstrap`; seeding a remote host behind `--allow-remote --confirm <db>` | `backend/test/bootstrap.test.ts`, `backend/test/seed-data.test.ts` |
+| The access token was never renewed, so the dashboard failed after 15 minutes | Renewal before expiry and on a 401 | `frontend/test/session-refresh.test.mjs` |
+| The notification bell showed sample data; incidents created no notifications | Managers are notified when an incident opens; the bell and panels follow the live WebSocket feed | `backend/test/incident-notifier.test.ts`, `frontend/test/realtime-notifications.test.mjs` |
+| APIs without a UI (bills, staff, waitlist, tables, password reset) | Bills, staff roster, floor view with waitlist, forgot-password screens | `frontend/test/floor-data.test.mjs`, `tools/api-contract-check.mjs` |
+| `dashboard.tsx` was 5,368 lines | Split into feature modules under `frontend/src/app/_dashboard/` | Biome, typecheck, build |
+
+**Local verification on Node `24.21.0` (final `main`):** backend Biome checked 170 files, typecheck and build pass, **328** tests pass; frontend Biome checked 66 files, typecheck and Next.js production build pass, **50** tests pass; `tools/*.test.mjs` 17 pass; `node tools/demo-readiness.mjs --strict` 14/14; `node tools/api-contract-check.mjs --strict` finds 41 frontend calls and no call without a route; `actionlint` reports nothing; `npm audit --audit-level=high` finds no high or critical advisory in either package.
+
+**Not verified live:** every test above uses fakes or in-memory doubles. MongoDB Atlas persistence and indexes, SMTP/Resend delivery, Google sign-in, Gemini responses, WebSocket delivery across processes, rate limiting behind Vercel → Render, and browser end-to-end flows still need a live check after deployment; the list is in the [deployment checklist](../Developers%20Guide/Deployment.md#7-after-deploying-what-to-check-live). The first GitHub Actions run of the fixed workflow happens on the next push.

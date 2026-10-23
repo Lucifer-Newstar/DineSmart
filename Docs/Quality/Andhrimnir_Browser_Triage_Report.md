@@ -80,7 +80,7 @@ These are environment artifacts, not defects, but they mean the triage exercised
 | `OPTIONS /api/v1/orders` preflight | 204 with the configured CORS headers | unchanged | pass |
 | `GET /health` with an external `Origin` | 200, cross-origin header set by the CORS layer | unchanged | pass |
 
-Root cause of the four fixes: the `no-store` middleware was mounted **after** `express.json()`, so body-parser rejections short-circuited past it, and no versioned catch-all existed, so unknown `/api/v1/*` routes fell through to the framework's HTML 404 page. Both are corrected in `backend/src/app.ts`: the policy middleware now runs before body parsing, `/health` sets the header explicitly, and a `/api/v1` catch-all emits the JSON envelope.
+Root cause of the four fixes: the `no-store` middleware was mounted **after** `express.json`, so body-parser rejections short-circuited past it, and no versioned catch-all existed, so unknown `/api/v1/*` routes fell through to the framework's HTML 404 page. Both are corrected in `backend/src/app.ts`: the policy middleware now runs before body parsing, `/health` sets the header explicitly, and a `/api/v1` catch-all emits the JSON envelope.
 
 **Open observation (not changed):** with no reachable database, a protected route returns **503** even when the request carries no token, because each router opens its connection before authenticating. When the database is reachable the same request returns **401** (asserted in `app.test.ts` and now in `api-error-contract.test.ts`). The fail-closed behaviour is safe, but authenticating before opening a connection would make the status independent of database health. That reorders shared router composition and is left as a recommendation rather than a change in a triage pass.
 
@@ -93,7 +93,7 @@ Browser triage cannot reach authenticated flows without a database, so a static 
 `tools/api-contract-check.mjs` (Dhanush, `dcc8974`) reads both sides and compares them:
 
 - **Backend:** every `app.use("/api/v1/...", createXRouter(...))` mount in `app.ts` is resolved to its router module, and each `router.<method>("/path")` registration is collected. Handler-internal calls such as `request.get("origin")` are excluded by requiring a leading slash.
-- **Frontend:** every `fetchWithTimeout()` call in `frontend/src` is collected with its URL template and `method`, defaulting to `GET`.
+- **Frontend:** every `fetchWithTimeout` call in `frontend/src` is collected with its URL template and `method`, defaulting to `GET`.
 - **Matching:** template placeholders (`${id}`) and Express params (`:id`) both normalise to a wildcard, so dynamic paths still match.
 
 Result: **39 mounted routes, 28 frontend calls, 0 unmatched calls**. `--strict` fails on any unmatched call, an empty route table, or a mount whose factory cannot be resolved; the CI preflight job now runs it.
