@@ -2,7 +2,7 @@
 
 **Andhrímnir** is a proposed AI incident-intelligence platform for restaurant operations. The GitHub repository is named **DineSmart**. The platform turns signals from orders, reservations, inventory, kitchen workflows, and staff activity into incidents, contextual recommendations, and operational insights for restaurant teams.
 
-> This repository contains product and technical documentation, a documentation-conversion utility, and Next.js and Express applications. Locally tested backend modules include authentication, public menu and customer orders, reservations, restaurant operations, analytics, notifications, billing, waitlist/table management, and advisory AI recommendations. Service and route checks use local fakes; live MongoDB/Atlas persistence, Google/email/Gemini credentials, browser acceptance, and deployment are not verified or configured here.
+> This repository contains product and technical documentation, the Next.js frontend, the Express backend, and helper tools. Implemented and locally tested modules include authentication (email + code sign-up, password and Google login, token renewal, password reset), public menu and customer orders, reservations, kitchen and order workflow, inventory, health score, incidents, analytics, live notifications, billing, staff management, floor/waitlist and tables, and advisory AI recommendations. Tests use local fakes; live MongoDB Atlas, the email provider, Google sign-in and Gemini have **not been verified live**, and the app is **not deployed yet** (see the [deployment checklist](Docs/Developers%20Guide/Deployment.md)).
 
 ## Product vision
 
@@ -15,16 +15,17 @@ The documented MVP scope includes:
 - Rule-based incident detection and explainable AI-assisted recommendations
 - Restaurant health score, analytics, notifications, and role-based access
 
-## Planned architecture
+## Architecture
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | Next.js `16.4.0` App Router, React `19.3.0`, Tailwind CSS `4.3.3`, TypeScript, Biome `2.5.15` |
+| Frontend | Next.js `16.4.2` App Router, React `19.3.0`, Tailwind CSS `4.3.3`, TypeScript, Biome `2.5.15` |
 | Backend | Node.js `24.21.0` LTS, Express `5.3.0`, TypeScript |
-| Data | MongoDB Atlas (planned production), local MongoDB for development via Docker Compose, official MongoDB Node driver |
+| Data | MongoDB (local via Docker Compose for development; MongoDB Atlas for production, not yet provisioned), official MongoDB Node driver |
 | Authentication | Email/OTP registration, Email/Password login, Google OAuth, JWT, RBAC |
 | AI | Gemini API |
-| Deployment | Vercel (frontend), Render (backend) |
+| Email | SMTP (nodemailer) or Resend, selected by `EMAIL_PROVIDER`; a mock transport for development and tests |
+| Deployment | Vercel (frontend), Render (backend), not deployed yet |
 
 Node.js `24.21.0` is pinned in the repository-root `.nvmrc`. Each app's npm lockfile is authoritative for its resolved package versions.
 
@@ -56,7 +57,7 @@ The API listens on `http://localhost:3001` by default. `GET /health` reports pro
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It declares `contents: read` permissions and a concurrency group that cancels superseded runs, then checks the frontend, the backend, and the demo preflight as separate jobs with their own timeouts, pinned actions, `persist-credentials: false`, the Node version from `.nvmrc`, `npm ci` installation, high-severity dependency audits, and the full lint/test/typecheck/build sequence. `tools/ci-workflow.test.mjs` guards those invariants locally. The latest local CI-equivalent checks use Node `24.21.0`: the backend has 293 passing tests, the frontend has 38 passing unit tests, both packages pass Biome/typechecks/production builds, and both high-severity audits report zero vulnerabilities. This is local validation, not a GitHub Actions result. No remote is configured and nothing was pushed. Deployment/CD is not configured.
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It declares `contents: read` permissions and a concurrency group that cancels superseded runs, then checks the frontend, the backend, and the demo preflight as separate jobs with their own timeouts, pinned actions, `persist-credentials: false`, the Node version from `.nvmrc`, `npm ci` installation, high-severity dependency audits, and the full lint/test/typecheck/build sequence. `tools/ci-workflow.test.mjs` guards those invariants locally. Local runs of the same checks on Node `24.21.0`: backend 328 tests, frontend 50 tests, Biome, typechecks and production builds pass, and `npm audit --audit-level=high` reports no high or critical advisories in either package. Deployment (CD) is not configured; see the [deployment checklist](Docs/Developers%20Guide/Deployment.md).
 
 ## Documentation
 
@@ -64,6 +65,7 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 
 - [Frontend setup guide](frontend/README.md)
 - [Backend setup guide](backend/README.md)
+- [Deployment inputs checklist](Docs/Developers%20Guide/Deployment.md)
 
 ### Product and requirements
 
@@ -105,7 +107,13 @@ The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests
 
 ## Development status
 
-The MVP scope, architecture, API inventory, delivery plan, and acceptance criteria are documented. Former local feature branches were integrated into `main` at `70f5fb4`; all other local branch references were deleted at the owner's direction. No Git remote is configured and nothing was pushed. **Ready to Push** on local `main`: S1-02/S1-03/S1-04/S1-06, S2-01–S2-18, and S3-03/S3-05/S3-06/S3-11. S1-01 is marked **Complete** because the GitHub repository exists. **In Progress:** S1-05 and S1-07–S1-13, plus S3-01, S3-02, S3-04, S3-07, S3-10, S3-12, and S3-13. **To Do:** S3-08 and S3-09 (deployment), which begin after the remaining non-deployment work. S2-01/02 provide a public customer landing route, the signed-in Customer/staff home experience, a `/dashboard` sample preview, and a live-menu UI with fail-closed loading/error behavior and overflow-safe cart totals. These tasks are Ready to Push, not Complete; browser/responsive acceptance, live API/MongoDB, remote CI/review/merge, and deployment remain unverified or deferred. The S2-06 inventory API/UI, S2-07 staff Orders/Kitchen views, S2-08 health-score API/UI, S2-09 tenant-scoped operational analytics, S2-10 notification API, S2-11 role-based presentation, S2-12 incident rules, S2-13 WebSocket transport, S2-14 billing, S2-15 password reset, S2-16 staff management, and S2-17/18 waitlist/table APIs have local implementation/verification records; live database, provider, browser, or recipient-policy limits remain documented. Pre-bill order subtotals are not revenue, and payment capture is out of scope. The S3 AI flow has fake-provider tests, but live Gemini credentials and MongoDB persistence are not verified. S3-03 now loads and validates the saved seeded-incident recommendation for Manager/Administrator sessions, labels Gemini/fallback/demo sources, and distinguishes API status from sample preview. At its closeout, 16 frontend tests included five recommendation contract tests. It is Ready to Push, not Complete, pending live API/browser acceptance. S3-05 now loads the tenant-scoped incident feed for Managers/Administrators, validates bounded records, distinguishes preview/live/empty/unavailable/restricted states, and shows source-trigger snapshots; records resolve automatically when the condition clears, with no manual close action. It is Ready to Push, not Complete, pending browser and live-service acceptance. S3-07 has begun bug triage: an inert sample-range control was replaced with a static preview label, an AST regression guard rejects empty click handlers, buttons without an explicit type, and form controls without an accessible name, and a Playwright pass over 7 routes at 3 viewports found and fixed a mobile dashboard overflow and six sub-24 px controls while recording an open contrast finding; unknown `/api/v1` routes now return the JSON error envelope instead of HTML. The broader bug-fix task remains In Progress. S3-06 adds locally tested menu-to-order/history integration with fake repositories and application-level reservation/AI route-mount checks; it is Ready to Push, not Complete, and does not establish live MongoDB/Gemini, browser E2E, or full acceptance. S3-10 has begun locally verifiable performance work: gzip for the public menu, `no-store` defaults for API responses with a short public cache for menu reads, field projections for notification/inventory/recommendation/incident-context/table-status reads, memoized dashboard derivations, and a 15-second deadline on every browser request; p95 targets remain unmeasured without live services. S3-12 preparation adds an 11-slide presentation outline, a demo runbook with documented fallback paths, a dependency-free readiness preflight, and a database-free seeded-fixture summary; the deck itself, a rehearsal, and a recorded backup remain outstanding. On Node `24.21.0`, backend checks pass Biome, typecheck, build, zero-vulnerability audit, and all 293 tests; frontend checks pass Biome, 38 tests, typecheck, production build, and zero-vulnerability audit. No GitHub Actions run occurred. Docker/`mongod`, live API/MongoDB credentials/services, live Gemini checks, Atlas provisioning/database validation, deployment, and remote review remain outstanding. Atlas and deployment are intentionally deferred until non-deployment work is finished. A local commit does not satisfy Complete: documented DoD, review, merge, and deployment gates still apply. Track task status in the [canonical sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md). The [Implementation Decisions](Docs/Architecture/Andhrimnir_Implementation_Decisions.md) and [Database Schema](Docs/Architecture/Andhrimnir_Database_Schema.md) documents record recommendations and open module-specific decisions.
+The MVP scope, architecture, API inventory, delivery plan, and acceptance criteria are documented, and the code for the MVP features is on `main`. The canonical task statuses are in the [sprint backlog](Docs/Planning/Andhrimnir_Sprint_Backlog.md).
+
+**Done in code and covered by local tests:** authentication and RBAC (S1-09–S1-12), the customer landing, menu, cart and order history (S2-01–S2-04), kitchen/order workflow (S2-05), inventory (S2-06), staff dashboard views (S2-07), health score (S2-08), analytics (S2-09), notifications with automatic incident alerts and the live bell (S2-10, S2-13), role-based presentation (S2-11), incident rules (S2-12), bills (S2-14), forgot password (S2-15), staff roster and the bootstrap command (S2-16), floor view, waitlist and tables (S2-17, S2-18), and the AI recommendation flow with a deterministic fallback (S3-01–S3-05, S3-13).
+
+**Not verified live:** every test uses fakes. Nothing has run against MongoDB Atlas, a real email provider, Google sign-in, or a Gemini key, and there is no browser end-to-end suite. Rate-limit behaviour behind Vercel → Render depends on `TRUST_PROXY` and needs a check after deploying.
+
+**Still to do:** Atlas provisioning (S1-05), deployment of the frontend and backend (S3-08, S3-09), live acceptance and the demo rehearsal (S3-12), and p95 performance measurement (S3-10), which needs live services. The [deployment checklist](Docs/Developers%20Guide/Deployment.md) lists every input needed.
 
 ## Repository structure
 
