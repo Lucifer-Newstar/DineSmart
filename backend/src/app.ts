@@ -46,6 +46,10 @@ import { createInventoryRouter } from "./inventory/inventory.router.js";
 import { InventoryService } from "./inventory/inventory.service.js";
 import { MongoMenuRepository } from "./menu/menu.repository.js";
 import { createMenuRouter } from "./menu/menu.router.js";
+import {
+  createIncidentNotifier,
+  MongoIncidentAlertRecipients,
+} from "./notifications/incident-notifier.js";
 import { MongoNotificationRepository } from "./notifications/notification.repository.js";
 import { createNotificationRouter } from "./notifications/notification.router.js";
 import { NotificationService } from "./notifications/notification.service.js";
@@ -106,11 +110,19 @@ export function createApp(options: AppOptions = {}) {
   const incidentDetectionScheduler = new IncidentDetectionScheduler(
     async () => {
       const db = await (options.getDatabase?.() ?? connectToDatabase());
+      const notifications = new NotificationService(
+        new MongoNotificationRepository(db),
+        undefined,
+        realtimeHub.publishNotification,
+      );
       return new IncidentDetectionService(
         new MongoIncidentDetectionRepository(db),
         undefined,
         healthScoreRefreshScheduler.notifyOperationalEvent,
         realtimeHub.publishRestaurantEvent,
+        createIncidentNotifier(new MongoIncidentAlertRecipients(db), (notification) =>
+          notifications.create(notification),
+        ),
       );
     },
     { onError: () => console.error("A background incident-detection evaluation failed.") },

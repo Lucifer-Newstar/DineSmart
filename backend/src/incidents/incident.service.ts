@@ -3,6 +3,7 @@ import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.typ
 import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import { evaluateIncidentRules } from "./incident.rules.js";
 import type {
+  IncidentCandidate,
   IncidentDetectionRepository,
   IncidentEvaluationSummary,
   IncidentListResult,
@@ -13,12 +14,19 @@ import { incidentIdentityKey, RULE_MANAGED_INCIDENT_TYPES } from "./incident.typ
 
 const RULE_MANAGED_TYPE_SET = new Set<string>(RULE_MANAGED_INCIDENT_TYPES);
 
+/** Called with the incidents a sweep newly opened (SDD incident flow: "Notify manager"). */
+export type IncidentOpenedNotifier = (
+  restaurantId: ObjectId,
+  incidents: readonly IncidentCandidate[],
+) => Promise<void>;
+
 export class IncidentDetectionService implements IncidentServiceReader {
   constructor(
     private readonly repository: IncidentDetectionRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
     private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
+    private readonly notifyIncidentsOpened: IncidentOpenedNotifier = async () => undefined,
   ) {}
 
   listActiveRestaurantIds(): Promise<ObjectId[]> {
@@ -41,9 +49,19 @@ export class IncidentDetectionService implements IncidentServiceReader {
     if (activeResult.truncated) truncatedSources.add("incidents");
 
     let upsertedCount = 0;
+    const opened: IncidentCandidate[] = [];
     for (const incident of evaluation.incidents) {
-      await this.repository.upsertActiveIncident(restaurantId, incident, now);
+      if (await this.repository.upsertActiveIncident(restaurantId, incident, now)) {
+        opened.push(incident);
+      }
       upsertedCount += 1;
+    }
+    if (opened.length > 0) {
+      try {
+        await this.notifyIncidentsOpened(restaurantId, opened);
+      } catch {
+        // Notifications are best effort; detection results are already persisted.
+      }
     }
 
     let resolvedCount = 0;

@@ -116,11 +116,12 @@ export interface IncidentDetectionRepository {
   listActiveRestaurantIds(): Promise<ObjectId[]>;
   getSnapshot(restaurantId: ObjectId, now: Date): Promise<IncidentDetectionSnapshot>;
   listActiveIncidents(restaurantId: ObjectId): Promise<IncidentListResult>;
+  /** Resolves to true when this call opened a new incident (not a refresh of an open one). */
   upsertActiveIncident(
     restaurantId: ObjectId,
     incident: IncidentCandidate,
     now: Date,
-  ): Promise<void>;
+  ): Promise<boolean>;
   resolveActiveIncident(restaurantId: ObjectId, incidentId: ObjectId, now: Date): Promise<void>;
   listForRestaurant(restaurantId: ObjectId): Promise<IncidentListResult>;
 }

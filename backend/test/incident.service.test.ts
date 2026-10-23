@@ -49,7 +49,7 @@ class FakeIncidentRepository implements IncidentDetectionRepository {
     scopedRestaurantId: ObjectId,
     candidate: IncidentCandidate,
     at: Date,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const key = incidentIdentityKey(candidate);
     const active = this.incidents.find(
       (incident) =>
@@ -66,7 +66,7 @@ class FakeIncidentRepository implements IncidentDetectionRepository {
       active.updatedAt = at;
       active.resolvedAt = null;
       active.resolutionReason = undefined;
-      return;
+      return false;
     }
     this.incidents.push({
       id: new ObjectId(),
@@ -80,6 +80,7 @@ class FakeIncidentRepository implements IncidentDetectionRepository {
       createdAt: at,
       updatedAt: at,
     });
+    return true;
   }
 
   async resolveActiveIncident(

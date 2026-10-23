@@ -237,7 +237,7 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
     restaurantId: ObjectId,
     incident: IncidentCandidate,
     now: Date,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const activeKey = incidentActiveKey(restaurantId, incident);
     const identity = {
       restaurantId,
@@ -265,10 +265,13 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
     };
 
     try {
-      await this.incidents.updateOne(identity, update, { upsert: true });
+      const result = await this.incidents.updateOne(identity, update, { upsert: true });
+      return Boolean(result?.upsertedId);
     } catch (error) {
       if (!isDuplicateKey(error)) throw error;
+      // Another writer opened the same incident first; this call only refreshed it.
       await this.incidents.updateOne({ restaurantId, activeKey }, update);
+      return false;
     }
   }
 
