@@ -5802,3 +5802,40 @@ button.notification-item:focus-visible {
     transition: none;
   }
 }
+
+/* Single-column auth pages (account recovery). */
+.auth-page.auth-page-single {
+  grid-template-columns: 1fr;
+}
+.auth-page-single .auth-brand-visible {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #34483b;
+  font-size: 13px;
+  font-weight: 680;
+}
+.auth-page-single .auth-brand-visible .brand-mark,
+.auth-page-single .auth-brand-visible .brand-mark svg {
+  width: 30px;
+  height: 30px;
+}
+.auth-forgot-link {
+  align-self: flex-end;
+  margin-top: -4px;
+  color: #55715d;
+  font-size: 12px;
+  font-weight: 620;
+}
+.auth-forgot-link:hover,
+.auth-forgot-link:focus-visible {
+  text-decoration: underline;
+}
+.auth-hint {
+  margin: 10px 0 0;
+  color: #6f7c74;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}

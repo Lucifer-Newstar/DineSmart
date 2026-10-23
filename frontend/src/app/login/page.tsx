@@ -112,6 +112,9 @@ export default function LoginPage() {
                 required
               />
             </label>
+            <Link className="auth-forgot-link" href="/forgot-password">
+              Forgot password?
+            </Link>
             {error ? (
               <p className="auth-error" role="alert">
                 {error}
@@ -125,6 +128,10 @@ export default function LoginPage() {
             <>
               <div className="auth-divider">OR CONTINUE WITH</div>
               <GoogleSignInButton onSuccess={goHome} />
+              <p className="auth-hint">
+                Google sign-in works for accounts that already exist with the same verified email.
+                New here? Create an account first.
+              </p>
             </>
           ) : (
             <div className="auth-divider">YOUR RESTAURANT, YOUR SHIFT</div>
