@@ -8,6 +8,7 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
     "seed": "tsx src/database/seed.cli.ts",
+    "bootstrap": "tsx src/database/bootstrap.cli.ts",
     "demo:fixtures": "tsx src/database/demo-fixtures.cli.ts",
     "lint": "biome check .",
     "format": "biome format --write .",
