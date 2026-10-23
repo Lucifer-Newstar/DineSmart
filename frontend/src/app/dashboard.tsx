@@ -14,6 +14,7 @@ import {
   INITIAL_RESERVATIONS,
   NAVIGATION,
 } from "./_dashboard/demo-data";
+import { FloorPanel } from "./_dashboard/floor-panel";
 import { IncidentsPage } from "./_dashboard/incidents-page";
 import { InsightsPage } from "./_dashboard/insights-page";
 import { InventoryPage } from "./_dashboard/inventory-page";
@@ -1228,15 +1229,22 @@ export function Dashboard() {
               onAdvanceOrder={(orderId) => void advanceOrder(orderId)}
             />
           ) : currentSection === "Reservations" ? (
-            <ReservationsPage
-              reservations={reservations}
-              status={reservationsStatus}
-              truncated={reservationsTruncated}
-              savingId={savingReservationId}
-              onUpdate={updateReservation}
-              onRefresh={() => setReservationsRefreshKey((current) => current + 1)}
-              onToast={notify}
-            />
+            <>
+              <ReservationsPage
+                reservations={reservations}
+                status={reservationsStatus}
+                truncated={reservationsTruncated}
+                savingId={savingReservationId}
+                onUpdate={updateReservation}
+                onRefresh={() => setReservationsRefreshKey((current) => current + 1)}
+                onToast={notify}
+              />
+              <FloorPanel
+                accessToken={accessToken}
+                refreshKey={reservationsRefreshKey}
+                onToast={notify}
+              />
+            </>
           ) : currentSection === "Inventory" ? (
             <InventoryPage
               inventory={inventory}
