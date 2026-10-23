@@ -34,6 +34,7 @@ import {
 import { ReservationsPage } from "./_dashboard/reservations-page";
 import { KitchenPage, OrdersPage } from "./_dashboard/service-pages";
 import { SettingsPage } from "./_dashboard/settings-page";
+import { StaffPanel } from "./_dashboard/staff-panel";
 import type {
   HealthScoreData,
   HealthScoreViewStatus,
@@ -1280,11 +1281,20 @@ export function Dashboard() {
           ) : currentSection === "Analytics" ? (
             <AnalyticsPage key={workspaceScopeKey} />
           ) : (
-            <SettingsPage
-              userName={user?.name ?? "Maya Nair"}
-              role={user?.role ?? "Manager preview"}
-              onToast={notify}
-            />
+            <>
+              <SettingsPage
+                userName={user?.name ?? "Maya Nair"}
+                role={user?.role ?? "Manager preview"}
+                onToast={notify}
+              />
+              {!user || user.role === "Manager" || user.role === "Administrator" ? (
+                <StaffPanel
+                  accessToken={accessToken}
+                  currentUserId={user?.id ?? null}
+                  onToast={notify}
+                />
+              ) : null}
+            </>
           )}
 
           <footer className="app-footer">

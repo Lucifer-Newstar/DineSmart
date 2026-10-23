@@ -5998,3 +5998,40 @@ button.notification-item:focus-visible {
     flex-wrap: wrap;
   }
 }
+
+/* Staff roster (S2-16). */
+.staff-card {
+  margin-top: 18px;
+}
+.inline-select {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid #dfe5de;
+  border-radius: 8px;
+  color: #405146;
+  background: #fcfdfa;
+  font-size: 12px;
+}
+.status-toggle {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid #dfe5de;
+  border-radius: 999px;
+  color: #69726c;
+  background: #f0f2ef;
+  font-size: 12px;
+  font-weight: 620;
+  cursor: pointer;
+}
+.status-toggle-on {
+  border-color: #cfe0ca;
+  color: #4f7350;
+  background: #eef5ea;
+}
+.status-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.row-muted td {
+  opacity: 0.65;
+}
