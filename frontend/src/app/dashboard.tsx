@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AnalyticsPage } from "./_dashboard/analytics-page";
+import { BillingPanel } from "./_dashboard/billing-panel";
 import { CustomerPortal } from "./_dashboard/customer-portal";
 import {
   API_BASE,
@@ -1207,18 +1208,25 @@ export function Dashboard() {
               onReservations={() => goTo("Reservations")}
             />
           ) : currentSection === "Orders" ? (
-            <OrdersPage
-              orders={orders}
-              status={ordersStatus}
-              truncated={ordersTruncated}
-              canUpdateOrders={canUpdateOrderHeaders}
-              onAdvance={advanceOrder}
-              search={orderSearch}
-              onSearch={setOrderSearch}
-              statusFilter={orderStatusFilter}
-              onFilter={setOrderStatusFilter}
-              onRefresh={() => setOrdersRefreshKey((current) => current + 1)}
-            />
+            <>
+              <OrdersPage
+                orders={orders}
+                status={ordersStatus}
+                truncated={ordersTruncated}
+                canUpdateOrders={canUpdateOrderHeaders}
+                onAdvance={advanceOrder}
+                search={orderSearch}
+                onSearch={setOrderSearch}
+                statusFilter={orderStatusFilter}
+                onFilter={setOrderStatusFilter}
+                onRefresh={() => setOrdersRefreshKey((current) => current + 1)}
+              />
+              {user &&
+              ordersStatus === "live" &&
+              (role === "Manager" || role === "Administrator") ? (
+                <BillingPanel accessToken={accessToken} orders={orders} onToast={notify} />
+              ) : null}
+            </>
           ) : currentSection === "Kitchen" ? (
             <KitchenPage
               orders={orders}

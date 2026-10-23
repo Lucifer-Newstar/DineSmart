@@ -6035,3 +6035,53 @@ button.notification-item:focus-visible {
 .row-muted td {
   opacity: 0.65;
 }
+
+/* Billing (S2-14). */
+.billing-card {
+  margin-top: 18px;
+}
+.billing-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.billing-list > li {
+  border-top: 1px solid var(--line);
+}
+.billing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 2px;
+}
+.bill-sheet {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcf9;
+}
+.bill-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bill-lines td {
+  padding: 4px 0;
+}
+.bill-lines td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.bill-lines tfoot td {
+  color: #5f6f64;
+}
+.bill-lines tfoot tr:first-child td {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.bill-total td {
+  color: var(--ink);
+  font-weight: 700;
+}
