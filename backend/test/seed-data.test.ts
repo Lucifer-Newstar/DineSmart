@@ -5,7 +5,12 @@ import {
   DEMO_IDS,
   DEMO_SEED_COLLECTION_NAMES,
 } from "../src/database/seed-data.js";
-import { requireLocalSeedTarget } from "../src/database/seed-safety.js";
+import {
+  databaseNameFromUri,
+  readCliOption,
+  requireLocalSeedTarget,
+  requireSeedTarget,
+} from "../src/database/seed-safety.js";
 
 const FIXED_NOW = new Date("2026-10-10T12:00:00.000Z");
 
@@ -75,4 +80,65 @@ test("seed guard allows only development URIs pointed at local MongoDB hosts", (
     /local MongoDB host/,
   );
   assert.throws(() => requireLocalSeedTarget("development", undefined), /MONGODB_URI/);
+});
+
+test("a remote seed needs --allow-remote, the matching database name and a demo password", () => {
+  const atlasUri =
+    "mongodb+srv://user:pass@cluster0.example.mongodb.net/andhrimnir?retryWrites=true";
+  assert.equal(databaseNameFromUri(atlasUri), "andhrimnir");
+  assert.throws(() => requireSeedTarget("development", atlasUri), /--allow-remote/);
+  assert.throws(
+    () => requireSeedTarget("development", atlasUri, { allowRemote: true }),
+    /--confirm andhrimnir/,
+  );
+  assert.throws(
+    () =>
+      requireSeedTarget("development", atlasUri, {
+        allowRemote: true,
+        confirmDatabase: "other",
+      }),
+    /--confirm andhrimnir/,
+  );
+  assert.throws(
+    () =>
+      requireSeedTarget("development", atlasUri, {
+        allowRemote: true,
+        confirmDatabase: "andhrimnir",
+      }),
+    /SEED_DEMO_PASSWORD/,
+  );
+  assert.equal(
+    requireSeedTarget("development", atlasUri, {
+      allowRemote: true,
+      confirmDatabase: "andhrimnir",
+      demoPassword: "a-different-demo-password",
+    }),
+    atlasUri,
+  );
+  assert.throws(
+    () =>
+      requireSeedTarget("production", atlasUri, {
+        allowRemote: true,
+        confirmDatabase: "andhrimnir",
+        demoPassword: "a-different-demo-password",
+      }),
+    /NODE_ENV=development/,
+  );
+  assert.throws(
+    () =>
+      requireSeedTarget("development", "mongodb+srv://user:pass@cluster0.example.mongodb.net/", {
+        allowRemote: true,
+        confirmDatabase: "",
+        demoPassword: "a-different-demo-password",
+      }),
+    /must name its database/,
+  );
+});
+
+test("seed CLI options accept flag, spaced and equals forms", () => {
+  assert.equal(readCliOption(["--allow-remote"], "allow-remote"), true);
+  assert.equal(readCliOption(["--confirm", "andhrimnir"], "confirm"), "andhrimnir");
+  assert.equal(readCliOption(["--confirm=andhrimnir"], "confirm"), "andhrimnir");
+  assert.equal(readCliOption(["--confirm", "--allow-remote"], "confirm"), true);
+  assert.equal(readCliOption([], "confirm"), undefined);
 });
