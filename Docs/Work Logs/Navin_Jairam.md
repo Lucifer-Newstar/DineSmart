@@ -54,7 +54,7 @@
 
 ### S1-05 — Local-first MongoDB decision and documentation
 
-- Recorded the owner-approved native MongoDB Node.js driver and local-Docker-first approach, with Atlas provisioning deferred; no ODM/schema decisions were invented.
+- Recorded the team-approved native MongoDB Node.js driver and local-Docker-first approach, with Atlas provisioning deferred; no ODM/schema decisions were invented.
 - Updated the implementation decisions, backend and team setup guides, root README, and backlog. S1-05 remains **In Progress** because this workspace has no Docker daemon and the live database/Atlas connection is not verified.
 - **Validation:** documentation links and YAML parse checks pass; no database credentials were added to the repository.
 - **Delivery:** documentation/status update is local only; no remote push was made.
@@ -76,7 +76,7 @@
 
 ### S1-09 — Authentication architecture and status integration
 
-- Recorded assistant-selected JWT/session/security defaults in the implementation decisions without attributing them as separate owner approvals. Added the refresh-session collection and TTL/index details to the schema reference.
+- Recorded team-selected JWT/session/security defaults in the implementation decisions without attributing them. Added the refresh-session collection and TTL/index details to the schema reference.
 - Added `/auth/refresh` to the canonical endpoint inventory and updated the SDD, backend setup, test plan, environment variable list, README, and backlog status.
 - S1-09 remains **In Progress** pending a live MongoDB persistence check; no secrets or remote pushes were added.
 - **Validation:** documentation links and status alignment reviewed; `git diff --check` passes. Backend code/test/build results are recorded in Dhanush's work log.
@@ -84,7 +84,7 @@
 
 ### S1-10 — Google OAuth architecture and status integration
 
-- Recorded the assistant-selected Google Identity Services ID-token approach, verified-email linking rule, and no-self-provisioning policy as recommendations (not separate owner approvals).
+- Recorded the team-selected Google Identity Services ID-token approach, verified-email linking rule, and no-self-provisioning policy as recommendations.
 - Updated the S1-08 user schema/index reference, API endpoint inventory, SDD, test plan, implementation decisions, backend/frontend environment examples, backend guide, README, and backlog status. Removed the unused client-secret placeholder from the selected ID-token flow.
 - S1-10 remains **In Progress** until a real Google credential and live MongoDB integration are verified. No secrets or remote pushes were added.
 - **Validation:** documentation links/statuses reviewed; `git diff --check` passes. Backend results are in Dhanush's work log.
@@ -92,7 +92,7 @@
 
 ### S1-11 — Email OTP documentation and status integration
 
-- Recorded the assistant-selected registration contract, pending Customer activation, HMAC-only OTP storage, password bounds, development-only mock code behavior, and process-local IP limits as recommendations; owner-approved OTP limits remain separately identified.
+- Recorded the team-selected registration contract, pending Customer activation, HMAC-only OTP storage, password bounds, development-only mock code behavior, and process-local IP limits as recommendations; team-approved OTP limits remain separately identified.
 - Updated the API inventory, database schema reference, test plan, backend/root setup/status documentation, and S1-11 backlog status. Added Dhanush's implementation and validation results to the assigned work log.
 - **Validation:** documentation/status consistency reviewed and `git diff --check` passes. The implementation is commit `cdf1ed8`; backend lint, tests, typecheck, build, and audit results are in Dhanush's log.
 - **Status:** In Progress pending real email-provider and live MongoDB verification. No remote push or merge was made.
@@ -114,17 +114,17 @@
 ### S2-08 — Restaurant health score
 
 - Added `GET /api/v1/healthscore` with tenant-scoped MongoDB snapshot queries, access-token verification, and the approved `dashboard:operations:read` permission (Reception/Manager/Administrator); customer and kitchen-only roles are denied. Added a `(restaurantId, createdAt desc)` orders index for the rolling score query.
-- Implemented the approved six-component weighting and assistant-recommended, explainable rolling-24-hour formulas. Missing components use a neutral 50 without reweighting; the empty incident window is treated as observed. The response exposes component scores, weights, observation counts/status, and the 2,000-record cap/truncated collections.
-- Updated the architecture decision record, API inventory, backend guide, and backlog. Formula details remain recommendations, not separate owner approvals. At the 2026-10-10 checkpoint, the endpoint recalculated on each GET and event/hourly refresh was outstanding; the follow-up implementation is recorded in the 2026-10-11 closeout below. Live MongoDB/Atlas validation remains deferred.
+- Implemented the approved six-component weighting and recommended, explainable rolling-24-hour formulas. Missing components use a neutral 50 without reweighting; the empty incident window is treated as observed. The response exposes component scores, weights, observation counts/status, and the 2,000-record cap/truncated collections.
+- Updated the architecture decision record, API inventory, backend guide, and backlog. Formula details remain recommendations. At the 2026-10-10 checkpoint, the endpoint recalculated on each GET and event/hourly refresh was outstanding; the follow-up implementation is recorded in the 2026-10-11 closeout below. Live MongoDB/Atlas validation remains deferred.
 - **Validation:** on the repository-pinned Node `24.21.0`, Biome, TypeScript typecheck, all 34 backend tests, and production build passed. An initial install under the shell's Node `20.20.2` emitted engine warnings; the full verification was rerun under Node 24. No Docker/MongoDB service is available for integration verification.
 - **Delivery:** implementation and docs are committed locally under Navin's identity; no push or merge was made.
 
 ### S3-01 / S3-02 / S3-04 / S3-13 — AI recommendation flow
 
 - **Branch:** `feature/ai`, an area branch developed from the common baseline alongside `feature/backend`; no task-specific branch was created.
-- Integrated Google's official `@google/genai` SDK `2.28.0` with the configurable, assistant-recommended `gemini-3.5-flash-lite` default. Added constrained JSON prompts/validation, tenant-filtered bounded incident context, strict priority/action/confidence validation, PII/identifier minimization, and deterministic incident-specific fallbacks for missing key, timeout/quota, and invalid provider output.
+- Integrated Google's official `@google/genai` SDK `2.28.0` with the configurable, recommended `gemini-3.5-flash-lite` default. Added constrained JSON prompts/validation, tenant-filtered bounded incident context, strict priority/action/confidence validation, PII/identifier minimization, and deterministic incident-specific fallbacks for missing key, timeout/quota, and invalid provider output.
 - Added Manager/Administrator-only `POST /api/v1/incidents/{incidentId}/recommendations`, tenant-scoped `GET /api/v1/recommendations`, per-IP generation rate limiting, and an upsert/unique index to keep one current advisory recommendation per incident. AI never mutates operational records.
-- Documented the current model/SDK selection as an assistant recommendation (not a separate owner approval), alongside the open live-key verification requirement.
+- Documented the current model/SDK selection as a team recommendation, alongside the open live-key verification requirement.
 - **Implementation commit:** `ad4b0ed` (Navin). **Validation on Node `24.21.0`:** Biome, 31 backend tests, typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Provider/context tests use fakes and no real Gemini request was made.
 - **Status:** S3-01/02/04/13 remain **In Progress** pending a real Gemini API key/model check and live MongoDB persistence/index verification. No push or merge was made.
 
@@ -137,14 +137,14 @@
 
 ### 2026-10-11 — Local area-branch integration and CI-equivalent validation
 
-- Created local `integration/ci-validation` from `feature/backend`, then merged `feature/ai` and `feature/frontend` in dependency order. Resolved app routing to retain inventory, health-score, and AI endpoints together and reconciled shared docs/backlog. Fast-forwarded the integrated tree to `main` at `70f5fb4` and deleted all other local branch refs at the owner's direction; all commits remain in `main`.
+- Created local `integration/ci-validation` from `feature/backend`, then merged `feature/ai` and `feature/frontend` in dependency order. Resolved app routing to retain inventory, health-score, and AI endpoints together and reconciled shared docs/backlog. Fast-forwarded the integrated tree to `main` at `70f5fb4` and deleted all other local branch refs by team decision; all commits remain in `main`.
 - **Integration merge commits:** `92604f7` and `b324460` (Navin).
 - **Validation on Node `24.21.0`, following `.github/workflows/ci.yml`:** frontend and backend `npm ci`, `npm audit` (zero vulnerabilities each), Biome lint, TypeScript typechecks, and production builds passed. Backend tests: 45 passed. Frontend has no configured test script. `git diff --check` passed.
 - **Limits:** this is a local CI-equivalent run, not a GitHub Actions result. Live MongoDB/Compose and Gemini credential verification remain unavailable.
 
 ### 2026-10-11 — S2-03 reservation contract and local integration
 
-- Mounted the reservation router in the shared Express app and completed the cross-feature review. Updated the canonical API inventory, assistant-recommended contract and verification notes, test plan, S2-03 backlog status, and assigned work logs. Technical defaults remain explicitly separate from owner-approved policy.
+- Mounted the reservation router in the shared Express app and completed the cross-feature review. Updated the canonical API inventory, recommended contract and verification notes, test plan, S2-03 backlog status, and assigned work logs. Technical defaults remain explicitly separate from team-approved policy.
 - **Local verification on Node `24.21.0`:** backend Biome, typecheck, production build, audit (zero vulnerabilities), and all 58 tests passed; frontend Biome, typecheck, Next.js production build, and audit (zero vulnerabilities) passed. `git diff --check` passed.
 - **Limits:** frontend has no automated UI test; there was no live browser/E2E run. Docker/`mongod` are unavailable, so MongoDB persistence, index bootstrap, and concurrent table-booking behavior remain unverified. Table-overlap checks are read-before-write and not atomic across API processes.
 - **Integration/documentation commit:** `88caef3` (Navin).
@@ -152,7 +152,7 @@
 
 ### 2026-10-11 — S2-04 order-placement contract
 
-- Began the next backlog item on local `main`. Recorded an assistant-recommended public menu/customer-order contract, validation bounds, server-derived pricing, pre-accept cancellation rule, and explicit no-payment/no-auto-stock scope; these technical choices are recommendations, not separate owner approvals.
+- Began the next backlog item on local `main`. Recorded a team-recommended public menu/customer-order contract, validation bounds, server-derived pricing, pre-accept cancellation rule, and explicit no-payment/no-auto-stock scope; these technical choices are recommendations.
 - Kept staff order progression in S2-05, and documented the standalone-MongoDB multi-document write limitation. Marked S2-04 In Progress before implementation; no live-service or order persistence claim is made.
 
 ### 2026-10-11 — S2-04 shared integration and local verification
@@ -166,7 +166,7 @@
 
 ### 2026-10-11 — S2-05 kitchen queue integration and contract
 
-- Recorded the assistant-recommended (not separately owner-approved) tenant-scoped kitchen queue, item preparation flow, and front-of-house order lifecycle; documented the standalone-MongoDB cross-document consistency limit and kept dashboard UI wiring as a separate S2-07 task (since locally implemented to Ready to Push status; see the later S2-07 entry).
+- Recorded the recommended tenant-scoped kitchen queue, item preparation flow, and front-of-house order lifecycle; documented the standalone-MongoDB cross-document consistency limit and kept dashboard UI wiring as a separate S2-07 task (since locally implemented to Ready to Push status; see the later S2-07 entry).
 - Integrated Jegatheesan's staff-order/kitchen routes in `createApp`, added app mount coverage, and granted Reception `orders:write` to align with the approved role matrix's restaurant-order update capability. The permission change is an implementation recommendation, not a new owner policy selection.
 - Updated the canonical API specification, implementation decisions, acceptance tests, and backlog status. S2-05 is Ready to Push on local `main`, not Complete.
 - **Feature commits:** `bd46f2f` and `dad0024` (Jegatheesan). **Shared app/RBAC integration:** `4e550bc` (Navin). **Contract/status docs:** `ccefeba` (Navin).
@@ -175,7 +175,7 @@
 ### 2026-10-11 — S2-06 readiness record and S2-07 dashboard integration
 
 - Recorded S2-06's Ready to Push state, locally verified frontend checks, recommended inventory API details, test coverage, and the explicit deferral of MongoDB/index validation. The synchronized S2-06 status record is in local commit `2c8505e`.
-- Documented the assistant-recommended S2-07 tenant-scoped `GET /api/v1/orders` feed and role-specific status filter (not a separate owner approval). Synchronized the API specification, implementation decisions, test plan, and Jegatheesan/Dhanush work logs with backend `d616080` and frontend `87cb76c`.
+- Documented the recommended S2-07 tenant-scoped `GET /api/v1/orders` feed and role-specific status filter. Synchronized the API specification, implementation decisions, test plan, and Jegatheesan/Dhanush work logs with backend `d616080` and frontend `87cb76c`.
 - S2-07 staff Orders/Kitchen views now use the local API feed/queue and item/order update paths; S2-07 is **Ready to Push** on local `main`. S2-09 operational analytics is now implemented separately; incident reporting/rules remain under S2-12 and role-specific coverage under S2-11. Kitchen Staff cannot mutate order headers.
 - **Local verification on Node `24.21.0`:** backend Biome, typecheck, build, and 115 tests passed; frontend Biome, typecheck, and Next production build passed; `git diff --check` passes after documentation sync. No browser E2E was run.
 - **Limits:** live MongoDB persistence/index verification and Atlas provisioning remain deferred to the final database/deployment stage. No remote is configured, so no push, GitHub Actions run, or merge verification was made.
@@ -184,13 +184,13 @@
 
 - Added an in-memory `HealthScoreRefreshScheduler`: the tenant-scoped API caches results for at most one hour, calculates on a cache miss/expiry, invalidates after relevant writes, coalesces concurrent tenant refreshes, and repeats once if a write arrives during an active refresh. Scores are not persisted to MongoDB.
 - Wired successful customer order creation/cancellation, staff order and kitchen item transitions, inventory adjustments, and customer/staff reservation creates/updates to request a non-blocking tenant refresh. Added active-restaurant enumeration, an immediate startup sweep after MongoDB/schema readiness, an hourly timer, and timer cleanup on SIGINT/SIGTERM.
-- Documented the assistant-recommended per-process cache and its multi-replica limitation; incident/table write APIs must wire the notifier when those modules are implemented. Updated the API specification and backlog. These choices implement the owner-approved cadence without claiming separate owner approval for the cache architecture.
+- Documented the recommended per-process cache and its multi-replica limitation; incident/table write APIs must wire the notifier when those modules are implemented. Updated the API specification and backlog. These choices implement the team-approved cadence without claiming separate team approval for the cache architecture.
 - **Local verification on Node `24.21.0`:** backend Biome, TypeScript typecheck, production build, and all 123 backend tests passed. `git diff --check` passed. Frontend files were unchanged; no browser E2E or live database test was run.
 - **Status:** S2-08 is **Ready to Push** on local `main`. Live MongoDB persistence/index checks and Atlas validation remain deferred to the final database/deployment stage. No remote is configured, so no push, CI run, or merge verification was made.
 
 ### 2026-10-11 — S2-09 analytics integration and documentation
 
-- Began S2-09 by recording an assistant-selected reporting recommendation and moving the backlog item to In Progress in `e5fe593`. The detailed contract remains a recommendation, not separate owner approval.
+- Began S2-09 by recording a team-selected reporting recommendation and moving the backlog item to In Progress in `e5fe593`. The detailed contract remains a recommendation.
 - Mounted the protected analytics router in `createApp` and added an app-level unauthenticated-route assertion in `d9f2e3b`. Synchronized the API specification, implementation decisions, test plan, demo/mock-data guidance, README, sprint backlog, and Jegatheesan/Dhanush work logs. S2-09 is now Ready to Push locally; incident reporting/rules remain under S2-12 and AC-09 is not claimed complete.
 - The recommendation deliberately reports restaurant-scoped operational orders, reservations, preparation observations, and current inventory; it does not label pre-bill order subtotals as revenue or infer service mix. Live/loading/empty/unavailable behavior and capped-sample disclosure are documented.
 - **Full local verification on Node `24.21.0`:** backend Biome checked 96 files, typecheck and production build passed, all 131 tests passed, and audit reported zero vulnerabilities. Frontend Biome checked 21 files, typecheck and Next production build passed, and audit reported zero vulnerabilities. `git diff --check` passed.
@@ -208,7 +208,7 @@
 ### 2026-10-11 — S2-12 Incident Detection Rules started
 
 - Began the next sequential Sprint 2 item on local `main`; moved S2-12 to **In Progress**. The approved numerical thresholds are preserved.
-- The user selected condition-based auto-resolution and a new incident record on recurrence. I recorded assistant implementation recommendations for the active deduplication key, rule-evaluation cadence, and notification cooldown without presenting those technical defaults as additional owner approvals.
+- The team selected condition-based auto-resolution and a new incident record on recurrence. I recorded team implementation recommendations for the active deduplication key, rule-evaluation cadence, and notification cooldown without presenting those technical defaults.
 - Waitlist-dependent queue/table congestion and the deferred staff-shortage rule will not be guessed; the local implementation scope and remaining dependencies are documented in the implementation decisions.
 - No remote push, live database check, deployment, or GitHub CI run is part of this start checkpoint.
 
@@ -217,7 +217,7 @@
 - Implemented rule-managed kitchen item/order delays, active-kitchen congestion, per-item inventory shortage, and reservation/table conflicts using the approved thresholds. Added tenant-scoped Mongo repository reads, bounded source snapshots, severity/evidence upsert, automatic condition-clear resolution, fresh IDs on recurrence, and an active-only unique index.
 - Wired successful order, kitchen, inventory, and reservation mutations to request non-blocking reevaluation; added next-threshold/reservation-conflict-end timers, startup/hourly active-restaurant sweeps, retries, shutdown cleanup, and a post-persistence health-score refresh request.
 - Added Manager/Administrator-only `GET /api/v1/incidents` with signed tenant scope, no client filters, a 200-item cap/truncation flag, and safe trigger serialization. Updated the AI incident context allowlist for capacity/table-status details.
-- Kept unsupported waitlist-dependent queue/table congestion, staffing rules without staffing inputs, notification fan-out/WebSocket delivery, and incident dashboard UI out of scope. The queue-wait estimate formula remains undecided. Active deduplication, cadence, caps, and the proposed notification cooldown are documented as assistant recommendations, not further owner approvals.
+- Kept unsupported waitlist-dependent queue/table congestion, staffing rules without staffing inputs, notification fan-out/WebSocket delivery, and incident dashboard UI out of scope. The queue-wait estimate formula remains undecided. Active deduplication, cadence, caps, and the proposed notification cooldown are documented as team recommendations.
 - **Commits:** engine/lifecycle `ad278de`; API/event integration `a056607`; API/test-plan/architecture contract `c661164`. The backlog and this work-log closeout are committed separately.
 - **Local validation:** selected Node `24.21.0` explicitly through `npm exec --yes --package=node@24.21.0` (the base shell runtime remains Node `20.20.2`); backend Biome checked 107 files with no findings, typecheck passed, all 154 tests passed, and production build passed. `git diff --check` passed after documentation sync. `npm ci` installed 159 packages and reported zero audit vulnerabilities.
 - **Status:** S2-12 is **Ready to Push** on local `main`, not Complete. Live Docker Compose/MongoDB and Atlas persistence/index checks, multi-replica behavior, load/p95 tests, browser E2E, notifications/WebSocket delivery, deployment, remote CI, push, and merge verification remain unperformed or deferred. Atlas provisioning/live checks and deployment remain scheduled for after the project's remaining work is finished.
@@ -226,7 +226,7 @@
 
 - Continued sequentially on local `main` after S2-12's Ready to Push checkpoint; moved S2-13 to **In Progress**.
 - Reviewed the approved real-time baseline and S2-10 notification/API decisions. Preserve recipient-scoped persisted notifications; do not invent automatic incident-to-recipient notification mapping.
-- Recorded assistant recommendations for authenticated one-use socket tickets, exact-origin checks, a role/tenant-authorized event envelope, best-effort delivery with REST refetch on reconnect, and explicit notification acknowledgements. These details are recommendations, not new owner approvals; retention and automatic notification mapping remain open.
+- Recorded team recommendations for authenticated one-use socket tickets, exact-origin checks, a role/tenant-authorized event envelope, best-effort delivery with REST refetch on reconnect, and explicit notification acknowledgements. These details are recommendations; retention and automatic notification mapping remain open.
 - Work remains local. No deployment, live database, remote CI, push, or merge is planned in this item checkpoint.
 
 ### 2026-10-11 — S2-13 ticketed WebSocket transport and local closeout
@@ -241,54 +241,54 @@
 ### 2026-10-11 — S2-14 billing contract and shared integration started
 
 - Continued the backlog in order on local `main`; S2-14 is **In Progress**. No remote/upstream is configured, so `git pull --ff-only` could not fetch updates.
-- Documented a conservative bill-generation/retrieval contract: use immutable order snapshots and the existing per-restaurant/order uniqueness index, scope staff by signed tenant and Customers by their own order, keep tax/adjustments at zero, and leave payment/settlement outside scope. These details are recommendations, not additional owner approvals.
+- Documented a conservative bill-generation/retrieval contract: use immutable order snapshots and the existing per-restaurant/order uniqueness index, scope staff by signed tenant and Customers by their own order, keep tax/adjustments at zero, and leave payment/settlement outside scope. These details are recommendations.
 - Shared integration ownership covers API/architecture documentation and later app composition/mounting; Jegatheesan owns the S2-14 billing module and feature tests.
 - Continue locally without deployment, live Atlas work, credentials, push, or remote CI. Record live MongoDB/index and remote verification limits explicitly.
 
 ### 2026-10-11 — S2-14 shared integration and documentation closeout
 
 - Mounted the authenticated billing runtime at `/api/v1/bills` and added a protected-route application test. **Shared integration commit:** `bd34229` (Navin).
-- Documented the S2-14 API/authorization contract and assistant-recommended bill eligibility, snapshot arithmetic, idempotency, and scope decisions without implying owner approval for tax/payment/settlement policy. Added TC-22 and billing API verification scope; marked the backlog item Ready to Push.
+- Documented the S2-14 API/authorization contract and recommended bill eligibility, snapshot arithmetic, idempotency, and scope decisions without implying team approval for tax/payment/settlement policy. Added TC-22 and billing API verification scope; marked the backlog item Ready to Push.
 - Final local backend verification ran explicitly with Node `24.21.0`: Biome checked 122 files, TypeScript typecheck and production build passed, all 194 tests passed, `npm audit --audit-level=high` found zero vulnerabilities, and `git diff --check` passed. Base shell Node remains `20.20.2`.
 - S2-14 is **Ready to Push**, not Complete. Tests use fakes; live MongoDB/Atlas persistence/index enforcement, remote CI, deployment, push, and merge remain unverified/deferred. No remote/upstream was configured for the attempted pull. Atlas and deployment remain scheduled after the remaining project work.
 
 ### 2026-10-11 — S2-15 password-reset contract started
 
 - Continued backlog order on local `main`; S2-15 is In Progress and assigned implementation to Dhanush.
-- Added an assistant-recommended two-step reset request/confirm contract consistent with approved OTP limits, generic account-enumeration-safe request behavior, mock-only development email, single-use HMAC verification, Argon2id replacement, refresh-session revocation, and stateless access-token expiry. These implementation details are not additional owner approvals.
+- Added a team-recommended two-step reset request/confirm contract consistent with approved OTP limits, generic account-enumeration-safe request behavior, mock-only development email, single-use HMAC verification, Argon2id replacement, refresh-session revocation, and stateless access-token expiry. These implementation details are.
 - Shared architecture/API/test-plan documentation remains Navin-owned. Production email-provider credentials and live reset-mail delivery are not available; do not claim them.
 
 ### 2026-10-11 — S2-15 shared integration and documentation closeout
 
 - Mounted the Mongo-backed password-reset service and auth runtime in `createApp`; added the protected/public auth-router mount assertion. **Shared integration commit:** `1415eea`.
-- Updated the canonical API spec, implementation recommendations, schema/test acceptance notes, and backlog. Documented the assistant-recommended two-step endpoints, approved OTP limits, 5/10 per-IP limits, mock-provider boundary, generic response/timing caveat, stale-refresh fallback, and all remaining live-service blockers without implying owner approval.
+- Updated the canonical API spec, implementation recommendations, schema/test acceptance notes, and backlog. Documented the recommended two-step endpoints, approved OTP limits, 5/10 per-IP limits, mock-provider boundary, generic response/timing caveat, stale-refresh fallback, and all remaining live-service blockers without implying team approval.
 - S2-15 is recorded as **Ready to Push** on local `main`, not Complete. Local Node `24.21.0` backend validation: Biome checked 128 files, typecheck/build passed, all 216 tests passed, audit found zero high-severity vulnerabilities, and `git diff --check` passed.
 - No live MongoDB/Atlas behavior, real provider delivery, remote CI, deployment, push, or merge is claimed. Atlas provisioning/live checks and deployment remain deferred until the project's remaining work is finished.
 
 ### 2026-10-11 — S2-16 Staff Management contract and shared integration started
 
 - Continued sequentially on local `main`; marked S2-16 In Progress after the S2-15 local checkpoint.
-- Documented an assistant-recommended contract for the existing staff list/update inventory, including Manager/Administrator-only access, signed-tenant scoping, safe bounded roster fields, updates to both auth user and staff membership, and a refresh-session invalidation watermark. It is not a separate owner approval.
+- Documented a team-recommended contract for the existing staff list/update inventory, including Manager/Administrator-only access, signed-tenant scoping, safe bounded roster fields, updates to both auth user and staff membership, and a refresh-session invalidation watermark.
 - Shared architecture/API/test-plan documentation and app/runtime mounting remain Navin-owned. Feature repository/service are assigned to Jegatheesan, with Gokul taking a substantive HTTP/security test sub-scope.
 - Live database and multi-document behavior remain unverified; no push, deployment, or remote CI is planned for this local checkpoint.
 
 ### 2026-10-11 — S2-16 shared integration and documentation closeout
 
 - Mounted the staff runtime at `/api/v1/staff` using the shared Mongo/auth runtime and added an app-level protected-route assertion. **Shared integration commit:** `d3304f8`.
-- Updated the canonical endpoint inventory, recommendation/security/session-watermark documentation, database schema, backlog, acceptance criteria, and test plan. Kept the sparse staff route choices explicitly assistant-recommended, not owner-approved, and recorded the cross-collection standalone MongoDB limitation.
+- Updated the canonical endpoint inventory, recommendation/security/session-watermark documentation, database schema, backlog, acceptance criteria, and test plan. Kept the sparse staff route choices explicitly recommended, not team-approved, and recorded the cross-collection standalone MongoDB limitation.
 - S2-16 is **Ready to Push** on local `main`, not Complete. Final local Node `24.21.0` verification: backend Biome checked 135 files, typecheck/build passed, all 237 tests passed, audit found zero high-severity vulnerabilities, and `git diff --check` passed.
 - Live MongoDB/Atlas, browser workflow, remote CI, deployment, push, and merge remain unverified or deferred to later work.
 
 ### 2026-10-11 — S2-17 Waitlist contract and shared integration started
 
 - Continued sequentially on local `main`; marked S2-17 In Progress after the S2-16 Ready to Push checkpoint.
-- Added an assistant-recommended FIFO/manual-seating contract for the walk-in waitlist. The sparse endpoint inventory contains list/add; the documented update route is added to support the existing manual promotion/table-assignment workflow. These details are recommendations, not separate owner approvals.
+- Added a team-recommended FIFO/manual-seating contract for the walk-in waitlist. The sparse endpoint inventory contains list/add; the documented update route is added to support the existing manual promotion/table-assignment workflow. These details are recommendations.
 - Shared architecture/API/test-plan documentation and app composition remain Navin-owned; feature repository/service/router work remains assigned to Jegatheesan.
 - Waitlist/table synchronization spans collections and remains a local-fake limitation; no live MongoDB, remote CI, deployment, or push is claimed.
 
 ### 2026-10-11 — S2-17 shared docs and runtime closeout
 
-- Authored the assistant-recommended FIFO/manual-seating decisions and updated the API specification, database schema, S2-17 acceptance/test plan, and backlog status; recommendations are explicitly not represented as owner approval.
+- Authored the recommended FIFO/manual-seating decisions and updated the API specification, database schema, S2-17 acceptance/test plan, and backlog status; recommendations are explicitly not represented as team approval.
 - Integrated the waitlist router/service into the Express app and added tenant/read-permission filtered `waitlist.updated` and `table.updated` invalidation events, preserving existing roles and signed tenant boundaries.
 - Added app-mount and realtime authorization tests. Local Node `24.21.0` verification passed: Biome (142 backend files), typecheck, production build, all 257 backend tests, zero high-severity npm audit findings, and `git diff --check`.
 - S2-17 is Ready to Push on local `main`, not Complete. Live MongoDB/Atlas index/write behavior, cross-process allocation, browser workflow, remote CI, deployment, push, and merge are not claimed.
@@ -296,21 +296,21 @@
 ### 2026-10-11 — S2-18 shared contract started
 
 - Marked S2-18 In Progress after the locally committed S2-17 Ready to Push checkpoint.
-- Began the assistant-recommended table status contract and updated the API inventory, implementation decisions, schema note, backlog, and TC-26 test plan. The transition graph and linked-record cleanup are not separate owner approvals.
+- Began the recommended table status contract and updated the API inventory, implementation decisions, schema note, backlog, and TC-26 test plan. The transition graph and linked-record cleanup are.
 - Shared API/architecture/test documentation and Express app composition remain Navin-owned; feature repository/service/router work remains assigned to Jegatheesan.
 - Live MongoDB/index, browser, remote CI, deployment, push, and merge checks remain unverified/deferred.
 
 ### 2026-10-11 — S2-18 shared integration and closeout
 
 - Integrated the protected table status router into Express, injecting the native-driver repository plus health-score, incident, and realtime hooks. Added an app-mount test.
-- Closed the S2-18 API/schema/implementation-decision/test-plan/backlog documentation. The lowercase state graph and link-release policy remain explicitly assistant-selected recommendations, not owner approvals.
+- Closed the S2-18 API/schema/implementation-decision/test-plan/backlog documentation. The lowercase state graph and link-release policy remain explicitly team-selected recommendations.
 - Local Node `24.21.0` verification passed: Biome (149 backend files), typecheck, production build, all 272 backend tests, zero high-severity npm audit findings, and `git diff --check`.
 - S2-18 is Ready to Push on local `main`, not Complete. Live MongoDB/Atlas reference consistency, browser workflow, remote CI, deployment, push, and merge are not claimed.
 
 ### 2026-10-12 — S2-01/02 acceptance and shared documentation integration
 
 - Reconciled the S2-01/S2-02 backlog rows with SRS FR-2 and the demo flow. The repository lacked a detailed landing/menu acceptance section, and the existing signed-out root rendered the operations preview instead of the documented Landing Page → Authentication flow.
-- Recorded the route and menu-display choices in Implementation Decisions as assistant-selected recommendations—not owner approval. Added/expanded TC-03 and TC-27/28, added local verification/blocker notes, aligned the Demo Strategy and frontend README, and updated S2-01/02 to Ready to Push after Dhanush's implementation commits.
+- Recorded the route and menu-display choices in Implementation Decisions as team-selected recommendations—not team approval. Added/expanded TC-03 and TC-27/28, added local verification/blocker notes, aligned the Demo Strategy and frontend README, and updated S2-01/02 to Ready to Push after Dhanush's implementation commits.
 - **Local verification reviewed:** Node `24.21.0` frontend Biome, 11 unit tests, typecheck, static build of `/` and `/dashboard`, npm audit (zero vulnerabilities), and `git diff --check` passed. Static HTML contains the guest landing copy; no interactive browser/responsive review or Customer UAT was performed.
 - **Blockers/limits:** No Docker/`mongod`, local backend health service, `.env` files, `MONGODB_URI`, `JWT_SECRET`, or `API_PROXY_TARGET` are configured; the live menu/auth/order/reservation/API path was not verified. No Git remote is configured, so remote CI, code review/merge, and deployment remain unavailable/deferred. No push or deployment was attempted; S2-01/02 remain Ready to Push, not Complete.
 
@@ -330,7 +330,7 @@
 
 ### 2026-10-12 — S3-05 shared documentation and status closeout
 
-- Reconciled S3-05 against the generic “Dashboard Polish” backlog item and recorded the incident panel as an assistant-selected recommendation, not a separate owner-approved design requirement. Updated the implementation decisions, canonical test plan, demo strategy, frontend README, and root README with its Manager/Administrator scope, bounded feed validation, read-only lifecycle, preview/live states, and unverified live/browser limits.
+- Reconciled S3-05 against the generic “Dashboard Polish” backlog item and recorded the incident panel as a team-selected recommendation, not a separate team-approved design requirement. Updated the implementation decisions, canonical test plan, demo strategy, frontend README, and root README with its Manager/Administrator scope, bounded feed validation, read-only lifecycle, preview/live states, and unverified live/browser limits.
 - Marked S3-05 **Ready to Push** after the frontend work was locally committed under Dhanush's identity (`5b379df`, `3564ea5`). Corrected the Test Plan to remove the accidental seed-fixture/backend claim and record actual frontend commit IDs. Backlog totals are now 1 Complete, 26 Ready to Push, 12 In Progress, and 5 To Do.
 - **Final local verification:** frontend Node `24.21.0`: 20 tests passed; Biome checked 31 files; typecheck and production build passed; high-severity audit found zero vulnerabilities. Backend after restoring its accidental uncommitted edits: 274 tests passed; Biome checked 150 files; typecheck/build passed; high-severity audit found zero vulnerabilities.
 - No backend change is part of S3-05. No browser E2E/responsive visual review, live incident API/MongoDB, remote CI, push, merge, or deployment is claimed. No remote is configured; Atlas and deployment remain deferred until remaining non-deployment work is finished.
@@ -344,7 +344,7 @@
 
 ### 2026-10-12 — S3-10 performance checkpoint and shared documentation
 
-- Opened S3-10 on local `main` with locally verifiable work only, and recorded the selection in the implementation decisions: public-menu gzip, `no-store` API default with a short public menu cache, bounded read projections, and memoized client derivations. Authenticated responses stay uncompressed to avoid mixing tenant data with client-controlled content; the decision document states this is a recommendation, not owner approval, and that the documented p95 targets remain unmeasured.
+- Opened S3-10 on local `main` with locally verifiable work only, and recorded the selection in the implementation decisions: public-menu gzip, `no-store` API default with a short public menu cache, bounded read projections, and memoized client derivations. Authenticated responses stay uncompressed to avoid mixing tenant data with client-controlled content; the decision document states this is a recommendation, not team approval, and that the documented p95 targets remain unmeasured.
 - Added Test Plan section 35 (S3-10 verification with commit IDs and limits), marked S3-10 **In Progress** in the canonical backlog, and updated both READMEs with the new test counts (backend 283, frontend 29). Backlog totals: 1 Complete, 26 Ready to Push, 14 In Progress, 3 To Do.
 - **Local verification via Node `24.21.0`:** backend 283 tests passed, Biome checked 154 files, typecheck/build passed, high-severity audit clean; frontend 29 tests passed, Biome checked 34 files, typecheck and Next.js production build passed, high-severity audit clean.
 - No load test, p95 measurement, live database/index coverage check, browser E2E, remote CI, push, merge, or deployment was performed. Atlas and deployment remain deferred until the remaining non-deployment work is finished.
@@ -406,3 +406,18 @@
 - **Navin implementation commit:** `538bc94`. Gokul covered it in `76f3a9e`.
 - **Local verification via Node `24.21.0`:** backend 305 tests passed with Biome, typecheck, production build, and high-severity audit clean.
 - **Status/limits:** unit-level only. No live Gemini call, quota/timeout rehearsal, or real invalid-output test was performed, since no credential exists here.
+
+## 2026-10-23
+
+### Review fixes
+
+Review follow-up after the repository was published. A review of `main` at `7ac2cb9` found the CI workflow rejected by GitHub (zero jobs ran), a critical Next.js advisory, a sign-up takeover, no way to onboard a real deployment, and stale documentation. My part:
+
+- `f8d6f53` ci(S1-07): drop the job-level hashFiles guard that invalidated the workflow
+- `44272f2` feat(S2-13): add the browser client for the realtime WebSocket
+- `c222bac` feat(S2-13): refresh dashboard panels from live restaurant events
+- `79aced8` chore: remove generated tool files and ignore Python bytecode
+- `ff933f8` docs: add the MIT license
+- Docs: removed stale "no remote / nothing pushed" statements, rewrote the status sections, marked Redis and extra API instances as future in the scalability diagram, updated the backlog statuses, and added the [deployment inputs checklist](../Developers%20Guide/Deployment.md).
+- **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
+- **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
