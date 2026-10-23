@@ -527,6 +527,3 @@ export function createApp(options: AppOptions = {}) {
 
   return app;
 }
-
-const app = createApp();
-export default app;

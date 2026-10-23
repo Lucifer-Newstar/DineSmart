@@ -58,7 +58,16 @@ const server = app.listen(port, "0.0.0.0", () => {
 });
 notificationRealtimeGateway.attach(server);
 
-if (process.env.MONGODB_URI) {
+const DATABASE_RETRY_MS = 60_000;
+let databaseRetryTimer: NodeJS.Timeout | undefined;
+
+/**
+ * Starts the hourly schedulers once MongoDB is reachable. A failed first connect
+ * (for example a cold start before Atlas answers) is retried every minute, so the
+ * background jobs do not stay off until the next restart.
+ */
+function startBackgroundJobs(): void {
+  databaseRetryTimer = undefined;
   void getSchemaReadyDatabase()
     .then(() => {
       console.info("Connected to MongoDB; schema indexes are ready.");
@@ -75,15 +84,22 @@ if (process.env.MONGODB_URI) {
     })
     .catch(() => {
       console.error(
-        "MongoDB connection or schema initialization failed; the API remains in liveness-only mode.",
+        "MongoDB connection or schema initialization failed; retrying in 60 seconds. The API stays in liveness-only mode until then.",
       );
+      databaseRetryTimer = setTimeout(startBackgroundJobs, DATABASE_RETRY_MS);
+      databaseRetryTimer.unref();
     });
+}
+
+if (process.env.MONGODB_URI) {
+  startBackgroundJobs();
 } else {
   console.info("MONGODB_URI is unset; database connection skipped.");
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
+    if (databaseRetryTimer) clearTimeout(databaseRetryTimer);
     healthScoreRefreshScheduler.stopHourlyRefresh();
     incidentDetectionScheduler.stopHourlyRefresh();
     notificationRealtimeGateway.close();

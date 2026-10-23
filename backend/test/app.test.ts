@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
 import type { Db } from "mongodb";
-import app, { createApp } from "../src/app.js";
+import { createApp } from "../src/app.js";
 
 test("GET /health reports process liveness", async () => {
-  const server = app.listen(0, "127.0.0.1");
+  const server = createApp({ nodeEnvironment: "test" }).listen(0, "127.0.0.1");
   await once(server, "listening");
 
   try {
