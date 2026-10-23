@@ -30,6 +30,13 @@ function tableRecord(status: TableOperationalStatus = "occupied"): TableStatusRe
 }
 
 class FakeTableStatusRepository implements TableStatusRepository {
+  listCalls: Array<{ restaurantId: ObjectId; limit: number }> = [];
+
+  async listForRestaurant(restaurantId: ObjectId, limit: number) {
+    this.listCalls.push({ restaurantId, limit });
+    return { tables: [tableRecord()], truncated: false };
+  }
+
   calls: Array<{
     restaurantId: ObjectId;
     tableId: ObjectId;

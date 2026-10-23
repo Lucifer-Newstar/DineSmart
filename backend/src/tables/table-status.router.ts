@@ -78,6 +78,37 @@ export function createTableStatusRouter(options: TableStatusRouterOptions): Rout
     }
   });
 
+  router.get(
+    "/",
+    requirePermissions("tables:read"),
+    requireRestaurantScope(),
+    async (request: Request, response: Response) => {
+      const restaurantId = request.auth?.restaurantId;
+      const runtime = runtimes.get(request);
+      if (!restaurantId || !runtime) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+      if (Object.keys(request.query).length > 0) {
+        response.status(400).json({
+          error: { code: "invalid_table_query", message: "Table list filters are not supported." },
+        });
+        return;
+      }
+      try {
+        const result = await runtime.service.list(new ObjectId(restaurantId));
+        response.status(200).json({
+          tables: result.tables.map(toResponse),
+          truncated: result.truncated,
+        });
+      } catch (error) {
+        sendTableStatusError(error, response);
+      }
+    },
+  );
+
   router.put(
     "/:id/status",
     requirePermissions("tables:write"),

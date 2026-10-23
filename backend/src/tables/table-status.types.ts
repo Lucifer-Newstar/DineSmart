@@ -25,7 +25,16 @@ export interface TableStatusUpdateResult {
   changed: boolean;
 }
 
+export const TABLE_LIST_LIMIT = 200;
+
+export interface TableListResult {
+  tables: TableStatusRecord[];
+  truncated: boolean;
+}
+
 export interface TableStatusRepository {
+  /** Tenant-scoped floor plan ordered by table number, capped at `limit`. */
+  listForRestaurant(restaurantId: ObjectId, limit: number): Promise<TableListResult>;
   updateStatusForRestaurant(
     restaurantId: ObjectId,
     tableId: ObjectId,
@@ -35,6 +44,7 @@ export interface TableStatusRepository {
 }
 
 export interface TableStatusServiceReader {
+  list(restaurantId: ObjectId): Promise<TableListResult>;
   updateStatus(
     restaurantId: ObjectId,
     tableId: ObjectId,

@@ -32,6 +32,13 @@ function makeRecord(status: TableOperationalStatus = "occupied"): TableStatusRec
 class FakeTableStatusService implements TableStatusServiceReader {
   calls: Array<{ restaurantId: ObjectId; tableId: ObjectId; status: TableOperationalStatus }> = [];
   error?: TableStatusServiceError;
+  listedFor: ObjectId[] = [];
+
+  async list(restaurantId: ObjectId) {
+    this.listedFor.push(restaurantId);
+    if (this.error) throw this.error;
+    return { tables: [makeRecord("available")], truncated: false };
+  }
 
   async updateStatus(id: ObjectId, targetId: ObjectId, status: TableOperationalStatus) {
     this.calls.push({ restaurantId: id, tableId: targetId, status });

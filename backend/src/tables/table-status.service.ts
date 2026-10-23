@@ -8,12 +8,13 @@ import {
   TableStatusWriteConflictError,
 } from "./table-status.repository.js";
 import type {
+  TableListResult,
   TableOperationalStatus,
   TableStatusRecord,
   TableStatusRepository,
   TableStatusServiceReader,
 } from "./table-status.types.js";
-import { TABLE_STATUSES } from "./table-status.types.js";
+import { TABLE_LIST_LIMIT, TABLE_STATUSES } from "./table-status.types.js";
 
 export class TableStatusServiceError extends Error {
   constructor(
@@ -63,6 +64,10 @@ export class TableStatusService implements TableStatusServiceReader {
     private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
     private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
   ) {}
+
+  list(restaurantId: ObjectId): Promise<TableListResult> {
+    return this.repository.listForRestaurant(restaurantId, TABLE_LIST_LIMIT);
+  }
 
   async updateStatus(
     restaurantId: ObjectId,

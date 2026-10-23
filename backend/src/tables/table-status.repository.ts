@@ -7,6 +7,7 @@ import {
   type WaitlistDocument,
 } from "../database/schema.js";
 import type {
+  TableListResult,
   TableOperationalStatus,
   TableStatusRecord,
   TableStatusRepository,
@@ -115,6 +116,30 @@ export class MongoTableStatusRepository implements TableStatusRepository {
     this.reservations = db.collection<ReservationDocument>(COLLECTIONS.reservations);
     this.orders = db.collection<OrderDocument>(COLLECTIONS.orders);
     this.waitlist = db.collection<WaitlistDocument>(COLLECTIONS.waitlist);
+  }
+
+  async listForRestaurant(restaurantId: ObjectId, limit: number): Promise<TableListResult> {
+    const documents = await this.tables
+      .find(
+        { restaurantId },
+        {
+          projection: {
+            tableNumber: 1,
+            capacity: 1,
+            zone: 1,
+            status: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+          sort: { tableNumber: 1, _id: 1 },
+          limit: limit + 1,
+        },
+      )
+      .toArray();
+    return {
+      tables: documents.slice(0, limit).map((document) => toRecord(document)),
+      truncated: documents.length > limit,
+    };
   }
 
   async updateStatusForRestaurant(
