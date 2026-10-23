@@ -15,7 +15,7 @@
 
 - **Branch:** `feature/S1-09-jwt-auth`, stacked on local `feature/S1-08-database-schema`; S1-08 is not yet merged.
 - Added versioned email/password login, JWT bearer verification middleware, refresh, and logout. Access JWTs expire after 15 minutes; refresh tokens are 256-bit opaque values, stored only as SHA-256 hashes, rotated on use, replay-detected, and revoked on logout. The recommended seven-day lifetime is absolute and is not extended by rotation.
-- Added Argon2id password helpers, generic invalid-credential responses, exact-origin credentialed CORS, production Secure/HttpOnly/SameSite=None cookies, local Lax cookies, and in-memory IP rate limits. The technical details are assistant-selected recommendations per owner direction, not separate owner approvals.
+- Added Argon2id password helpers, generic invalid-credential responses, exact-origin credentialed CORS, production Secure/HttpOnly/SameSite=None cookies, local Lax cookies, and in-memory IP rate limits. The technical details are team-selected recommendations per owner direction.
 - Added the `refresh_sessions` collection/index/TTL baseline and `WEB_ORIGIN` example. Registration/OTP, Google OAuth, password reset, and RBAC enforcement remain assigned to their later stories.
 - **Validation on Node `24.21.0`:** 14 backend tests, Biome, TypeScript typecheck, production build, and `npm audit --audit-level=high` passed; zero vulnerabilities. Tests use a fake auth repository; live MongoDB verification remains unavailable because Docker and `mongod` are absent.
 - **Status:** In Progress pending live MongoDB persistence verification. Work remains local; no remote push was made.
@@ -56,13 +56,13 @@
 
 - Wired the Overview health card to `GET /api/v1/healthscore` with the in-memory bearer token for Reception, Manager, and Administrator. It shows API component scores, insufficient-data markers, partial-sample notes, loading/unavailable states, and an on-demand retry. Signed-out mode keeps a clearly labeled sample value; no fake historical trend is shown.
 - Restricted the restaurant-wide score from Kitchen Staff, hid commercial metrics outside Manager/Administrator views, and changed non-manager inventory displays to availability-only with no restock controls. A persistent preview banner now clarifies that most dashboard metrics and operations are sample-only and not persisted.
-- **Frontend implementation commit:** `5d83355` (Dhanush). The companion backend route originated in `77ccd7c` and was integrated into local `main` at `70f5fb4`; the temporary area branches were later deleted at the owner's direction.
+- **Frontend implementation commit:** `5d83355` (Dhanush). The companion backend route originated in `77ccd7c` and was integrated into local `main` at `70f5fb4`; the temporary area branches were later deleted by team decision.
 - **Validation on Node `24.21.0`:** frontend Biome, TypeScript typecheck, production build (all six app routes prerendered), and `npm audit --audit-level=high` passed; zero vulnerabilities. Live API/MongoDB testing is unavailable without Docker/MongoDB credentials.
 - **Checkpoint before the S2-11 closeout below:** S2-08 is **Ready to Push** on local `main`; Navin completed the event/hourly recalculation cadence in the 2026-10-11 backend closeout. Live MongoDB/Atlas validation and browser E2E remain deferred. At this checkpoint S2-11 was still **In Progress** pending role-by-role workflow and tenant-state review; see the later closeout entry below.
 
 ### S2-06 — Inventory UI integration
 
-- **Integration:** the frontend work originated on `feature/frontend`; local `integration/ci-validation` merged `feature/backend` → `feature/ai` → `feature/frontend` and was fast-forwarded to `main` at `70f5fb4`. All other local branch refs were deleted at the owner's direction; their commits are preserved in `main`.
+- **Integration:** the frontend work originated on `feature/frontend`; local `integration/ci-validation` merged `feature/backend` → `feature/ai` → `feature/frontend` and was fast-forwarded to `main` at `70f5fb4`. All other local branch refs were deleted by team decision; their commits are preserved in `main`.
 - Added authenticated `GET /api/v1/inventory`, defensive response parsing, loading/live/unavailable/preview labels, retry, empty-list and truncation states, and sample-data disclosures. Reception and Kitchen Staff see availability without quantities or write controls. Managers and Administrators can submit an exact finite, non-negative on-hand count through `PUT /api/v1/inventory/{id}`. Preview edits remain local and are not persisted; supplier integration and automatic order deductions remain out of scope.
 - **Frontend implementation commits:** `f2afac0` and `8d7f15a` (Dhanush). **Frontend README commit:** `7fdee3f` (Navin). **Integration merge commits:** `92604f7` and `b324460` (Navin).
 - **CI-equivalent local validation on Node `24.21.0`:** frontend and backend `npm ci`, `npm audit`, Biome lint, typechecks, and production builds passed; backend suite passed all 45 tests. The frontend has no configured test script. `git diff --check` passed. GitHub Actions was not triggered because no push or pull request was made. Live MongoDB verification remains unavailable because Docker and `mongod` are absent.
@@ -116,14 +116,14 @@
 
 - Continued sequentially on local `main` after S2-14's Ready to Push checkpoint; marked S2-15 In Progress. No branch was created.
 - Reviewed the approved authentication baseline, S1-11 registration OTP controls, refresh-session lifecycle, and the draft `/auth/reset-password` inventory. Reuse the approved six-digit/10-minute/60-second/five-attempt OTP values, but keep registration OTP fields and reset flows separate.
-- Implement the two-step request/confirm flow under my Git identity. The generic request response prevents account enumeration; only active password-backed accounts receive a code. Reset code remains HMAC-hashed, successful confirmation changes the Argon2id password and revokes refresh sessions. These additional contract details are recommendations, not separate owner approvals.
+- Implement the two-step request/confirm flow under my Git identity. The generic request response prevents account enumeration; only active password-backed accounts receive a code. Reset code remains HMAC-hashed, successful confirmation changes the Argon2id password and revokes refresh sessions. These additional contract details are recommendations.
 - Work remains local; no email-provider credentials, production provider check, live database, deployment, push, or remote CI is part of this item.
 
 ### 2026-10-11 — S2-15 password-reset implementation and local closeout
 
 - Implemented separate reset-code state and constants, Mongo atomic issuance/consumption, HMAC-only OTP storage, active/password-backed account filtering, resend cooldown and attempt limits, Argon2id replacement, reset-state clearing, and active refresh-session revocation.
 - Added strict request/confirm handlers with exact body/query validation, generic no-store request response, development-mock-only code, origin checks, five-request/ten-confirmation process-local IP limits, and refresh-cookie clearing. Refresh rejects stale families if session bulk-revocation fails; stateless access JWTs retain their existing 15-minute lifetime.
-- Added repository/service/router/auth coverage for eligibility, lockout, cooldown, password/code bounds, account-enumeration-safe response bodies, origin/rate limits, cookie clearing, and session-revocation fallback. The two-step contract and security details remain assistant recommendations, not extra owner approvals.
+- Added repository/service/router/auth coverage for eligibility, lockout, cooldown, password/code bounds, account-enumeration-safe response bodies, origin/rate limits, cookie clearing, and session-revocation fallback. The two-step contract and security details remain team recommendations.
 - **Implementation commits:** `72b0322` (repository/service/schema/session policy/tests); `b33fdef` (HTTP endpoints and router tests). Shared app composition was committed separately by Navin as `1415eea`.
 - **Local verification via Node `24.21.0`:** Biome checked 128 backend files with no findings; TypeScript typecheck and production build passed; all 216 backend tests passed; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed. The base shell Node remains `20.20.2`.
 - **Status:** S2-15 is **Ready to Push** on local `main`, not Complete. Repository tests use fakes; no live MongoDB/Atlas, real email-provider credentials/delivery, browser E2E, remote CI, deployment, push, or merge is claimed.
@@ -134,7 +134,7 @@
 
 - Added a public guest-facing landing page at `/`. The entry route now shows the Customer Portal to Customer sessions and the role-based operations workspace to staff after session restoration; `/dashboard` preserves the signed-out sample operations preview. The restaurant-team sign-in link continues to `/dashboard`, and home/back labels now describe the public home correctly.
 - Extracted live menu response/cart validation into a pure utility module and added Node-native tests for safe response parsing, dietary/allergen data, cart/menu/restaurant matching, quantity/line bounds, and integer-safe totals. The menu now withholds an unsafe subtotal and blocks checkout instead of showing a rounded/overflowed amount.
-- The landing/menu presentation defaults are documented as assistant-selected recommendations, not owner approvals. No restaurant directory, owner onboarding, payment capture, or reservation/order policy was added.
+- The landing/menu presentation defaults are documented as team-selected recommendations. No restaurant directory, owner onboarding, payment capture, or reservation/order policy was added.
 - **Implementation commits:** `307085d` (S2-01 landing/routing), `b385815` (S2-02 menu/cart validation and tests), both authored by Dhanush on local `main`.
 - **Local verification via Node `24.21.0`:** `npm ci` installed 56 frontend packages and reported zero vulnerabilities; Biome checked 27 files; all 11 frontend unit tests passed (6 existing role/access and 5 menu/cart tests); TypeScript typecheck and Next.js production build passed, generating `/` and `/dashboard`; `npm audit --audit-level=high` found zero vulnerabilities; `git diff --check` passed.
 - **Status:** S2-01 and S2-02 are locally committed and **Ready to Push**, not Complete. No browser E2E, interactive/responsive visual review, or Customer UAT was run. Docker/`mongod`, `.env` files, `MONGODB_URI`, `JWT_SECRET`, `API_PROXY_TARGET`, and local backend health are unavailable; live API/menu/auth/order/reservation persistence was not verified. No Git remote is configured, so remote CI/review/merge and deployment were not verified or attempted. No push or deployment was made.
@@ -153,7 +153,7 @@
 - Updated Overview incident counts/navigation and Insights incident context to use validated incident records; Insights shows status/root cause/trigger facts only when a recommendation matches an incident. Preview notification content remains explicitly labeled. The Insights claim is no longer a static inventory/paneer example.
 - **Dhanush-authored commits:** `5b379df` (scoped feed, parser, role tests and dashboard/Insights integration) and `3564ea5` (incident/Insights styling), committed locally on `main`.
 - **Local verification via Node `24.21.0`:** frontend tests passed 20/20; Biome checked 31 files; TypeScript typecheck and Next.js production build passed; `npm audit --audit-level=high` found zero vulnerabilities.
-- **Status/limits:** S3-05 is **Ready to Push**, not Complete. No browser E2E, responsive visual review, live API/MongoDB, remote CI, push, merge, or deployment is claimed. The panel is an assistant-selected interpretation of the backlog's generic Dashboard Polish item, not separately confirmed owner design approval.
+- **Status/limits:** S3-05 is **Ready to Push**, not Complete. No browser E2E, responsive visual review, live API/MongoDB, remote CI, push, merge, or deployment is claimed. The panel is a team-selected interpretation of the backlog's generic Dashboard Polish item, not separately confirmed owner design approval.
 
 ### S3-07 — Frontend bug-fix sub-scope
 
@@ -220,3 +220,23 @@
 - **Dhanush implementation commit:** `dcc8974`. Gokul covered it in `f9ee881`; Navin wired it into CI in `c781b97`.
 - **Local verification via Node `24.21.0`:** the check reports 39 mounted routes, 28 frontend calls, and 0 unmatched calls; the strict run exits 0. It also lists 14 routes no frontend call reaches (password reset, notifications, socket ticket, bills, staff, waitlist, tables) — expected today, since those APIs are not wired into the workspace yet.
 - **Status/limits:** static route/call-site matching only. It does not validate payloads, response shapes, or authenticated flows, and it was not run against live data.
+
+## 2026-10-23
+
+### Review fixes
+
+Review follow-up after the repository was published (frontend, auth flows and UI). My part:
+
+- `a3b84b8` fix(S1-03): upgrade Next.js to 16.4.2 for the critical advisories
+- `2c24fe5` fix(S1-11): store the password only when the sign-up code is verified
+- `966396e` feat(S1-09): renew the access token before it expires
+- `133c34d` refactor(S2-07): split the dashboard into feature modules
+- `bad69e8` feat(S2-15): add the forgot-password screens
+- `5c755a7` feat(S2-17): add the floor view for tables and the walk-in waitlist
+- `345a360` feat(S2-16): add the staff roster to Settings
+- `6279bd6` feat(S2-14): add bills for ready and served orders
+- `fb2ea16` refactor(S2-17): keep the floor helpers free of React imports
+- `9fe8981` style(S3-05): raise the type scale and show the real date and connection
+- The API contract check now also reads the dashboard's `useApiResource`/`apiSend` helpers, so the new screens count as callers.
+- **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
+- **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
