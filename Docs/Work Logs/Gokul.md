@@ -15,7 +15,7 @@
 ### S2-10 — Notification Module
 
 - Implemented a trusted server-side notification creation service, MongoDB repository, bounded recipient feed, total unread count, and idempotent mark-read operation. Added authenticated `GET /api/v1/notifications` and `PATCH /api/v1/notifications/{id}/read` routes.
-- The Customer feed is filtered by the signed-in recipient across restaurants. Reception, Manager, and Administrator are filtered by both their signed restaurant and own recipient ID; Kitchen Staff has no notification access. API responses omit `recipientUserId`. These unspecified scope/read-state details are documented as assistant recommendations, not separate owner approvals.
+- The Customer feed is filtered by the signed-in recipient across restaurants. Reception, Manager, and Administrator are filtered by both their signed restaurant and own recipient ID; Kitchen Staff has no notification access. API responses omit `recipientUserId`. These unspecified scope/read-state details are documented as team recommendations.
 - **Gokul-authored commits:** `33d885f` (persistence/service and tests), `35adbaf` (authenticated feed/read routes and tests), and `921c1cd` (feed-truncation and staff-scope coverage). Navin separately committed the security permission and shared app/schema/docs integration.
 - **Validation:** Node 24.21.0 (invoked via `npm exec --package=node@24.21.0`) backend lint, typecheck, production build, and production-dependency audit passed; all 111 backend tests passed. Notification-specific repository/service/router/app/auth/schema coverage passed using fakes and local HTTP tests.
 - **Outstanding:** Docker/`mongod` is unavailable, so MongoDB persistence and index creation were not live-tested. Automatic critical-incident-to-recipient generation, WebSocket delivery/reconnect (S2-13), retention/TTL, dashboard UI connection, and browser E2E remain outstanding; AC-08 is not claimed as met. S2-06 remains independently In Progress.
@@ -25,7 +25,7 @@
 
 - Joined S2-16's local implementation on `main` as a genuine test contribution while Jegatheesan owns the backend feature repository/service and Navin owns shared contract/app integration.
 - Own the route-level security/validation tests for `GET /staff` and `PUT /staff/{id}`: Manager/Administrator permissions, signed tenant scope, strict fields/path IDs, safe serialization, self-deactivation guard, and absent/cross-tenant non-disclosure.
-- This assignment adds test coverage to the documented recommendation; it does not change S2-16's primary backlog owner or imply an additional owner-approved API decision.
+- This assignment adds test coverage to the documented recommendation; it does not change S2-16's primary backlog owner or imply an additional team-approved API decision.
 
 ### 2026-10-11 — S2-16 staff API route/security test contribution
 
@@ -128,3 +128,27 @@
 - **Gokul test commit:** `76f3a9e`.
 - **Validation via Node `24.21.0`:** 5/5 passed and the full backend suite passed 305/305.
 - These tests build the context object directly: no live provider, quota, timeout, network failure, remote CI, push, merge, or deployment is claimed.
+
+## 2026-10-23
+
+### Review fixes
+
+Review follow-up after the repository was published (environment, email, notifications and tests). My part:
+
+- `0423a96` ci(S1-07): pin actions to full commit SHAs
+- `8c68539` test(S1-11): cover the pre-registration takeover and pending sign-up expiry
+- `6adba73` feat(S1-11): add SMTP and Resend email transports selected by EMAIL_PROVIDER
+- `dc03673` test(S1-11): cover provider selection, SMTP and Resend delivery
+- `b0c6629` feat(S1-06): make trust proxy configurable with TRUST_PROXY
+- `836db21` test(S1-06): cover TRUST_PROXY parsing and the resulting req.ip
+- `30faa9d` test(S1-13): cover the remote seed guard and the bootstrap command
+- `380d0e5` test(S1-09): cover the token renewal timing and the 401 hook
+- `0674b84` feat(S2-10): notify managers when an incident opens
+- `4c9587b` test(S2-10): cover incident notifications and their recipients
+- `8ba797b` feat(S2-10): replace the sample notification bell with the live feed
+- `861fd12` test(S2-13): cover the realtime client and notification parsing
+- `b0e7a3b` test(S2-18): cover the table list route and its tenant scope
+- `6f4176b` test(S2-17): cover floor seating, transitions and response parsing
+- `.env.example` files now list every production variable, with the Render/Vercel values in the [deployment checklist](../Developers%20Guide/Deployment.md).
+- **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
+- **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
