@@ -5,11 +5,12 @@ import express from "express";
 import { ObjectId, type WithId } from "mongodb";
 import type { AuthRepository, NewRefreshSession } from "../src/auth/auth.repository.js";
 import { createAuthRouter } from "../src/auth/auth.router.js";
-import { AuthError, AuthService } from "../src/auth/auth.service.js";
+import { AuthError, AuthService, verifyPassword } from "../src/auth/auth.service.js";
 import {
   type EmailOtpSender,
   EmailOtpService,
   hashRegistrationOtp,
+  PENDING_REGISTRATION_TTL_MS,
 } from "../src/auth/email-otp.service.js";
 import type {
   NewPendingUser,
@@ -337,4 +338,85 @@ test("OTP HTTP routes expose a development code only in mock development and est
     assert.match(verification.headers.get("set-cookie") ?? "", /HttpOnly/i);
     assert.ok(((await verification.json()) as { accessToken: string }).accessToken);
   });
+});
+
+test("a pending sign-up started by someone else cannot set the password of the verified account", async () => {
+  const registrationRepository = new FakeRegistrationRepository();
+  const authRepository = new FakeAuthRepository();
+  const sender = new CapturingEmailSender();
+  let now = new Date(FIXED_NOW);
+  const { otpService } = createOtpService(
+    registrationRepository,
+    authRepository,
+    sender,
+    "development",
+    () => new Date(now),
+  );
+
+  await otpService.register("Attacker", "victim@example.com", "attacker-password-123");
+  const pending = registrationRepository.users.get("victim@example.com");
+  assert.ok(pending);
+  assert.equal(pending.passwordHash, undefined);
+
+  now = new Date(now.getTime() + 60_000);
+  await otpService.register("Real Owner", "victim@example.com", REGISTRATION_PASSWORD);
+  assert.equal(sender.sent.length, 2, "re-registering a pending address re-issues the code");
+  assert.equal(pending.name, "Real Owner");
+
+  await assert.rejects(
+    otpService.verifyRegistrationOtp(
+      "victim@example.com",
+      sender.sent[0].code,
+      "attacker-password-123",
+    ),
+    (error: unknown) => error instanceof AuthError && error.statusCode === 401,
+    "the first code stops working once a new one is issued",
+  );
+
+  await otpService.verifyRegistrationOtp(
+    "victim@example.com",
+    sender.sent[1].code,
+    REGISTRATION_PASSWORD,
+  );
+  assert.equal(pending.status, "active");
+  assert.equal(await verifyPassword(REGISTRATION_PASSWORD, String(pending.passwordHash)), true);
+  assert.equal(await verifyPassword("attacker-password-123", String(pending.passwordHash)), false);
+});
+
+test("pending sign-ups carry an expiry for the TTL index and lose it on activation", async () => {
+  const registrationRepository = new FakeRegistrationRepository();
+  const authRepository = new FakeAuthRepository();
+  const sender = new CapturingEmailSender();
+  const { otpService } = createOtpService(
+    registrationRepository,
+    authRepository,
+    sender,
+    "development",
+    () => new Date(FIXED_NOW),
+  );
+
+  await otpService.register("Pending", "pending@example.com", REGISTRATION_PASSWORD);
+  const user = registrationRepository.users.get("pending@example.com");
+  assert.ok(user?.pendingExpiresAt);
+  assert.equal(user.pendingExpiresAt.getTime() - FIXED_NOW.getTime(), PENDING_REGISTRATION_TTL_MS);
+
+  await otpService.verifyRegistrationOtp(
+    "pending@example.com",
+    sender.sent[0].code,
+    REGISTRATION_PASSWORD,
+  );
+  assert.equal(user.pendingExpiresAt, undefined);
+});
+
+test("verification requires a valid password alongside the code", async () => {
+  const registrationRepository = new FakeRegistrationRepository();
+  const { otpService } = createOtpService(
+    registrationRepository,
+    new FakeAuthRepository(),
+    new CapturingEmailSender(),
+  );
+  await assert.rejects(
+    otpService.verifyRegistrationOtp("someone@example.com", "123456", "short"),
+    (error: unknown) => error instanceof AuthError && error.statusCode === 400,
+  );
 });

@@ -107,6 +107,9 @@ test("identity and one-to-one domain constraints have unique indexes", () => {
   assert.equal(indexFor("tables", "tables_restaurant_number_unique")?.unique, true);
   assert.equal(indexFor("refreshSessions", "refresh_sessions_token_hash_unique")?.unique, true);
   assert.equal(indexFor("refreshSessions", "refresh_sessions_expiry_ttl")?.expireAfterSeconds, 0);
+  const pendingSignupTtl = indexFor("users", "users_pending_signup_ttl");
+  assert.equal(pendingSignupTtl?.expireAfterSeconds, 0);
+  assert.deepEqual(pendingSignupTtl?.partialFilterExpression, { status: "pending" });
   assert.equal(indexFor("bills", "bills_restaurant_order_unique")?.unique, true);
   assert.equal(
     indexFor("recommendations", "recommendations_restaurant_incident_unique")?.unique,
