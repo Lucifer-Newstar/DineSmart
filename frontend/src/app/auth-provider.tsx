@@ -1,8 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { fetchWithTimeout } from "./api-client";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { fetchWithTimeout, setUnauthorizedListener } from "./api-client";
+import { needsRefresh, REFRESH_RETRY_MS, refreshDelayMs } from "./session-timing";
 
 const API_BASE = "/api/v1";
 
@@ -35,7 +44,46 @@ interface AuthContextValue {
   register: (name: string, email: string, password: string) => Promise<CodeResponse>;
   requestOtp: (email: string) => Promise<CodeResponse>;
   verifyOtp: (email: string, code: string, password: string) => Promise<void>;
+  /** Renews the access token now; resolves to the new token, or null when signed out. */
+  refreshSession: () => Promise<string | null>;
   signOut: () => Promise<void>;
+}
+
+type RefreshOutcome =
+  | { kind: "renewed"; session: SessionResponse }
+  | { kind: "expired" }
+  | { kind: "unavailable" };
+
+let inflightRefresh: Promise<RefreshOutcome> | null = null;
+
+/**
+ * Single-flight refresh. The backend rotates the refresh cookie and treats a reused
+ * cookie as theft, so concurrent callers must share one request instead of each
+ * sending the same cookie.
+ */
+export function requestSessionRefresh(): Promise<RefreshOutcome> {
+  if (!inflightRefresh) {
+    inflightRefresh = (async (): Promise<RefreshOutcome> => {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+        });
+        if (response.status === 401 || response.status === 403) return { kind: "expired" };
+        if (!response.ok) return { kind: "unavailable" };
+        const refreshed = (await response.json()) as SessionResponse;
+        return refreshed?.accessToken && refreshed.user
+          ? { kind: "renewed", session: refreshed }
+          : { kind: "expired" };
+      } catch {
+        return { kind: "unavailable" };
+      } finally {
+        inflightRefresh = null;
+      }
+    })();
+  }
+  return inflightRefresh;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -60,51 +108,106 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [session, setSession] = useState<SessionResponse | null>(null);
+  const [session, setSessionState] = useState<SessionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const expiresAtRef = useRef(0);
 
-  const restoreSession = useCallback(async () => {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
+  const setSession = useCallback((next: SessionResponse | null) => {
+    expiresAtRef.current = next ? Date.now() + next.expiresIn * 1_000 : 0;
+    setSessionState(next);
+  }, []);
+
+  const refreshSession = useCallback(async (): Promise<string | null> => {
+    const outcome = await requestSessionRefresh();
+    if (outcome.kind === "renewed") {
+      setSession(outcome.session);
+      return outcome.session.accessToken;
+    }
+    if (outcome.kind === "expired") setSession(null);
+    return null;
+  }, [setSession]);
+
+  // An authenticated request that comes back 401 (for example after the device
+  // slept past the token's expiry) renews the token once; screens re-fetch when
+  // the new token arrives.
+  useEffect(() => {
+    let lastAttempt = 0;
+    return setUnauthorizedListener(() => {
+      const now = Date.now();
+      if (now - lastAttempt < 10_000) return;
+      lastAttempt = now;
+      void refreshSession();
+    });
+  }, [refreshSession]);
+
+  useEffect(() => {
+    void requestSessionRefresh()
+      .then((outcome) => {
+        // A missing backend or expired session is a normal signed-out state.
+        if (outcome.kind === "renewed") setSession(outcome.session);
+      })
+      .finally(() => setIsLoading(false));
+  }, [setSession]);
+
+  // Renew the access token shortly before it expires so long dashboard sessions
+  // keep working; a transient failure is retried, an expired session signs out.
+  useEffect(() => {
+    if (!session) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+    const schedule = (delay: number) => {
+      timer = setTimeout(async () => {
+        const outcome = await requestSessionRefresh();
+        if (cancelled) return;
+        if (outcome.kind === "renewed") setSession(outcome.session);
+        else if (outcome.kind === "expired") setSession(null);
+        else schedule(REFRESH_RETRY_MS);
+      }, delay);
+    };
+    schedule(refreshDelayMs(expiresAtRef.current, Date.now()));
+
+    // Timers are paused while a laptop sleeps or a tab is frozen; catch up on return.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (needsRefresh(expiresAtRef.current, Date.now())) void refreshSession();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [session, setSession, refreshSession]);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const response = await fetchWithTimeout(`${API_BASE}/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-      if (!response.ok) return;
-      const refreshed = (await response.json()) as SessionResponse;
-      if (refreshed?.accessToken && refreshed.user) setSession(refreshed);
-    } catch {
-      // A missing backend or expired session is a normal signed-out state.
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      const authenticated = await parseResponse<SessionResponse>(response);
+      setSession(authenticated);
+    },
+    [setSession],
+  );
 
-  useEffect(() => {
-    void restoreSession();
-  }, [restoreSession]);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const response = await fetchWithTimeout(`${API_BASE}/auth/login`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const authenticated = await parseResponse<SessionResponse>(response);
-    setSession(authenticated);
-  }, []);
-
-  const signInWithGoogle = useCallback(async (idToken: string) => {
-    const response = await fetchWithTimeout(`${API_BASE}/auth/google`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idToken }),
-    });
-    const authenticated = await parseResponse<SessionResponse>(response);
-    setSession(authenticated);
-  }, []);
+  const signInWithGoogle = useCallback(
+    async (idToken: string) => {
+      const response = await fetchWithTimeout(`${API_BASE}/auth/google`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const authenticated = await parseResponse<SessionResponse>(response);
+      setSession(authenticated);
+    },
+    [setSession],
+  );
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const response = await fetchWithTimeout(`${API_BASE}/auth/register`, {
@@ -126,16 +229,19 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     return parseResponse<CodeResponse>(response);
   }, []);
 
-  const verifyOtp = useCallback(async (email: string, code: string, password: string) => {
-    const response = await fetchWithTimeout(`${API_BASE}/auth/otp/verify`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, code, password }),
-    });
-    const authenticated = await parseResponse<SessionResponse>(response);
-    setSession(authenticated);
-  }, []);
+  const verifyOtp = useCallback(
+    async (email: string, code: string, password: string) => {
+      const response = await fetchWithTimeout(`${API_BASE}/auth/otp/verify`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, code, password }),
+      });
+      const authenticated = await parseResponse<SessionResponse>(response);
+      setSession(authenticated);
+    },
+    [setSession],
+  );
 
   const signOut = useCallback(async () => {
     try {
@@ -149,7 +255,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     } finally {
       setSession(null);
     }
-  }, []);
+  }, [setSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -161,9 +267,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       register,
       requestOtp,
       verifyOtp,
+      refreshSession,
       signOut,
     }),
-    [session, isLoading, signIn, signInWithGoogle, register, requestOtp, verifyOtp, signOut],
+    [
+      session,
+      isLoading,
+      signIn,
+      signInWithGoogle,
+      register,
+      requestOtp,
+      verifyOtp,
+      refreshSession,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

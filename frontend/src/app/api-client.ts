@@ -38,6 +38,25 @@ export function classifyRequestError(error: unknown): RequestFailureKind {
   return "error";
 }
 
+type UnauthorizedListener = () => void;
+let unauthorizedListener: UnauthorizedListener | null = null;
+
+/**
+ * Registers the callback run when an authenticated request comes back 401, so
+ * the auth provider can renew the access token. Screens re-fetch when the token
+ * changes. Returns an unregister function.
+ */
+export function setUnauthorizedListener(listener: UnauthorizedListener | null): () => void {
+  unauthorizedListener = listener;
+  return () => {
+    if (unauthorizedListener === listener) unauthorizedListener = null;
+  };
+}
+
+function hasBearerToken(init: RequestInit): boolean {
+  return new Headers(init.headers).get("authorization")?.startsWith("Bearer ") ?? false;
+}
+
 export interface FetchWithTimeoutOptions {
   readonly timeoutMs?: number;
 }
@@ -64,7 +83,9 @@ export async function fetchWithTimeout(
 
   const timer = setTimeout(() => controller.abort(new ApiTimeoutError(timeoutMs)), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (response.status === 401 && hasBearerToken(init)) unauthorizedListener?.();
+    return response;
   } catch (error) {
     // A caller-initiated abort stays an abort even if it races the deadline.
     if (externalSignal?.aborted) throw externalSignal.reason ?? error;
