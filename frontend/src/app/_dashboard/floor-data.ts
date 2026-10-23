@@ -1,4 +1,6 @@
-import { isRecord } from "./use-api";
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export const TABLE_STATUS_LABELS: Record<string, string> = {
   available: "Available",
