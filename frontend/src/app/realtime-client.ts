@@ -90,6 +90,35 @@ export function parseRealtimeEnvelope(raw: unknown): RealtimeEnvelope | null {
   };
 }
 
+export type RefreshTarget =
+  | "orders"
+  | "kitchen"
+  | "inventory"
+  | "reservations"
+  | "incidents"
+  | "healthScore";
+
+/** Which dashboard panels an invalidation event makes stale. */
+export function refreshTargetsForEvent(event: RealtimeEventName): RefreshTarget[] {
+  switch (event) {
+    case "order.updated":
+      return ["orders", "kitchen"];
+    case "inventory.updated":
+      return ["inventory"];
+    case "reservation.updated":
+    case "table.updated":
+    case "waitlist.updated":
+      return ["reservations"];
+    case "incident.updated":
+    case "recommendation.updated":
+      return ["incidents"];
+    case "healthscore.updated":
+      return ["healthScore"];
+    default:
+      return [];
+  }
+}
+
 /** Capped exponential backoff: 1 s, 2 s, 4 s ... 30 s. */
 export function nextBackoffMs(attempt: number): number {
   return Math.min(MAX_BACKOFF_MS, 1_000 * 2 ** Math.max(0, attempt));

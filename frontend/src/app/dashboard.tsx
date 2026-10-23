@@ -65,6 +65,7 @@ import {
 import { parseIncidentsResponse } from "./incident-data";
 import { NotificationBell } from "./notifications/notification-bell";
 import { useNotifications } from "./notifications/use-notifications";
+import { refreshTargetsForEvent } from "./realtime-client";
 import {
   parseGeneratedRecommendationResponse,
   parseRecommendationsResponse,
@@ -72,7 +73,6 @@ import {
 
 export function Dashboard() {
   const { user, accessToken, signOut } = useAuth();
-  const notificationFeed = useNotifications(accessToken);
   const [section, setSection] = useState<Section>("Overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoBannerVisible, setDemoBannerVisible] = useState(true);
@@ -114,6 +114,18 @@ export function Dashboard() {
   const [healthScoreError, setHealthScoreError] = useState("");
   const [healthScoreLoading, setHealthScoreLoading] = useState(false);
   const [healthScoreRefreshKey, setHealthScoreRefreshKey] = useState(0);
+  // Live restaurant events (S2-13) refetch only the panels whose data changed.
+  const notificationFeed = useNotifications(accessToken, (envelope) => {
+    const bump = (current: number) => current + 1;
+    for (const target of refreshTargetsForEvent(envelope.event)) {
+      if (target === "orders") setOrdersRefreshKey(bump);
+      if (target === "kitchen") setKitchenQueueRefreshKey(bump);
+      if (target === "inventory") setInventoryRefreshKey(bump);
+      if (target === "reservations") setReservationsRefreshKey(bump);
+      if (target === "incidents") setIncidentRefreshKey(bump);
+      if (target === "healthScore") setHealthScoreRefreshKey(bump);
+    }
+  });
   const role = user?.role;
   const workspaceScopeKey = dashboardWorkspaceScopeKey(user);
   const currentRecommendation = valueForDashboardWorkspace(
