@@ -63,6 +63,8 @@ import {
   valueForDashboardWorkspace,
 } from "./dashboard-access";
 import { parseIncidentsResponse } from "./incident-data";
+import { NotificationBell } from "./notifications/notification-bell";
+import { useNotifications } from "./notifications/use-notifications";
 import {
   parseGeneratedRecommendationResponse,
   parseRecommendationsResponse,
@@ -70,9 +72,9 @@ import {
 
 export function Dashboard() {
   const { user, accessToken, signOut } = useAuth();
+  const notificationFeed = useNotifications(accessToken);
   const [section, setSection] = useState<Section>("Overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [demoBannerVisible, setDemoBannerVisible] = useState(true);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -795,12 +797,10 @@ export function Dashboard() {
     if (!canAccessDashboardSection(NAVIGATION, role, next)) {
       setSection("Overview");
       setMobileMenuOpen(false);
-      setNotificationsOpen(false);
       return;
     }
     setSection(next);
     setMobileMenuOpen(false);
-    setNotificationsOpen(false);
   };
 
   const signOutAndNotify = async () => {
@@ -1030,59 +1030,18 @@ export function Dashboard() {
               <span />
               {isDemo ? "Preview mode" : "Signed-in preview"}
             </span>
-            <div className="notification-wrap">
-              <button
-                className={`icon-button notification-button ${notificationsOpen ? "notification-active" : ""}`}
-                type="button"
-                aria-label="Sample notifications, not connected to a live feed"
-                aria-expanded={notificationsOpen}
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-              >
-                <Icon name="bell" size={19} />
-                <span className="notification-dot" />
-              </button>
-              {notificationsOpen ? (
-                <div className="notification-popover">
-                  <div className="popover-heading">
-                    <strong>Sample notifications</strong>
-                    <span>Preview</span>
-                  </div>
-                  <div className="notification-item">
-                    <span className="notification-mark notification-mark-coral">
-                      <Icon name="alert" size={15} />
-                    </span>
-                    <div>
-                      <strong>Paneer stock is low</strong>
-                      <p>Below the reorder point · 6 min ago</p>
-                    </div>
-                  </div>
-                  <div className="notification-item">
-                    <span className="notification-mark notification-mark-green">
-                      <Icon name="check" size={15} />
-                    </span>
-                    <div>
-                      <strong>Service is on track</strong>
-                      <p>Average ticket time improved today</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="popover-link"
-                    onClick={() =>
-                      goTo(
-                        canUseInsights
-                          ? "Incidents"
-                          : user?.role === "Reception"
-                            ? "Orders"
-                            : "Inventory",
-                      )
-                    }
-                  >
-                    View activity <Icon name="arrow-right" size={14} />
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            <NotificationBell
+              feed={user ? notificationFeed : null}
+              onViewActivity={() =>
+                goTo(
+                  canUseInsights
+                    ? "Incidents"
+                    : user?.role === "Reception"
+                      ? "Orders"
+                      : "Inventory",
+                )
+              }
+            />
             <span className="topbar-divider" />
             <div className="topbar-date">
               <Icon name="sun" size={16} />
