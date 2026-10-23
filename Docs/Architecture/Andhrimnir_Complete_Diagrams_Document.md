@@ -318,13 +318,16 @@ API-->DB
 
 ## Scalability
 
+The planned deployment is one Next.js app on Vercel and one API instance on Render, with MongoDB Atlas and the Gemini API. The browser opens the WebSocket to the API directly. Dashed items are possible future additions and do not exist in the code: rate-limit counters and the realtime hub are in-process today, so a second API instance would need a shared store (for example Redis) first.
+
 ```mermaid
 flowchart TB
-Users-->CDN
-CDN-->Frontend
-Frontend-->LoadBalancer
-LoadBalancer-->API
-API-->Mongo
-API-->Gemini
-API-->Redis
+Users-->Vercel["Vercel (Next.js frontend + /api rewrite)"]
+Vercel-->API["Render (Express API, single instance)"]
+Users-. "WebSocket" .->API
+API-->Mongo["MongoDB Atlas"]
+API-->Gemini["Gemini API"]
+API-->Email["SMTP or Resend"]
+API-.->Redis["Redis (future: shared rate limits and realtime fan-out)"]
+LB["Extra API instances behind a load balancer (future)"]-.->API
 ```
