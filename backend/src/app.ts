@@ -36,6 +36,7 @@ import { MongoHealthScoreRepository } from "./healthscore/health-score.repositor
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 import { NO_STORE_CACHE_CONTROL, sendNoStoreApiResponse } from "./http/cache-policy.js";
+import { resolveTrustProxy } from "./http/trust-proxy.js";
 import { MongoIncidentDetectionRepository } from "./incidents/incident.repository.js";
 import { createIncidentRouter } from "./incidents/incident.router.js";
 import { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
@@ -76,6 +77,8 @@ export interface AppOptions {
   getGoogleClientId?: () => string | undefined;
   webOrigin?: string;
   nodeEnvironment?: string;
+  /** Overrides TRUST_PROXY (see http/trust-proxy.ts). */
+  trustProxy?: string;
   /** Overrides the EMAIL_PROVIDER-selected transport (tests). */
   emailTransport?: EmailTransport;
 }
@@ -172,7 +175,11 @@ export function createApp(options: AppOptions = {}) {
   }
 
   app.disable("x-powered-by");
-  if (nodeEnvironment === "production") app.set("trust proxy", 1);
+  const trustProxy = resolveTrustProxy(
+    options.trustProxy ?? process.env.TRUST_PROXY,
+    nodeEnvironment,
+  );
+  if (trustProxy !== false) app.set("trust proxy", trustProxy);
 
   app.use(
     cors({
