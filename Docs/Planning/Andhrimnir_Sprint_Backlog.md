@@ -47,11 +47,11 @@ Goal: Establish backend foundation and project setup.
 | S1-06 | Environment Variables | Gokul | High | 1 | Ready to Push |
 | S1-07 | CI/CD Pipeline | Navin & Gokul | Medium | 2 | In Progress |
 | S1-08 | Database Schema | Jegatheesan | High | 3 | In Progress |
-| S1-09 | JWT Authentication | Dhanush | High | 3 | In Progress |
-| S1-10 | Google OAuth | Dhanush | Medium | 2 | In Progress |
-| S1-11 | Email OTP | Dhanush | Medium | 2 | In Progress |
-| S1-12 | RBAC | Navin | High | 2 | In Progress |
-| S1-13 | Create Seed Data | Jegatheesan | Medium | 2 | In Progress |
+| S1-09 | JWT Authentication | Dhanush | High | 3 | Ready to Push |
+| S1-10 | Google OAuth | Dhanush | Medium | 2 | Ready to Push |
+| S1-11 | Email OTP | Dhanush | Medium | 2 | Ready to Push |
+| S1-12 | RBAC | Navin | High | 2 | Ready to Push |
+| S1-13 | Create Seed Data | Jegatheesan | Medium | 2 | Ready to Push |
 
 ## Sprint 2 – Restaurant Operations
 
@@ -84,10 +84,10 @@ Goal: Complete AI features, testing, deployment and presentation.
 
 | Task ID | Task | Owner | Priority | Story Points | Status |
 | --- | --- | --- | --- | --- | --- |
-| S3-01 | Gemini API Integration | Navin | High | 5 | In Progress |
-| S3-02 | Prompt Engineering | Navin | High | 3 | In Progress |
+| S3-01 | Gemini API Integration | Navin | High | 5 | Ready to Push |
+| S3-02 | Prompt Engineering | Navin | High | 3 | Ready to Push |
 | S3-03 | Recommendation UI | Dhanush | High | 3 | Ready to Push |
-| S3-04 | Incident Context Builder | Navin | High | 4 | In Progress |
+| S3-04 | Incident Context Builder | Navin | High | 4 | Ready to Push |
 | S3-05 | Dashboard Polish | Dhanush | Medium | 2 | Ready to Push |
 | S3-06 | Integration Testing | Entire Team | High | 5 | Ready to Push |
 | S3-07 | Bug Fixing | Entire Team | High | 5 | In Progress |
@@ -96,7 +96,7 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-10 | Performance Optimization | Navin | Medium | 2 | In Progress |
 | S3-11 | README | Navin | Medium | 2 | Ready to Push |
 | S3-12 | Presentation & Demo | Entire Team | High | 3 | In Progress |
-| S3-13 | AI Fallback Implementation | Navin | Medium | 2 | In Progress |
+| S3-13 | AI Fallback Implementation | Navin | Medium | 2 | Ready to Push |
 
 ## Status Meanings
 
@@ -104,7 +104,7 @@ Goal: Complete AI features, testing, deployment and presentation.
 | --- | --- |
 | To Do | Not started |
 | In Progress | Work started; not yet ready for review/push |
-| Ready to Push | Verified local work is committed; no remote push has been made by this session |
+| Ready to Push | Code is committed on `main` and passes the local checks; live verification and the deployment step in the Definition of Done are still open |
 | In Review | Pull request is open and awaiting review |
 | Complete | Definition of Done is met and the pull request is merged |
 | Blocked | Work cannot proceed until a documented dependency or decision is resolved |
@@ -133,3 +133,4 @@ Goal: Complete AI features, testing, deployment and presentation.
 
 - On 2026-10-10, the additions from `History/Andhrimnir_Backlog_Additions_History.md` were merged into this canonical backlog.
 - Current task statuses are maintained in this file; the history file is a snapshot of the original additions.
+- On 2026-10-23, the code for S1-09–S1-13 and the AI tasks (S3-01, S3-02, S3-04, S3-13) was finished (email providers, token renewal, the sign-up takeover fix, the remote seed guard, the bootstrap command and incident alerts), so they moved to Ready to Push. No task except S1-01 is Complete, because the Definition of Done needs live verification and deployment. S1-05 (Atlas), S1-07 (the first green GitHub Actions run and CD), S1-08 (live index check), S3-07, S3-10 (p95 measurement) and S3-12 (rehearsal) stay In Progress, and S3-08/S3-09 (deployment) are To Do. The inputs needed for deployment are listed in the [deployment checklist](../Developers%20Guide/Deployment.md).
