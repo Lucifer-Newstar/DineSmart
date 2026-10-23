@@ -193,8 +193,9 @@ test("active incident upsert is tenant-keyed and recovers a duplicate-key race",
   const incident = candidate();
   const { repository, updates } = makeRepository({ failFirstUpdate: true });
 
-  await repository.upsertActiveIncident(restaurantId, incident, now);
+  const opened = await repository.upsertActiveIncident(restaurantId, incident, now);
 
+  assert.equal(opened, false, "a duplicate-key race means another writer opened it");
   assert.equal(updates.length, 2);
   assert.deepEqual(updates[0].filter, {
     restaurantId,

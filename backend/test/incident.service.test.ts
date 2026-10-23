@@ -160,6 +160,40 @@ test("incident evaluation updates one active record, auto-resolves it, and creat
   );
 });
 
+test("only newly opened incidents notify, and a notifier failure does not fail the sweep", async () => {
+  const repository = new FakeIncidentRepository();
+  repository.snapshot.inventoryItems = [
+    { id: itemId, quantity: 3, lowStockThreshold: 5, unit: "kg" },
+  ];
+  const notified: string[][] = [];
+  let failNext = false;
+  const service = new IncidentDetectionService(
+    repository,
+    () => now,
+    undefined,
+    undefined,
+    async (_tenantId, incidents) => {
+      notified.push(incidents.map((incident) => incident.type));
+      if (failNext) throw new Error("notification store unavailable");
+    },
+  );
+
+  await service.evaluateRestaurant(restaurantId);
+  assert.deepEqual(notified, [["inventory_shortage"]]);
+
+  repository.snapshot.inventoryItems[0].quantity = 0;
+  await service.evaluateRestaurant(restaurantId, new Date(now.getTime() + 1000));
+  assert.equal(notified.length, 1, "a severity refresh of an open incident is not a new alert");
+
+  repository.snapshot.inventoryItems[0].quantity = 6;
+  await service.evaluateRestaurant(restaurantId, new Date(now.getTime() + 2000));
+  repository.snapshot.inventoryItems[0].quantity = 4;
+  failNext = true;
+  const recurrence = await service.evaluateRestaurant(restaurantId, new Date(now.getTime() + 3000));
+  assert.equal(recurrence.upsertedCount, 1);
+  assert.equal(notified.length, 2, "a recurrence after resolution alerts again");
+});
+
 test("truncated source snapshots never auto-resolve incidents on incomplete evidence", async () => {
   const repository = new FakeIncidentRepository();
   repository.snapshot.inventoryItems = [
