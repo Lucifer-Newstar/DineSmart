@@ -7,6 +7,7 @@ const ALL_SECTIONS = [
   "Kitchen",
   "Reservations",
   "Inventory",
+  "Menu",
   "Incidents",
   "Insights",
   "Analytics",

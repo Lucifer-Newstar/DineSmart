@@ -11,7 +11,11 @@ test("the kitchen moves a ticket from accepted through preparing to ready", asyn
   const customer = await apiToken(request, "Customer");
   const placed = await request.post(`${API_ORIGIN}/api/v1/orders`, {
     headers: { authorization: `Bearer ${customer}` },
-    data: { restaurantId: DEMO_RESTAURANT_ID, items: [{ menuItemId: LEMON_RICE_ID, quantity: 2 }] },
+    data: {
+      restaurantId: DEMO_RESTAURANT_ID,
+      // Lemon rice has a required Portion choice since S4-05.
+      items: [{ menuItemId: LEMON_RICE_ID, quantity: 2, options: { portion: "regular" } }],
+    },
   });
   expect(placed.status()).toBe(201);
   const { order } = (await placed.json()) as { order: { id: string } };
