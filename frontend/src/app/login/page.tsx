@@ -93,6 +93,8 @@ export default function LoginPage() {
             <label className="form-field">
               <span>Email address</span>
               <input
+                aria-describedby={error ? "login-error" : undefined}
+                aria-invalid={error ? true : undefined}
                 autoComplete="email"
                 type="email"
                 value={email}
@@ -104,6 +106,8 @@ export default function LoginPage() {
             <label className="form-field">
               <span>Password</span>
               <input
+                aria-describedby={error ? "login-error" : undefined}
+                aria-invalid={error ? true : undefined}
                 autoComplete="current-password"
                 type="password"
                 value={password}
@@ -116,7 +120,7 @@ export default function LoginPage() {
               Forgot password?
             </Link>
             {error ? (
-              <p className="auth-error" role="alert">
+              <p className="auth-error" id="login-error" role="alert">
                 {error}
               </p>
             ) : null}

@@ -118,6 +118,8 @@ export default function ForgotPasswordPage() {
                 <label className="form-field">
                   <span>Email address</span>
                   <input
+                    aria-describedby={error ? "reset-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="email"
                     type="email"
                     value={email}
@@ -127,7 +129,7 @@ export default function ForgotPasswordPage() {
                   />
                 </label>
                 {error ? (
-                  <p className="auth-error" role="alert">
+                  <p className="auth-error" id="reset-error" role="alert">
                     {error}
                   </p>
                 ) : null}
@@ -154,6 +156,8 @@ export default function ForgotPasswordPage() {
                 <label className="form-field">
                   <span>Six-digit code</span>
                   <input
+                    aria-describedby={error ? "reset-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="one-time-code"
                     inputMode="numeric"
                     pattern="[0-9]{6}"
@@ -164,8 +168,12 @@ export default function ForgotPasswordPage() {
                   />
                 </label>
                 <label className="form-field">
-                  <span>New password</span>
+                  <span>
+                    New password <small>({MIN_PASSWORD_LENGTH}+ characters)</small>
+                  </span>
                   <input
+                    aria-describedby={error ? "reset-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="new-password"
                     type="password"
                     minLength={MIN_PASSWORD_LENGTH}
@@ -178,6 +186,8 @@ export default function ForgotPasswordPage() {
                 <label className="form-field">
                   <span>Confirm new password</span>
                   <input
+                    aria-describedby={error ? "reset-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="new-password"
                     type="password"
                     minLength={MIN_PASSWORD_LENGTH}
@@ -187,7 +197,7 @@ export default function ForgotPasswordPage() {
                   />
                 </label>
                 {error ? (
-                  <p className="auth-error" role="alert">
+                  <p className="auth-error" id="reset-error" role="alert">
                     {error}
                   </p>
                 ) : null}

@@ -19,7 +19,7 @@ test("a customer resets a forgotten password; the new one works and the old one 
   await expect(page.getByRole("heading", { name: "Check your inbox." })).toBeVisible();
   const code = await latestEmailCode(request, email);
   await page.getByLabel("Six-digit code").fill(code);
-  await page.getByLabel("New password", { exact: true }).fill(newPassword);
+  await page.getByLabel(/^New password/).fill(newPassword);
   await page.getByLabel("Confirm new password").fill(newPassword);
   await page.getByRole("button", { name: "Set new password" }).click();
 

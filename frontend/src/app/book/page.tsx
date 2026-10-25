@@ -294,6 +294,8 @@ export default function BookTablePage() {
                     <label className="form-field">
                       <span>Date</span>
                       <input
+                        aria-describedby={error ? "book-error" : undefined}
+                        aria-invalid={error ? true : undefined}
                         type="date"
                         value={date}
                         min={today}
@@ -303,7 +305,12 @@ export default function BookTablePage() {
                     </label>
                     <label className="form-field">
                       <span>Party size</span>
-                      <select value={guests} onChange={(event) => setGuests(event.target.value)}>
+                      <select
+                        aria-describedby={error ? "book-error" : undefined}
+                        aria-invalid={error ? true : undefined}
+                        value={guests}
+                        onChange={(event) => setGuests(event.target.value)}
+                      >
                         {Array.from({ length: 12 }, (_, index) => index + 1).map((number) => (
                           <option key={number} value={number}>
                             {number} {number === 1 ? "guest" : "guests"}
@@ -344,6 +351,8 @@ export default function BookTablePage() {
                       Notes for the restaurant <small>(optional)</small>
                     </span>
                     <input
+                      aria-describedby={error ? "book-error" : undefined}
+                      aria-invalid={error ? true : undefined}
                       maxLength={500}
                       value={notes}
                       onChange={(event) => setNotes(event.target.value)}
@@ -351,7 +360,7 @@ export default function BookTablePage() {
                     />
                   </label>
                   {error ? (
-                    <p className="book-request-error" role="alert">
+                    <p className="book-request-error" id="book-error" role="alert">
                       {error}
                     </p>
                   ) : null}

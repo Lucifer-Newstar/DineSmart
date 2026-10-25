@@ -144,6 +144,8 @@ export default function RegisterPage() {
                 <label className="form-field">
                   <span>Your name</span>
                   <input
+                    aria-describedby={error ? "register-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="name"
                     type="text"
                     value={name}
@@ -156,6 +158,8 @@ export default function RegisterPage() {
                 <label className="form-field">
                   <span>Email address</span>
                   <input
+                    aria-describedby={error ? "register-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="email"
                     type="email"
                     value={email}
@@ -169,6 +173,8 @@ export default function RegisterPage() {
                     Create a password <small>(12+ characters)</small>
                   </span>
                   <input
+                    aria-describedby={error ? "register-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     autoComplete="new-password"
                     type="password"
                     value={password}
@@ -179,7 +185,7 @@ export default function RegisterPage() {
                   />
                 </label>
                 {error ? (
-                  <p className="auth-error" role="alert">
+                  <p className="auth-error" id="register-error" role="alert">
                     {error}
                   </p>
                 ) : null}
@@ -236,6 +242,8 @@ export default function RegisterPage() {
                 <label className="form-field">
                   <span>Verification code</span>
                   <input
+                    aria-describedby={error ? "register-error" : undefined}
+                    aria-invalid={error ? true : undefined}
                     className="auth-code"
                     autoComplete="one-time-code"
                     inputMode="numeric"
@@ -249,7 +257,7 @@ export default function RegisterPage() {
                   />
                 </label>
                 {error ? (
-                  <p className="auth-error" role="alert">
+                  <p className="auth-error" id="register-error" role="alert">
                     {error}
                   </p>
                 ) : null}

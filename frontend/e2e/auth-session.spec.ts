@@ -67,8 +67,13 @@ test("a wrong password is refused without creating a session", async ({ page, re
   await page.getByLabel("Password").fill("not-the-right-password");
   await page.getByRole("button", { name: "Sign in securely" }).click();
 
-  await expect(page.locator("p.auth-error[role=alert]")).toBeVisible();
+  const error = page.locator("p.auth-error[role=alert]");
+  await expect(error).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
+  // The message is tied to the fields, so a screen reader announces it with them.
+  const email = page.getByRole("textbox", { name: "Email address" });
+  await expect(email).toHaveAttribute("aria-invalid", "true");
+  await expect(email).toHaveAccessibleDescription(await error.innerText());
 
   const refresh = await request.post(`${API_ORIGIN}/api/v1/auth/refresh`, {
     headers: { origin: "http://localhost:3000" },
