@@ -25,7 +25,7 @@ test("a guest signs up with an emailed code and lands on their customer home", a
 
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Kavya Raman", { exact: true })).toBeVisible();
-  await expect(page.getByText("Customer account")).toBeVisible();
+  await expect(page.getByText("Customer account", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Explore the menu" })).toBeVisible();
 });
 
