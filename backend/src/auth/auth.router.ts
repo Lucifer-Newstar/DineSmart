@@ -1,6 +1,7 @@
 import cookieParser from "cookie-parser";
-import { type NextFunction, type Request, type Response, Router } from "express";
+import { type Request, type Response, Router } from "express";
 import rateLimit from "express-rate-limit";
+import { requireTrustedOrigin } from "../http/origin-check.js";
 import {
   AuthConfigurationError,
   AuthError,
@@ -98,26 +99,17 @@ function sendSession(response: Response, session: AuthSession, nodeEnvironment: 
   });
 }
 
-function requireTrustedOrigin(options: AuthRouterOptions) {
-  return (request: Request, response: Response, next: NextFunction): void => {
-    const origin = request.get("origin");
-    const originIsMissingInProduction = options.nodeEnvironment === "production" && !origin;
-
-    if (originIsMissingInProduction || (origin !== undefined && origin !== options.webOrigin)) {
-      response.status(403).json({
-        error: { code: "untrusted_origin", message: "The request origin is not allowed." },
-      });
-      return;
-    }
-
-    next();
-  };
-}
-
 export function createAuthRouter(options: AuthRouterOptions): Router {
   const router = Router();
   router.use(cookieParser());
-  router.use(requireTrustedOrigin(options));
+  // Cookie-authenticated writes (login, refresh, logout, session revocation)
+  // must come from the web app's own origin.
+  router.use(
+    requireTrustedOrigin({
+      allowedOrigins: [options.webOrigin],
+      nodeEnvironment: options.nodeEnvironment,
+    }),
+  );
   const skip = options.rateLimits === false ? () => true : undefined;
 
   const loginRateLimit = rateLimit({
