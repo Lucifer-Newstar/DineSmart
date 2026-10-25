@@ -1,5 +1,5 @@
 import type { ObjectId } from "mongodb";
-import type { OrderStatus, PreparationStatus } from "../database/schema.js";
+import type { OrderItemOption, OrderStatus, PreparationStatus } from "../database/schema.js";
 import type { OrderRecord } from "./order.types.js";
 
 export const KITCHEN_QUEUE_LIMIT = 200;
@@ -26,6 +26,7 @@ export interface KitchenTicketItem {
   id: ObjectId;
   name: string;
   quantity: number;
+  options?: OrderItemOption[];
   preparationStatus: PreparationStatus;
 }
 

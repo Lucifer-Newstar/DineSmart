@@ -4,6 +4,7 @@ import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions } from "../auth/authorization.middleware.js";
 import { parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
+import { MENU_OPTION_GROUPS_MAX, MENU_OPTION_ID_PATTERN } from "../menu/menu.types.js";
 import { OrderError } from "./order.service.js";
 import type { OrderRequestLine, OrderServiceReader } from "./order.types.js";
 
@@ -41,6 +42,24 @@ function userObjectId(value: string | null): ObjectId {
   return id;
 }
 
+/** `{ groupId: choiceId }`, short lowercase ids only; undefined when absent, null when malformed. */
+function parseLineOptions(value: unknown): Record<string, string> | null | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) return null;
+  const entries = Object.entries(value);
+  if (entries.length > MENU_OPTION_GROUPS_MAX) return null;
+  for (const [group, choice] of entries) {
+    if (
+      !MENU_OPTION_ID_PATTERN.test(group) ||
+      typeof choice !== "string" ||
+      !MENU_OPTION_ID_PATTERN.test(choice)
+    ) {
+      return null;
+    }
+  }
+  return Object.fromEntries(entries) as Record<string, string>;
+}
+
 function parseCreateBody(
   value: unknown,
 ): { restaurantId: ObjectId; items: OrderRequestLine[] } | null {
@@ -50,11 +69,17 @@ function parseCreateBody(
 
   const items: OrderRequestLine[] = [];
   for (const line of value.items) {
-    if (!isRecord(line) || !hasOnlyKeys(line, ["menuItemId", "quantity"])) return null;
+    if (!isRecord(line) || !hasOnlyKeys(line, ["menuItemId", "quantity", "options"])) return null;
     const menuItemId = objectId(line.menuItemId);
     if (!menuItemId || typeof line.quantity !== "number" || !Number.isFinite(line.quantity))
       return null;
-    items.push({ menuItemId, quantity: line.quantity });
+    const options = parseLineOptions(line.options);
+    if (options === null) return null;
+    items.push({
+      menuItemId,
+      quantity: line.quantity,
+      ...(options === undefined ? {} : { options }),
+    });
   }
   return { restaurantId, items };
 }
@@ -206,6 +231,7 @@ function toJson(order: Awaited<ReturnType<OrderServiceReader["createForCustomer"
       name: item.nameSnapshot,
       unitPriceMinor: item.unitPriceMinor,
       quantity: item.quantity,
+      ...(item.options ? { options: item.options } : {}),
     })),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),

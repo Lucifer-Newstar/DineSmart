@@ -40,6 +40,7 @@ class CustomerWorkflowRepository implements MenuReader, OrderRepository {
       dietaryLabels: ["vegetarian"],
       allergenLabels: ["dairy"],
       isAvailable: true,
+      optionGroups: [],
     },
     {
       id: COFFEE_ID,
@@ -49,6 +50,7 @@ class CustomerWorkflowRepository implements MenuReader, OrderRepository {
       dietaryLabels: ["vegetarian"],
       allergenLabels: ["dairy"],
       isAvailable: true,
+      optionGroups: [],
     },
   ];
 

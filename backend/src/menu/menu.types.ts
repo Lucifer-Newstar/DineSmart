@@ -1,4 +1,12 @@
 import type { ObjectId } from "mongodb";
+import type { MenuOptionGroup } from "../database/schema.js";
+
+export type { MenuOptionChoice, MenuOptionGroup } from "../database/schema.js";
+
+export const MENU_OPTION_GROUPS_MAX = 4;
+export const MENU_OPTION_CHOICES_MAX = 8;
+export const MENU_OPTION_LABEL_MAX = 40;
+export const MENU_OPTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,23}$/;
 
 export interface PublicMenuRestaurant {
   id: ObjectId;
@@ -14,6 +22,7 @@ export interface PublicMenuItem {
   priceMinor: number;
   /** False while the item is 86'd: shown greyed out, never orderable. */
   isAvailable: boolean;
+  optionGroups: MenuOptionGroup[];
   dietaryLabels: string[];
   allergenLabels: string[];
 }
@@ -76,6 +85,7 @@ export interface ManagedMenuItem {
   isAvailable: boolean;
   dietaryLabels: string[];
   allergenLabels: string[];
+  optionGroups: MenuOptionGroup[];
   prepStation?: MenuPrepStation;
   prepMinutes?: number;
   updatedAt: Date;
@@ -96,6 +106,7 @@ export interface MenuItemInput {
   isAvailable: boolean;
   dietaryLabels: string[];
   allergenLabels: string[];
+  optionGroups: MenuOptionGroup[];
   prepStation?: MenuPrepStation;
   prepMinutes?: number;
 }
@@ -108,6 +119,7 @@ export interface MenuItemPatch {
   priceMinor?: number;
   dietaryLabels?: string[];
   allergenLabels?: string[];
+  optionGroups?: MenuOptionGroup[];
   /** `null` clears the station or the minutes. */
   prepStation?: MenuPrepStation | null;
   prepMinutes?: number | null;

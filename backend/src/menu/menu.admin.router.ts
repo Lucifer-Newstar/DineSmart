@@ -15,11 +15,16 @@ import {
   MENU_DESCRIPTION_MAX,
   MENU_DIETARY_LABELS,
   MENU_NAME_MAX,
+  MENU_OPTION_CHOICES_MAX,
+  MENU_OPTION_GROUPS_MAX,
+  MENU_OPTION_ID_PATTERN,
+  MENU_OPTION_LABEL_MAX,
   MENU_PREP_MINUTES_MAX,
   MENU_PREP_STATIONS,
   MENU_PRICE_MAX_MINOR,
   type MenuItemInput,
   type MenuItemPatch,
+  type MenuOptionGroup,
   type MenuPrepStation,
 } from "./menu.types.js";
 
@@ -43,6 +48,7 @@ const ITEM_FIELDS = new Set([
   "isAvailable",
   "dietaryLabels",
   "allergenLabels",
+  "optionGroups",
   "prepStation",
   "prepMinutes",
 ]);
@@ -80,6 +86,54 @@ function parseAllergens(value: unknown): string[] | null {
     labels.add(label);
   }
   return [...labels];
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return Object.keys(value).every((key) => keys.includes(key));
+}
+
+/** Validates single-choice option groups such as size or spice level. */
+export function parseOptionGroups(value: unknown): MenuOptionGroup[] | null {
+  if (!Array.isArray(value) || value.length > MENU_OPTION_GROUPS_MAX) return null;
+  const groups: MenuOptionGroup[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry) || !hasOnlyKeys(entry, ["id", "name", "required", "choices"])) return null;
+    const name = boundedText(entry.name, MENU_OPTION_LABEL_MAX);
+    if (
+      typeof entry.id !== "string" ||
+      !MENU_OPTION_ID_PATTERN.test(entry.id) ||
+      groups.some((group) => group.id === entry.id) ||
+      !name ||
+      typeof entry.required !== "boolean" ||
+      !Array.isArray(entry.choices) ||
+      entry.choices.length < 1 ||
+      entry.choices.length > MENU_OPTION_CHOICES_MAX
+    ) {
+      return null;
+    }
+    const choices: MenuOptionGroup["choices"] = [];
+    for (const choice of entry.choices) {
+      if (!isRecord(choice) || !hasOnlyKeys(choice, ["id", "label", "priceDeltaMinor"]))
+        return null;
+      const label = boundedText(choice.label, MENU_OPTION_LABEL_MAX);
+      const delta = choice.priceDeltaMinor ?? 0;
+      if (
+        typeof choice.id !== "string" ||
+        !MENU_OPTION_ID_PATTERN.test(choice.id) ||
+        choices.some((existing) => existing.id === choice.id) ||
+        !label ||
+        typeof delta !== "number" ||
+        !Number.isSafeInteger(delta) ||
+        delta < 0 ||
+        delta > MENU_PRICE_MAX_MINOR
+      ) {
+        return null;
+      }
+      choices.push({ id: choice.id, label, priceDeltaMinor: delta });
+    }
+    groups.push({ id: entry.id, name, required: entry.required, choices });
+  }
+  return groups;
 }
 
 function isPrice(value: unknown): value is number {
@@ -162,6 +216,16 @@ export function parseMenuItemBody(
     }
     result.allergenLabels = labels;
   }
+  if (value.optionGroups !== undefined || !partial) {
+    const groups = parseOptionGroups(value.optionGroups ?? []);
+    if (!groups) {
+      return {
+        ok: false,
+        message: `Options: at most ${MENU_OPTION_GROUPS_MAX} groups of 1 to ${MENU_OPTION_CHOICES_MAX} choices, each with a lowercase id, a name and a price delta of zero or more.`,
+      };
+    }
+    result.optionGroups = groups;
+  }
   if (value.prepStation !== undefined) {
     if (value.prepStation === null) {
       if (partial) result.prepStation = null;
@@ -213,6 +277,7 @@ export function serializeManagedItem(item: ManagedMenuItem) {
     isAvailable: item.isAvailable,
     dietaryLabels: item.dietaryLabels,
     allergenLabels: item.allergenLabels,
+    optionGroups: item.optionGroups,
     ...(item.prepStation === undefined ? {} : { prepStation: item.prepStation }),
     ...(item.prepMinutes === undefined ? {} : { prepMinutes: item.prepMinutes }),
     updatedAt: item.updatedAt.toISOString(),

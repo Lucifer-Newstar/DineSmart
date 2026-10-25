@@ -19,6 +19,7 @@ const menu: PublicMenu = {
       category: "Tiffin",
       priceMinor: 28_500,
       isAvailable: true,
+      optionGroups: [],
       dietaryLabels: ["vegetarian"],
       allergenLabels: ["dairy"],
     },

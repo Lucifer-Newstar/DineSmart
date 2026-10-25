@@ -70,6 +70,7 @@ const input: MenuItemInput = {
   isAvailable: true,
   dietaryLabels: ["vegetarian"],
   allergenLabels: [],
+  optionGroups: [],
 };
 
 function lastPositionCursor(sortPosition: number | undefined) {

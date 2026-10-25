@@ -80,6 +80,7 @@ test("public menu repository returns active available items with restaurant curr
       isAvailable: true,
       dietaryLabels: ["vegetarian"],
       allergenLabels: ["dairy"],
+      optionGroups: [],
     },
   ]);
   assert.deepEqual(result?.categories, ["Tiffin"]);

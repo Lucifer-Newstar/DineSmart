@@ -61,6 +61,7 @@ export function createMenuRouter(options: MenuRouterOptions) {
           category: item.category,
           priceMinor: item.priceMinor,
           isAvailable: item.isAvailable,
+          ...(item.optionGroups.length > 0 ? { optionGroups: item.optionGroups } : {}),
           dietaryLabels: item.dietaryLabels,
           allergenLabels: item.allergenLabels,
         })),

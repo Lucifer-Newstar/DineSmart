@@ -126,6 +126,30 @@ export interface StaffDocument extends TimestampedDocument {
   isActive: boolean;
 }
 
+/** One choice inside an option group, e.g. "Large" with a price delta of +₹60. */
+export interface MenuOptionChoice {
+  id: string;
+  label: string;
+  /** Added to the item price, in minor units; never negative. */
+  priceDeltaMinor: number;
+}
+
+/** A single-choice option group such as size or spice level. */
+export interface MenuOptionGroup {
+  id: string;
+  name: string;
+  /** A required group must be answered before the item can be ordered. */
+  required: boolean;
+  choices: MenuOptionChoice[];
+}
+
+/** What a customer picked, stored on the order line by name so later menu edits don't rewrite history. */
+export interface OrderItemOption {
+  group: string;
+  choice: string;
+  priceDeltaMinor: number;
+}
+
 export interface MenuItemDocument extends TimestampedDocument {
   restaurantId: ObjectId;
   category: string;
@@ -136,6 +160,7 @@ export interface MenuItemDocument extends TimestampedDocument {
   isAvailable: boolean;
   dietaryLabels?: string[];
   allergenLabels?: string[];
+  optionGroups?: MenuOptionGroup[];
   /** Kitchen station that cooks the item, from MENU_PREP_STATIONS. */
   prepStation?: string;
   /** Typical minutes from firing to pass; the kitchen display uses it to spot late tickets. */
@@ -197,8 +222,10 @@ export interface OrderItemDocument extends TimestampedDocument {
   orderId: ObjectId;
   menuItemId: ObjectId;
   nameSnapshot: string;
+  /** Includes the price deltas of the chosen options. */
   unitPriceMinor: number;
   quantity: number;
+  options?: OrderItemOption[];
   notes?: string;
   preparationStatus: PreparationStatus;
 }

@@ -274,6 +274,18 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
           isAvailable: true,
           dietaryLabels: ["vegetarian", "gluten-free"],
           allergenLabels: ["dairy"],
+          optionGroups: [
+            {
+              id: "spice",
+              name: "Spice level",
+              required: true,
+              choices: [
+                { id: "mild", label: "Mild", priceDeltaMinor: 0 },
+                { id: "medium", label: "Medium", priceDeltaMinor: 0 },
+                { id: "hot", label: "Hot", priceDeltaMinor: 0 },
+              ],
+            },
+          ],
           prepStation: "tandoor",
           prepMinutes: 15,
           sortPosition: 1,
@@ -308,6 +320,23 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
           isAvailable: true,
           dietaryLabels: ["vegan", "gluten-free"],
           allergenLabels: ["peanuts"],
+          optionGroups: [
+            {
+              id: "portion",
+              name: "Portion",
+              required: true,
+              choices: [
+                { id: "regular", label: "Regular", priceDeltaMinor: 0 },
+                { id: "large", label: "Large", priceDeltaMinor: 6000 },
+              ],
+            },
+            {
+              id: "extras",
+              name: "Extras",
+              required: false,
+              choices: [{ id: "papad", label: "Roasted papad", priceDeltaMinor: 2000 }],
+            },
+          ],
           prepStation: "rice",
           prepMinutes: 10,
           sortPosition: 2,

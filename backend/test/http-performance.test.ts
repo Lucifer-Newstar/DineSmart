@@ -32,6 +32,7 @@ function buildMenu(itemCount: number): PublicMenu {
         "A deliberately long catalogue description used to push this public menu payload past the compression threshold.",
       category: "Tiffin",
       isAvailable: true,
+      optionGroups: [],
       priceMinor: 28_500 + index,
       dietaryLabels: ["vegetarian"],
       allergenLabels: ["dairy"],

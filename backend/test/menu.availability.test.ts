@@ -91,6 +91,7 @@ function dosa(isAvailable = true): ManagedMenuItem {
     isAvailable,
     dietaryLabels: ["vegetarian"],
     allergenLabels: ["dairy"],
+    optionGroups: [],
     updatedAt: now,
   };
 }

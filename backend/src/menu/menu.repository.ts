@@ -36,6 +36,7 @@ function toManagedItem(document: WithId<MenuItemDocument>): ManagedMenuItem {
     isAvailable: document.isAvailable,
     dietaryLabels: document.dietaryLabels ?? [],
     allergenLabels: document.allergenLabels ?? [],
+    optionGroups: document.optionGroups ?? [],
     ...(isPrepStation(document.prepStation) ? { prepStation: document.prepStation } : {}),
     ...(document.prepMinutes === undefined ? {} : { prepMinutes: document.prepMinutes }),
     updatedAt: document.updatedAt,
@@ -73,6 +74,7 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       isAvailable: item.isAvailable,
       dietaryLabels: item.dietaryLabels ?? [],
       allergenLabels: item.allergenLabels ?? [],
+      optionGroups: item.optionGroups ?? [],
     }));
 
     const arranged = arrangeMenu(items, restaurant.menuCategoryOrder);
@@ -119,6 +121,7 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       isAvailable: input.isAvailable,
       dietaryLabels: input.dietaryLabels,
       allergenLabels: input.allergenLabels,
+      ...(input.optionGroups.length > 0 ? { optionGroups: input.optionGroups } : {}),
       ...(input.prepStation === undefined ? {} : { prepStation: input.prepStation }),
       ...(input.prepMinutes === undefined ? {} : { prepMinutes: input.prepMinutes }),
       archivedAt: null,
@@ -149,6 +152,7 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
     if (patch.priceMinor !== undefined) set.priceMinor = patch.priceMinor;
     if (patch.dietaryLabels !== undefined) set.dietaryLabels = patch.dietaryLabels;
     if (patch.allergenLabels !== undefined) set.allergenLabels = patch.allergenLabels;
+    if (patch.optionGroups !== undefined) set.optionGroups = patch.optionGroups;
     if (patch.description === null) unset.description = "";
     else if (patch.description !== undefined) set.description = patch.description;
     if (patch.prepStation === null) unset.prepStation = "";

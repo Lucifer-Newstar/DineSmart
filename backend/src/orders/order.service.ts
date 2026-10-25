@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import type { MenuOptionGroup, OrderItemOption } from "../database/schema.js";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
 import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
@@ -51,13 +52,17 @@ export class OrderService implements OrderServiceReader {
       );
     }
 
-    const menuItemIds = request.items.map((item) => item.menuItemId);
+    const menuItemIds = [
+      ...new Map(
+        request.items.map((item) => [item.menuItemId.toHexString(), item.menuItemId]),
+      ).values(),
+    ];
     const menuItems = await this.repository.getAvailableMenuItems(
       request.restaurantId,
       menuItemIds,
     );
     const menuById = new Map(menuItems.map((item) => [item.id.toHexString(), item]));
-    if (menuById.size !== request.items.length) {
+    if (menuById.size !== menuItemIds.length) {
       throw new OrderError(
         409,
         "order_menu_item_unavailable",
@@ -76,6 +81,7 @@ export class OrderService implements OrderServiceReader {
           "One or more selected items are unavailable. Refresh the menu and try again.",
         );
       }
+      const chosen = resolveOptions(item.optionGroups ?? [], line.options ?? {});
       if (!Number.isSafeInteger(item.priceMinor) || item.priceMinor <= 0) {
         throw new OrderError(
           503,
@@ -83,7 +89,11 @@ export class OrderService implements OrderServiceReader {
           "A menu item has an invalid price and cannot be ordered.",
         );
       }
-      const lineTotal = item.priceMinor * line.quantity;
+      const unitPriceMinor = chosen.reduce(
+        (total, option) => total + option.priceDeltaMinor,
+        item.priceMinor,
+      );
+      const lineTotal = unitPriceMinor * line.quantity;
       if (!Number.isSafeInteger(lineTotal) || !Number.isSafeInteger(totalMinor + lineTotal)) {
         throw new OrderError(
           400,
@@ -95,8 +105,9 @@ export class OrderService implements OrderServiceReader {
       snapshots.push({
         menuItemId: item.id,
         nameSnapshot: item.name,
-        unitPriceMinor: item.priceMinor,
+        unitPriceMinor,
         quantity: line.quantity,
+        ...(chosen.length > 0 ? { options: chosen } : {}),
         preparationStatus: "Created",
       });
     }
@@ -198,12 +209,13 @@ function validateOrderLines(lines: OrderRequestLine[]): void {
         "Each order line needs a valid menu item ID.",
       );
     }
-    const itemId = line.menuItemId.toHexString();
+    // The same dish may appear twice with different options (one mild, one hot).
+    const itemId = `${line.menuItemId.toHexString()}:${optionKey(line.options)}`;
     if (itemIds.has(itemId)) {
       throw new OrderError(
         400,
         "duplicate_order_item",
-        "Combine repeated menu items into one quantity per order line.",
+        "Combine repeated menu items with the same options into one quantity per order line.",
       );
     }
     itemIds.add(itemId);
@@ -228,4 +240,58 @@ function validateOrderLines(lines: OrderRequestLine[]): void {
       `An order may contain at most ${ORDER_MAX_TOTAL_UNITS} total items.`,
     );
   }
+}
+
+function optionKey(options: Record<string, string> | undefined): string {
+  return Object.entries(options ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([group, choice]) => `${group}=${choice}`)
+    .join("&");
+}
+
+/**
+ * Turns `{ spice: "hot" }` into the stored snapshot. Every chosen group and
+ * choice must exist on the item, and every required group must be answered.
+ */
+export function resolveOptions(
+  groups: MenuOptionGroup[],
+  selected: Record<string, string>,
+): OrderItemOption[] {
+  for (const groupId of Object.keys(selected)) {
+    if (!groups.some((group) => group.id === groupId)) {
+      throw new OrderError(
+        400,
+        "invalid_order_options",
+        "An order line names an option this item does not have.",
+      );
+    }
+  }
+  const chosen: OrderItemOption[] = [];
+  for (const group of groups) {
+    const choiceId = selected[group.id];
+    if (choiceId === undefined) {
+      if (group.required) {
+        throw new OrderError(
+          400,
+          "order_option_required",
+          `Choose a ${group.name.toLowerCase()} for every item that needs one.`,
+        );
+      }
+      continue;
+    }
+    const choice = group.choices.find((candidate) => candidate.id === choiceId);
+    if (!choice) {
+      throw new OrderError(
+        400,
+        "invalid_order_options",
+        "An order line names an option this item does not have.",
+      );
+    }
+    chosen.push({
+      group: group.name,
+      choice: choice.label,
+      priceDeltaMinor: choice.priceDeltaMinor,
+    });
+  }
+  return chosen;
 }

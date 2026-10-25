@@ -3,6 +3,7 @@ import { MongoCustomerProfileRepository } from "../customers/customer-profile.re
 import {
   COLLECTIONS,
   type MenuItemDocument,
+  type MenuOptionGroup,
   type OrderDocument,
   type OrderItemDocument,
   type OrderStatus,
@@ -59,14 +60,21 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
   async getAvailableMenuItems(
     restaurantId: ObjectId,
     menuItemIds: ObjectId[],
-  ): Promise<Array<{ id: ObjectId; name: string; priceMinor: number }>> {
+  ): Promise<
+    Array<{ id: ObjectId; name: string; priceMinor: number; optionGroups?: MenuOptionGroup[] }>
+  > {
     const items = await this.menuItems
       .find(
         { _id: { $in: menuItemIds }, restaurantId, isAvailable: true },
-        { projection: { _id: 1, name: 1, priceMinor: 1 } },
+        { projection: { _id: 1, name: 1, priceMinor: 1, optionGroups: 1 } },
       )
       .toArray();
-    return items.map((item) => ({ id: item._id, name: item.name, priceMinor: item.priceMinor }));
+    return items.map((item) => ({
+      id: item._id,
+      name: item.name,
+      priceMinor: item.priceMinor,
+      ...(item.optionGroups?.length ? { optionGroups: item.optionGroups } : {}),
+    }));
   }
 
   async createOrder(order: NewOrder, items: OrderItemSnapshot[], now: Date): Promise<OrderRecord> {
@@ -203,6 +211,7 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
           id: item.id,
           name: item.nameSnapshot,
           quantity: item.quantity,
+          ...(item.options?.length ? { options: item.options } : {}),
           preparationStatus: item.preparationStatus,
         })),
         createdAt: order.createdAt,
@@ -314,6 +323,7 @@ function toItemRecord(item: WithId<OrderItemDocument>): OrderItemRecord {
     nameSnapshot: item.nameSnapshot,
     unitPriceMinor: item.unitPriceMinor,
     quantity: item.quantity,
+    ...(item.options?.length ? { options: item.options } : {}),
     preparationStatus: item.preparationStatus,
   };
 }

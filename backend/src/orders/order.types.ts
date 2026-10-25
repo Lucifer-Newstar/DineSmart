@@ -1,11 +1,18 @@
 import type { ObjectId } from "mongodb";
-import type { OrderStatus, PreparationStatus } from "../database/schema.js";
+import type {
+  MenuOptionGroup,
+  OrderItemOption,
+  OrderStatus,
+  PreparationStatus,
+} from "../database/schema.js";
 
 export const ORDER_HISTORY_LIMIT = 100;
 
 export interface OrderRequestLine {
   menuItemId: ObjectId;
   quantity: number;
+  /** Chosen option per group: `{ spice: "hot" }`. */
+  options?: Record<string, string>;
 }
 
 export interface NewCustomerOrderRequest {
@@ -25,6 +32,7 @@ export interface OrderItemSnapshot {
   nameSnapshot: string;
   unitPriceMinor: number;
   quantity: number;
+  options?: OrderItemOption[];
   preparationStatus: PreparationStatus;
 }
 
@@ -69,6 +77,7 @@ export interface OrderRepository {
       id: ObjectId;
       name: string;
       priceMinor: number;
+      optionGroups?: MenuOptionGroup[];
     }>
   >;
   createOrder(order: NewOrder, items: OrderItemSnapshot[], now: Date): Promise<OrderRecord>;
