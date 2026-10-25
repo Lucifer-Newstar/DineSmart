@@ -39,6 +39,17 @@ const TEXT_CONTROL_SELECTORS = [
   ".app-footer button",
 ];
 
+/** Selectors grouped in the S4-03 target-size block at the end of globals.css. */
+const TARGET_SIZE_SELECTORS = [
+  ".landing-nav a",
+  ".auth-forgot-link",
+  ".menu-back-link",
+  ".veg-filter",
+  ".customer-quick-grid .customer-reservation-cancel",
+  ".menu-search input",
+  ".select-wrap select",
+];
+
 test("visually hidden labels cannot widen the document", () => {
   const srOnly = declarations(".sr-only");
   assert.equal(srOnly.get("position"), "absolute");
@@ -70,6 +81,18 @@ test("focus scrolling keeps controls clear of the sticky top bar (WCAG 2.4.11)",
     padding > topbar,
     `html scroll-padding-top (${padding}px) must exceed the ${topbar}px sticky top bar`,
   );
+});
+
+test("standalone links, text buttons and bare inputs keep a 24px target (WCAG 2.5.8)", () => {
+  const marker = css.indexOf("WCAG 2.5.8 target size");
+  assert.notEqual(marker, -1, "the target-size block must exist");
+  const block = css.slice(marker);
+  for (const selector of TARGET_SIZE_SELECTORS) {
+    const index = block.indexOf(selector);
+    assert.notEqual(index, -1, `${selector} must be in the target-size block`);
+    const rules = block.slice(index, block.indexOf("}", index));
+    assert.match(rules, /min-height:\s*24px/, `${selector} needs min-height: 24px`);
+  }
 });
 
 test("the stylesheet keeps a single skip link and reduced-motion guard", () => {

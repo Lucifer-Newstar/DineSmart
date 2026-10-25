@@ -6099,3 +6099,28 @@ button.notification-item:focus-visible {
   color: var(--ink);
   font-weight: 700;
 }
+
+/* WCAG 2.5.8 target size: standalone links, text buttons and bare inputs keep
+   at least a 24px hit area. Links inside running text are exempt. */
+.landing-nav a,
+.landing-login-link,
+.landing-feature-card > a,
+.landing-footer a,
+.auth-forgot-link,
+.auth-back-link,
+.menu-back-link,
+.veg-filter,
+.menu-footer a,
+.book-account-note a,
+.orders-secondary-link,
+.customer-quick-grid .customer-reservation-cancel,
+.reservation-note-card > button {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+}
+.menu-search input,
+.search-field input,
+.select-wrap select {
+  min-height: 24px;
+}
