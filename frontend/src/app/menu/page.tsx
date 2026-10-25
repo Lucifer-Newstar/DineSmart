@@ -132,7 +132,7 @@ function MenuIcon({
     ),
   };
   return (
-    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24">
+    <svg aria-hidden="true" focusable="false" width={size} height={size} viewBox="0 0 24 24">
       {paths[name]}
     </svg>
   );
@@ -393,11 +393,10 @@ export default function MenuPage() {
               setCartError("");
               setCartOpen(true);
             }}
-            aria-label={`Open bag, ${quantity} ${quantity === 1 ? "item" : "items"}`}
+            aria-label={`Your bag, ${quantity} ${quantity === 1 ? "item" : "items"}`}
           >
             <MenuIcon name="bag" size={17} />
-            <span>Your bag</span>
-            <b>{quantity}</b>
+            <span>Your bag</span> <b>{quantity}</b>
           </button>
         </div>
       </header>

@@ -253,11 +253,11 @@ export function Icon({
   return (
     <svg
       aria-hidden="true"
+      focusable="false"
       className={className}
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      role="img"
     >
       {content}
     </svg>

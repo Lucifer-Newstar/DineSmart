@@ -32,7 +32,7 @@ test("a customer browses the menu, places an order and finds it in their history
   });
   await dosa.getByRole("button", { name: "Add", exact: true }).click();
 
-  await page.getByRole("button", { name: "Open bag, 3 items" }).click();
+  await page.getByRole("button", { name: "Your bag, 3 items" }).click();
   const bag = page.getByRole("dialog");
   await expect(bag).toBeVisible();
   // 2 × ₹95 + 1 × ₹285
@@ -57,7 +57,7 @@ test("a signed-out visitor is asked to sign in before ordering", async ({ page }
     has: page.getByRole("heading", { name: "Madras filter coffee" }),
   });
   await coffee.getByRole("button", { name: "Add", exact: true }).click();
-  await page.getByRole("button", { name: "Open bag, 1 item" }).click();
+  await page.getByRole("button", { name: "Your bag, 1 item" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Sign in to place order" }).click();
   await expect(page).toHaveURL(/\/login\?next=%2Fmenu/);
 });

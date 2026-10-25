@@ -59,12 +59,14 @@ export function NotificationBell({ feed, onViewActivity }: NotificationBellProps
         onClick={() => setOpen(!open)}
       >
         <Icon name="bell" size={19} />
-        {unread > 0 ? (
-          <span className="notification-count" aria-hidden="true">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        ) : null}
       </button>
+      {/* Outside the button so its visible text cannot contradict the label
+          (WCAG 2.5.3); the label already carries the exact count. */}
+      {unread > 0 ? (
+        <span className="notification-count" aria-hidden="true">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      ) : null}
       {open ? (
         <div
           className="notification-popover"
