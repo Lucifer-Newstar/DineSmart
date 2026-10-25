@@ -1,0 +1,52 @@
+# Review owners, from the ownership in Docs/Planning/Andhrimnir_Sprint_Backlog.md.
+# The last matching pattern wins, so broad defaults come first.
+
+# Shared documentation, architecture, security and anything unassigned: Navin.
+*                                         @Lucifer-Newstar
+
+# Backend domain, API and database: Jegatheesan.
+/backend/                                 @jegatheesank
+/compose.yaml                             @jegatheesank
+
+# Authentication, RBAC, incidents, AI, health score and realtime keep Navin as a
+# second reviewer because they carry the security model.
+/backend/src/auth/                        @dhanush-07-byte @Lucifer-Newstar
+/backend/src/ai/                          @Lucifer-Newstar
+/backend/src/incidents/                   @Lucifer-Newstar
+/backend/src/healthscore/                 @Lucifer-Newstar
+/backend/src/realtime/                    @Lucifer-Newstar
+/backend/src/http/                        @Lucifer-Newstar @jegatheesank
+
+# Notifications and email delivery: Gokul.
+/backend/src/notifications/               @Gokul143-J
+/backend/src/email/                       @Gokul143-J
+
+# Frontend and UI: Dhanush.
+/frontend/                                @dhanush-07-byte
+
+# End-to-end and accessibility test infrastructure: Gokul.
+/frontend/e2e/                            @Gokul143-J
+/frontend/playwright.config.ts            @Gokul143-J
+
+# CI, devops, scripts and repository tooling: Gokul.
+/.github/workflows/                       @Gokul143-J
+/.github/dependabot.yml                   @Gokul143-J
+/tools/                                   @Gokul143-J
+/package.json                             @Gokul143-J
+/package-lock.json                        @Gokul143-J
+/commitlint.config.mjs                    @Gokul143-J
+/backend/.env.example                     @Gokul143-J
+/frontend/.env.example                    @Gokul143-J
+
+# Repository policy files stay with the project lead.
+/.github/CODEOWNERS                       @Lucifer-Newstar
+/.github/pull_request_template.md         @Lucifer-Newstar
+/.github/ISSUE_TEMPLATE/                  @Lucifer-Newstar
+/SECURITY.md                              @Lucifer-Newstar
+/CONTRIBUTING.md                          @Lucifer-Newstar
+
+# Work logs belong to their authors (a space in a path is escaped with a backslash).
+/Docs/Work\ Logs/Gokul.md               @Gokul143-J
+/Docs/Work\ Logs/Dhanush_Kumar.md       @dhanush-07-byte
+/Docs/Work\ Logs/Jegatheesan.md         @jegatheesank
+/Docs/Work\ Logs/Navin_Jairam.md        @Lucifer-Newstar
