@@ -240,3 +240,39 @@ Review follow-up after the repository was published (frontend, auth flows and UI
 - The API contract check now also reads the dashboard's `useApiResource`/`apiSend` helpers, so the new screens count as callers.
 - **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
 - **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
+
+## 2026-10-25
+
+### Sprint 4 Day 1: guard rails, end-to-end tests, accessibility, security and menu management
+
+My part:
+
+- `3c7e326` fix(S4-03): raise muted text and badge contrast to at least 4.5:1 across the stylesheets
+- `054c617` fix(S4-03): give every form error an accessible name and description
+- `9726d2b` fix(S4-03): keep focused elements clear of the sticky header (2.4.11)
+- `1b62470` fix(S4-03): enlarge small controls to the 24px target size (2.5.8)
+- `e29d1fc` feat(S4-03): announce live order and incident updates in a polite live region
+- `a44be57` fix(S4-03): trap and restore focus in the bag dialog and the notification panel
+- `bb0b06d` fix(S4-03): make menu category tabs follow the WAI-ARIA tabs pattern
+- `c4d0205` fix(S4-03): keep icon button names consistent with their visible text (2.5.3)
+- `865d479` fix(S4-03): make wide tables keyboard-scrollable and darken late-order timers
+- `ce5e5b3` feat(S4-04): add a Content Security Policy and security headers to the frontend
+- `b284801` feat(S4-04): lock an account for 15 minutes after repeated failed logins
+- `56591f7` test(S4-04): cover login lockout and unlock timing
+- `e793a16` feat(S4-04): list and revoke active sessions
+- `8475123` feat(S4-04): add a signed-in devices section to settings
+- `fb7b08a` feat(S4-05): add the menu manager page to the dashboard
+- `14ee590` feat(S4-05): add an 86 switch per item on the menu manager
+- `a4eb3c1` feat(S4-05): grey out sold-out items live on the customer menu
+- `3e96876` feat(S4-05): add search and dietary filters to the customer menu
+- `8d4125b` test(S4-05): cover menu filtering and availability parsing
+- `263421d` test(S4-05): cover menu manager price parsing, form errors and reordering
+- `1833bb1` feat(S4-05): let customers pick item options before adding to the order
+- `8f76e30` test(S4-05): cover option prices and bag lines for dishes with choices
+- `442ab17` feat(S4-05): show dietary and allergen labels as text, not colour alone
+- `8cf4c56` fix(S4-05): read the customer menu past the browser cache so changes show at once
+- `1f9d1f0` fix(S4-05): darken dashboard heading counts to pass the 4.5:1 contrast check
+- The menu manager edits names, categories, prices, labels, prep station and minutes, order and availability. Option groups are API-only for now.
+- Anonymous visitors get sold-out changes by a 30-second re-read and on tab focus; signed-in visitors get them instantly over the socket.
+- **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
+- **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
