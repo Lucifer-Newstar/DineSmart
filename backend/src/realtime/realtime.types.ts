@@ -56,6 +56,10 @@ export type RestaurantRealtimeEvent =
       data: { incidentId: string };
     })
   | (RestaurantRealtimeEventBase & {
+      event: "menu.availability";
+      data: { menuItemId: string; isAvailable: boolean };
+    })
+  | (RestaurantRealtimeEventBase & {
       event: "healthscore.updated";
       data: { score: number; calculatedAt: string };
     });

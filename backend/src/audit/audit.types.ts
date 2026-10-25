@@ -9,6 +9,7 @@ export const AUDIT_ACTIONS = [
   "menu.item_created",
   "menu.item_updated",
   "menu.item_archived",
+  "menu.availability_changed",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

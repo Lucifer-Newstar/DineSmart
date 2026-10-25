@@ -360,6 +360,7 @@ export function createApp(options: AppOptions = {}) {
             new MongoMenuRepository(db),
             undefined,
             new AuditService(new MongoAuditRepository(db)).record,
+            realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };

@@ -19,7 +19,7 @@ import {
 } from "./menu.types.js";
 
 export interface MenuAdminRuntime {
-  service: Pick<MenuAdminService, "list" | "create" | "update" | "archive">;
+  service: Pick<MenuAdminService, "list" | "create" | "update" | "setAvailability" | "archive">;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
 }
 
@@ -293,6 +293,36 @@ export function createMenuAdminRouter(options: MenuAdminRouterOptions): Router {
         context.restaurantId,
         itemId(request),
         parsed.value,
+        context.actor,
+      );
+      response.status(200).json({ item: serializeManagedItem(item) });
+    } catch (error) {
+      sendMenuError(error, response);
+    }
+  });
+
+  router.patch("/:id/availability", requireItemId, async (request: Request, response: Response) => {
+    const context = scope(request, response);
+    if (!context) return;
+    const body: unknown = request.body;
+    if (
+      !isRecord(body) ||
+      Object.keys(body).length !== 1 ||
+      typeof body.isAvailable !== "boolean"
+    ) {
+      response.status(400).json({
+        error: {
+          code: "invalid_menu_availability",
+          message: "Send only isAvailable as true or false.",
+        },
+      });
+      return;
+    }
+    try {
+      const item = await context.runtime.service.setAvailability(
+        context.restaurantId,
+        itemId(request),
+        body.isAvailable,
         context.actor,
       );
       response.status(200).json({ item: serializeManagedItem(item) });

@@ -91,6 +91,15 @@ class MemoryMenuRepository implements MenuAdminRepository {
     return { ...item };
   }
 
+  async setAvailability(restaurantId: ObjectId, itemId: ObjectId, isAvailable: boolean, at: Date) {
+    const item = this.live(restaurantId, itemId);
+    if (!item) return null;
+    const previous = { ...item };
+    item.isAvailable = isAvailable;
+    item.updatedAt = at;
+    return previous;
+  }
+
   async archiveItem(restaurantId: ObjectId, itemId: ObjectId) {
     const item = this.live(restaurantId, itemId);
     if (!item) return null;

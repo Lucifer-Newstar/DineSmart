@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { AuditRecorder } from "../audit/audit.service.js";
 import type { AuditAction, AuditActor } from "../audit/audit.types.js";
+import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import type {
   ManagedMenuItem,
   MenuAdminRepository,
@@ -43,6 +44,7 @@ export class MenuAdminService {
     private readonly repository: MenuAdminRepository,
     private readonly clock: () => Date = () => new Date(),
     private readonly audit?: AuditRecorder,
+    private readonly publish?: RestaurantRealtimePublisher,
   ) {}
 
   list(restaurantId: ObjectId): Promise<{ items: ManagedMenuItem[]; truncated: boolean }> {
@@ -73,10 +75,47 @@ export class MenuAdminService {
     return item;
   }
 
+  /**
+   * Marks an item sold out (86) or back on. A real change is audited and
+   * broadcast as `menu.availability` so open menus update without a reload;
+   * repeating the current state is a no-op that sends nothing.
+   */
+  async setAvailability(
+    restaurantId: ObjectId,
+    itemId: ObjectId,
+    isAvailable: boolean,
+    actor?: AuditActor,
+  ): Promise<ManagedMenuItem> {
+    const now = this.clock();
+    const previous = await this.repository.setAvailability(restaurantId, itemId, isAvailable, now);
+    if (!previous) throw notFound();
+    const item = { ...previous, isAvailable, updatedAt: now };
+    if (previous.isAvailable === isAvailable) return item;
+
+    await this.record(restaurantId, actor, "menu.availability_changed", item, previous, item);
+    this.broadcastAvailability(restaurantId, item);
+    return item;
+  }
+
   async archive(restaurantId: ObjectId, itemId: ObjectId, actor?: AuditActor): Promise<void> {
     const previous = await this.repository.archiveItem(restaurantId, itemId, this.clock());
     if (!previous) throw notFound();
     await this.record(restaurantId, actor, "menu.item_archived", previous, previous, null);
+    // An archived item can no longer be ordered, so open menus drop it like a sold-out one.
+    if (previous.isAvailable)
+      this.broadcastAvailability(restaurantId, { ...previous, isAvailable: false });
+  }
+
+  private broadcastAvailability(restaurantId: ObjectId, item: ManagedMenuItem): void {
+    try {
+      this.publish?.({
+        event: "menu.availability",
+        restaurantId,
+        data: { menuItemId: item.id.toHexString(), isAvailable: item.isAvailable },
+      });
+    } catch {
+      // Live updates are best effort; the next menu load shows the saved state.
+    }
   }
 
   private async record(

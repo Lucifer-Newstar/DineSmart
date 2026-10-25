@@ -30,7 +30,14 @@ const EVENT_PERMISSIONS: Record<RestaurantRealtimeEvent["event"], Permission> = 
   "incident.updated": "incidents:read",
   "recommendation.updated": "recommendations:read",
   "healthscore.updated": "dashboard:operations:read",
+  "menu.availability": "menu:read",
 };
+
+/**
+ * Events about the public menu carry nothing a visitor could not read from the
+ * menu itself, so signed-in customers (who belong to no restaurant) get them too.
+ */
+const CUSTOMER_VISIBLE_EVENTS = new Set<RestaurantRealtimeEvent["event"]>(["menu.availability"]);
 
 interface PendingAcknowledgement {
   notificationId: ObjectId;
@@ -130,10 +137,14 @@ export class RealtimeHub {
     const tenantId = event.restaurantId.toHexString();
 
     for (const client of this.clients.values()) {
-      if (
+      const sameTenantReader =
         client.identity.restaurantId?.toHexString() === tenantId &&
-        hasPermission(client.identity.role, permission)
-      ) {
+        hasPermission(client.identity.role, permission);
+      const customerReader =
+        CUSTOMER_VISIBLE_EVENTS.has(event.event) &&
+        client.identity.role === "Customer" &&
+        hasPermission(client.identity.role, permission);
+      if (sameTenantReader || customerReader) {
         this.send(client, payload);
       }
     }

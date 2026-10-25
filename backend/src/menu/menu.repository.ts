@@ -134,6 +134,20 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
     return updated ? toManagedItem(updated) : null;
   }
 
+  async setAvailability(
+    restaurantId: ObjectId,
+    itemId: ObjectId,
+    isAvailable: boolean,
+    now: Date,
+  ): Promise<ManagedMenuItem | null> {
+    const previous = await this.menuItems.findOneAndUpdate(
+      { _id: itemId, restaurantId, ...NOT_ARCHIVED },
+      { $set: { isAvailable, updatedAt: now } },
+      { returnDocument: "before" },
+    );
+    return previous ? toManagedItem(previous) : null;
+  }
+
   async archiveItem(
     restaurantId: ObjectId,
     itemId: ObjectId,

@@ -93,6 +93,13 @@ export interface MenuAdminRepository {
     patch: MenuItemPatch,
     now: Date,
   ): Promise<ManagedMenuItem | null>;
+  /** Sets the 86 flag; returns the item as it was before, or null when it is not a live item. */
+  setAvailability(
+    restaurantId: ObjectId,
+    itemId: ObjectId,
+    isAvailable: boolean,
+    now: Date,
+  ): Promise<ManagedMenuItem | null>;
   /** Archives a live item and returns it as it was, or null when there is nothing to archive. */
   archiveItem(restaurantId: ObjectId, itemId: ObjectId, now: Date): Promise<ManagedMenuItem | null>;
 }
