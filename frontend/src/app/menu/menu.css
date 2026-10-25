@@ -59,7 +59,7 @@
   font-weight: 660;
 }
 .menu-restaurant small {
-  color: #9ba298;
+  color: #6c7368;
   font-size: 11px;
 }
 .menu-open-dot {
@@ -76,7 +76,7 @@
   gap: 16px;
 }
 .menu-back-link {
-  color: #819083;
+  color: #677569;
   font-size: 11px;
   font-weight: 620;
 }
@@ -128,7 +128,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #9c8b6d;
+  color: #7e6f55;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.17em;
@@ -162,7 +162,7 @@
 .book-story > p {
   max-width: 370px;
   margin: 0;
-  color: #8b9488;
+  color: #6b7468;
   font-family: Georgia, serif;
   font-size: 11px;
   line-height: 1.7;
@@ -172,7 +172,7 @@
   align-items: center;
   gap: 7px;
   margin-top: 22px;
-  color: #908c7e;
+  color: #747164;
   font-size: 11px;
 }
 .menu-service-note svg {
@@ -277,7 +277,7 @@
   position: absolute;
   right: 1%;
   bottom: 3px;
-  color: #9a8869;
+  color: #7e6f55;
   font-family: Georgia, serif;
   font-size: 12px;
   font-style: italic;
@@ -297,7 +297,7 @@
   margin-bottom: 19px;
 }
 .menu-section-eyebrow {
-  color: #9a907b;
+  color: #7a715e;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -353,7 +353,7 @@
   padding: 0 10px;
   border: 0;
   border-radius: 6px;
-  color: #8e9489;
+  color: #696f64;
   background: transparent;
   font-size: 11px;
   font-weight: 610;
@@ -400,7 +400,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 14px 1px 13px;
-  color: #a1a698;
+  color: #6e7464;
   font-size: 11px;
 }
 .veg-filter {
@@ -409,7 +409,7 @@
   gap: 6px;
   padding: 0;
   border: 0;
-  color: #869283;
+  color: #697466;
   background: transparent;
   font-size: 11px;
   cursor: pointer;
@@ -667,7 +667,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #a29b87;
+  color: #7b745f;
   font-size: 6px;
   font-weight: 690;
   letter-spacing: 0.1em;
@@ -700,7 +700,7 @@
 .menu-item-copy > p {
   min-height: 28px;
   margin: 0;
-  color: #93998e;
+  color: #6f766a;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -716,7 +716,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #9ba297;
+  color: #6f776b;
   font-size: 10px;
 }
 .menu-item-footer > span svg {
@@ -730,7 +730,7 @@
   padding: 0 9px;
   border: 1px solid #dfe8dc;
   border-radius: 7px;
-  color: #607b62;
+  color: #5d775f;
   background: #f6faf3;
   font-size: 11px;
   font-weight: 650;
@@ -776,7 +776,7 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  color: #8d988b;
+  color: #687366;
 }
 .menu-empty > span {
   display: grid;
@@ -805,14 +805,14 @@
   margin-top: 23px;
   padding-top: 13px;
   border-top: 1px solid #ebe9e2;
-  color: #a09c8d;
+  color: #757161;
   font-size: 10px;
 }
 .menu-preview-foot > span:first-child {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #7e9078;
+  color: #677661;
 }
 .menu-footer {
   display: flex;
@@ -823,7 +823,7 @@
   margin: 0 auto;
   padding: 13px 28px 17px;
   border-top: 1px solid #ebe9e2;
-  color: #a29b89;
+  color: #78715f;
   font-size: 10px;
 }
 .menu-footer > span:first-child {
@@ -834,7 +834,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #758770;
+  color: #677662;
   font-weight: 630;
 }
 .menu-mobile-cart {
@@ -963,7 +963,7 @@
   white-space: nowrap;
 }
 .cart-line-copy span {
-  color: #9ba398;
+  color: #6d7669;
   font-size: 10px;
 }
 .cart-line-actions {
@@ -993,7 +993,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 9px;
-  color: #92998d;
+  color: #6e7569;
   font-size: 11px;
 }
 .cart-summary > div > strong {
@@ -1136,7 +1136,7 @@
 }
 .book-venue-card span,
 .book-venue-card small {
-  color: #969b8e;
+  color: #717669;
   font-size: 10px;
 }
 .book-promise {
@@ -1152,7 +1152,7 @@
 .book-promise p {
   max-width: 300px;
   margin: 0;
-  color: #999382;
+  color: #767060;
   font-family: Georgia, serif;
   font-size: 11px;
   font-style: italic;
@@ -1184,7 +1184,7 @@
 }
 .book-subtitle {
   margin: 0 0 10px;
-  color: #929a8f;
+  color: #6e776b;
   font-size: 11px;
 }
 .book-account-note {
@@ -1195,7 +1195,7 @@
   padding: 9px 10px;
   border: 1px solid #e8eee4;
   border-radius: 7px;
-  color: #788678;
+  color: #677367;
   background: #f8faf5;
   font-size: 11px;
   line-height: 1.5;
@@ -1249,7 +1249,7 @@
   font-weight: 640;
 }
 .book-time-label small {
-  color: #a1a699;
+  color: #717767;
   font-size: 10px;
   font-weight: 450;
 }
@@ -1263,7 +1263,7 @@
   min-height: 30px;
   border: 1px solid #e7e9e1;
   border-radius: 7px;
-  color: #899387;
+  color: #6d776b;
   background: #fff;
   font-size: 11px;
   cursor: pointer;
@@ -1293,7 +1293,7 @@
 }
 .book-preview-note {
   margin: 11px 0 0;
-  color: #a09a89;
+  color: #7a7462;
   font-size: 10px;
   text-align: center;
 }
@@ -1558,7 +1558,7 @@
 
 .menu-state-ready {
   border-color: #dce7d6;
-  color: #668265;
+  color: #5d775c;
   background: #f5f9f1;
 }
 .menu-state-ready i {
@@ -1575,7 +1575,7 @@
 .menu-item-copy > p.menu-allergens {
   min-height: 0;
   margin: 4px 0 0;
-  color: #a47a58;
+  color: #926c4e;
   font-size: 10px;
 }
 .menu-truncated-note {

@@ -423,7 +423,7 @@ a {
   gap: 17px;
 }
 .topbar-crumb {
-  color: #8b958f;
+  color: #6a746e;
   font-size: 12px;
   font-weight: 670;
   letter-spacing: 0.12em;
@@ -473,7 +473,7 @@ a {
   place-items: center;
   border: 0;
   border-radius: 10px;
-  color: #74817a;
+  color: #69756f;
   background: transparent;
   cursor: pointer;
   transition:
@@ -539,7 +539,7 @@ a {
   font-size: 12px;
 }
 .popover-heading > span {
-  color: #668162;
+  color: #617b5e;
   font-size: 12px;
 }
 .notification-item {
@@ -588,7 +588,7 @@ a {
   border: 2px solid #fafbf8;
   border-radius: 999px;
   color: #fff;
-  background: #ca7854;
+  background: #b35d38;
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -630,14 +630,14 @@ button.notification-item:focus-visible {
 }
 .notification-meta {
   display: block;
-  color: #6f7c74;
+  color: #6a776f;
   font-size: 11px;
   line-height: 1.45;
 }
 .notification-empty {
   margin: 0;
   padding: 18px 4px;
-  color: #6f7c74;
+  color: #6a776f;
   font-size: 12px;
   line-height: 1.5;
   text-align: center;
@@ -675,7 +675,7 @@ button.notification-item:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #74817a;
+  color: #69756f;
   font-size: 12px;
 }
 .topbar-date svg {
@@ -704,7 +704,7 @@ button.notification-item:focus-visible {
 }
 .eyebrow,
 .card-overline {
-  color: #8a958d;
+  color: #68726b;
   font-size: 12px;
   font-weight: 690;
   letter-spacing: 0.15em;
@@ -725,7 +725,7 @@ button.notification-item:focus-visible {
 }
 .page-heading-copy p {
   margin: 0;
-  color: #849087;
+  color: #67726a;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -825,7 +825,7 @@ button.notification-item:focus-visible {
   flex-wrap: wrap;
   gap: 4px;
   margin: 0;
-  color: #748276;
+  color: #667267;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -836,7 +836,7 @@ button.notification-item:focus-visible {
 .demo-banner-link {
   padding: 5px 8px;
   border: 0;
-  color: #6d8269;
+  color: #61745e;
   background: transparent;
   font-size: 12px;
   font-weight: 650;
@@ -898,7 +898,7 @@ button.notification-item:focus-visible {
   gap: 2px;
   padding: 4px 6px;
   border-radius: 5px;
-  color: #718a6e;
+  color: #5e735c;
   background: #f1f6ed;
   font-size: 12px;
   font-weight: 650;
@@ -915,7 +915,7 @@ button.notification-item:focus-visible {
 }
 .metric-label {
   margin-bottom: 5px;
-  color: #839087;
+  color: #6b786f;
   font-size: 12px;
 }
 .metric-value {
@@ -927,14 +927,14 @@ button.notification-item:focus-visible {
 }
 .metric-value span {
   margin-left: 3px;
-  color: #9aa49c;
+  color: #6b776e;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0;
 }
 .metric-detail {
   margin-top: 7px;
-  color: #a0a9a1;
+  color: #6c776d;
   font-size: 12px;
 }
 .overview-top-grid {
@@ -986,7 +986,7 @@ button.notification-item:focus-visible {
   padding: 0 9px;
   border: 1px solid #e7ebe5;
   border-radius: 8px;
-  color: #718078;
+  color: #6a7870;
   background: #fff;
   font-size: 12px;
   cursor: pointer;
@@ -1001,7 +1001,7 @@ button.notification-item:focus-visible {
   padding: 0 9px;
   border: 1px solid #e7ebe5;
   border-radius: 8px;
-  color: #718078;
+  color: #6a7870;
   background: #fff;
   font-size: 12px;
   white-space: nowrap;
@@ -1022,12 +1022,12 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: #6b896e;
+  color: #607b63;
   font-size: 12px;
   font-weight: 660;
 }
 .revenue-summary > small {
-  color: #a0aaa2;
+  color: #667268;
   font-size: 12px;
 }
 .chart-wrap {
@@ -1065,7 +1065,7 @@ button.notification-item:focus-visible {
   display: flex;
   justify-content: space-between;
   margin-top: -2px;
-  color: #a4aca5;
+  color: #6c766d;
   font-size: 12px;
 }
 .chart-label-active {
@@ -1129,17 +1129,17 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: #779274;
+  color: #637b60;
   font-size: 12px;
   font-weight: 680;
 }
 .health-score-copy p {
   margin: 5px 0 10px;
-  color: #8b978e;
+  color: #6b776e;
   font-size: 12px;
 }
 .health-caption {
-  color: #8b978e;
+  color: #6b776e;
   font-family: Georgia, serif;
   font-size: 11px;
   font-style: italic;
@@ -1156,7 +1156,7 @@ button.notification-item:focus-visible {
   grid-template-columns: 1fr 22px 68px;
   align-items: center;
   gap: 8px;
-  color: #7e8981;
+  color: #6d776f;
   font-size: 11px;
 }
 .health-breakdown strong {
@@ -1180,7 +1180,7 @@ button.notification-item:focus-visible {
 .health-empty-note,
 .health-data-note {
   margin: 10px 0 0;
-  color: #849087;
+  color: #67726a;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1228,7 +1228,7 @@ button.notification-item:focus-visible {
   gap: 6px;
   padding: 4px 2px;
   border: 0;
-  color: #68846b;
+  color: #5c745e;
   background: transparent;
   font-size: 12px;
   font-weight: 650;
@@ -1253,7 +1253,7 @@ button.notification-item:focus-visible {
 .data-table thead th {
   padding: 10px 9px;
   border-bottom: 1px solid #ebeee9;
-  color: #9aa39c;
+  color: #656f67;
   font-size: 11px;
   font-weight: 640;
   letter-spacing: 0.06em;
@@ -1291,7 +1291,7 @@ button.notification-item:focus-visible {
 .cell-subline {
   display: block;
   margin-top: 4px;
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
   white-space: nowrap;
 }
@@ -1309,7 +1309,7 @@ button.notification-item:focus-visible {
   min-width: 125px;
   max-width: 175px;
   overflow: hidden;
-  color: #849087;
+  color: #67726a;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1321,7 +1321,7 @@ button.notification-item:focus-visible {
   white-space: nowrap;
 }
 .elapsed-normal {
-  color: #849188;
+  color: #6b776f;
 }
 .elapsed-late {
   color: #bd7656;
@@ -1333,7 +1333,7 @@ button.notification-item:focus-visible {
   gap: 5px;
   padding: 4px 7px;
   border-radius: 6px;
-  color: #627c67;
+  color: #5b7360;
   background: #eef5ec;
   font-size: 11px;
   font-weight: 650;
@@ -1348,15 +1348,15 @@ button.notification-item:focus-visible {
   opacity: 0.75;
 }
 .status-new {
-  color: #9b7850;
+  color: #856745;
   background: #f8f2e8;
 }
 .status-preparing {
-  color: #748e8d;
+  color: #5c7170;
   background: #edf4f2;
 }
 .status-ready {
-  color: #658269;
+  color: #59725c;
   background: #eef5eb;
 }
 .status-served,
@@ -1400,7 +1400,7 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #7a9280;
+  color: #647a6a;
   font-size: 11px;
 }
 .card-bottom-note {
@@ -1409,7 +1409,7 @@ button.notification-item:focus-visible {
   gap: 6px;
   padding: 10px 1px 1px;
   border-top: 1px solid #f0f2ee;
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
 }
 .small-live-dot {
@@ -1554,7 +1554,7 @@ button.notification-item:focus-visible {
   flex: 0 0 22px;
   place-items: center;
   border-radius: 6px;
-  color: #a37956;
+  color: #836145;
   background: #f4ebde;
   font-size: 11px;
   font-weight: 700;
@@ -1708,7 +1708,7 @@ button.notification-item:focus-visible {
   white-space: nowrap;
 }
 .inventory-row-name span {
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
 }
 .inventory-stock {
@@ -1728,18 +1728,18 @@ button.notification-item:focus-visible {
   white-space: nowrap;
 }
 .inventory-stock-top strong small {
-  color: #9aa49c;
+  color: #6b776e;
   font-size: 11px;
   font-weight: 450;
 }
 .stock-low-label,
 .stock-ok-label {
-  color: #b97a58;
+  color: #a26544;
   font-size: 11px;
   font-weight: 640;
 }
 .stock-ok-label {
-  color: #7c927b;
+  color: #667a65;
 }
 .stock-track {
   width: 100%;
@@ -1800,7 +1800,7 @@ button.notification-item:focus-visible {
   font-size: 12px;
 }
 .inventory-adjust-unit {
-  color: #849087;
+  color: #67726a;
   font-size: 12px;
 }
 .inventory-adjust-error {
@@ -1832,7 +1832,7 @@ button.notification-item:focus-visible {
   letter-spacing: -0.06em;
 }
 .reservation-count span {
-  color: #9aa49c;
+  color: #6b776e;
   font-size: 11px;
 }
 .reservation-timeline {
@@ -1843,14 +1843,14 @@ button.notification-item:focus-visible {
 .timeline-time {
   min-width: 32px;
   padding-top: 2px;
-  color: #6e7c72;
+  color: #6a786e;
   font-size: 12px;
   font-weight: 650;
 }
 .timeline-time span {
   display: block;
   margin-top: 2px;
-  color: #9ca59e;
+  color: #6c776e;
   font-size: 11px;
   font-weight: 450;
 }
@@ -1910,14 +1910,14 @@ button.notification-item:focus-visible {
   white-space: nowrap;
 }
 .timeline-list span {
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
 }
 .overview-footnote {
   display: flex;
   justify-content: space-between;
   margin-top: 13px;
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
 }
 .overview-footnote > span:first-child {
@@ -1936,14 +1936,14 @@ button.notification-item:focus-visible {
   margin-top: 28px;
   padding: 13px 0 0;
   border-top: 1px solid #e8ece6;
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
 }
 .app-footer button {
   min-height: 24px;
   padding: 0 2px;
   border: 0;
-  color: #7f9082;
+  color: #647367;
   background: transparent;
   font-size: 11px;
   cursor: pointer;
@@ -2009,7 +2009,7 @@ button.notification-item:focus-visible {
   box-shadow: var(--shadow);
 }
 .quick-stat-row span {
-  color: #87938a;
+  color: #6b776e;
   font-size: 12px;
 }
 .quick-stat-row strong {
@@ -2068,7 +2068,7 @@ button.notification-item:focus-visible {
   padding: 0 9px;
   border: 1px solid #e7ebe5;
   border-radius: 8px;
-  color: #9aa39c;
+  color: #656f67;
   background: #fff;
 }
 .search-field input {
@@ -2091,7 +2091,7 @@ button.notification-item:focus-visible {
   padding: 0 9px;
   border: 1px solid #e7ebe5;
   border-radius: 8px;
-  color: #738078;
+  color: #6b776f;
   background: #fff;
 }
 .select-wrap select {
@@ -2126,7 +2126,7 @@ button.notification-item:focus-visible {
   justify-content: space-between;
   padding: 12px 2px;
   border-top: 1px solid #eef1ec;
-  color: #9aa39c;
+  color: #656f67;
   font-size: 12px;
 }
 .table-pagination strong {
@@ -2140,7 +2140,7 @@ button.notification-item:focus-visible {
   padding: 5px 8px;
   border: 1px solid #e8ece6;
   border-radius: 6px;
-  color: #9aa39c;
+  color: #656f67;
   background: #fff;
   font-size: 11px;
 }
@@ -2153,7 +2153,7 @@ button.notification-item:focus-visible {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  color: #87938a;
+  color: #6b776e;
 }
 .empty-state > span {
   display: grid;
@@ -2178,7 +2178,7 @@ button.notification-item:focus-visible {
   align-items: center;
   gap: 7px;
   margin: 12px 2px 0;
-  color: #a18f77;
+  color: #7d6c56;
   font-size: 12px;
 }
 .preview-note svg {
@@ -2190,7 +2190,7 @@ button.notification-item:focus-visible {
   align-items: center;
   justify-content: space-between;
   margin: 0 1px 13px;
-  color: #869188;
+  color: #68726a;
   font-size: 12px;
 }
 .kitchen-toolbar > span:first-child {
@@ -2237,7 +2237,7 @@ button.notification-item:focus-visible {
 }
 .kitchen-column-head p {
   margin: 6px 0 0 18px;
-  color: #9aa39c;
+  color: #656f67;
   font-size: 11px;
 }
 .kitchen-status-dot {
@@ -2279,7 +2279,7 @@ button.notification-item:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #78877d;
+  color: #6b786f;
   font-size: 11px;
 }
 .kitchen-order-top strong {
@@ -2301,7 +2301,7 @@ button.notification-item:focus-visible {
 }
 .kitchen-order-card > .kitchen-private-note {
   margin: 6px 0 10px;
-  color: #929e94;
+  color: #6b786d;
   font-size: 11px;
   line-height: 1.45;
 }
@@ -2333,7 +2333,7 @@ button.notification-item:focus-visible {
 }
 .kitchen-item-main span {
   flex: 0 0 auto;
-  color: #89968c;
+  color: #69766c;
   font-size: 10px;
 }
 .kitchen-item-row .kitchen-card-action {
@@ -2347,7 +2347,7 @@ button.notification-item:focus-visible {
   margin-top: 12px;
   padding-top: 9px;
   border-top: 1px solid #eff1ed;
-  color: #87938a;
+  color: #6b776e;
   font-size: 11px;
 }
 .kitchen-order-meta > span:first-child {
@@ -2386,7 +2386,7 @@ button.notification-item:focus-visible {
   min-height: 105px;
   place-items: center;
   align-content: center;
-  color: #a0aaa2;
+  color: #667268;
 }
 .kitchen-empty span {
   display: grid;
@@ -2451,7 +2451,7 @@ button.notification-item:focus-visible {
 }
 .reservation-summary-grid article > div > span,
 .incident-summary-row article > div > span {
-  color: #88948b;
+  color: #6b776e;
   font-size: 12px;
 }
 .reservation-summary-grid article strong,
@@ -2462,7 +2462,7 @@ button.notification-item:focus-visible {
   letter-spacing: -0.04em;
 }
 .reservation-summary-grid article strong small {
-  color: #9ba59e;
+  color: #6b776e;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0;
@@ -2479,7 +2479,7 @@ button.notification-item:focus-visible {
   justify-content: space-between;
   padding: 12px 3px;
   border-top: 1px solid #eef1ec;
-  color: #9aa49c;
+  color: #6b776e;
   font-size: 11px;
 }
 .reservation-foot > span {
@@ -2517,7 +2517,7 @@ button.notification-item:focus-visible {
 }
 .reservation-note-card p {
   margin: 4px 0 0;
-  color: #8d988b;
+  color: #687366;
   font-size: 11px;
 }
 .reservation-note-card button {
@@ -2526,7 +2526,7 @@ button.notification-item:focus-visible {
   gap: 6px;
   padding: 0;
   border: 0;
-  color: #6d8667;
+  color: #60765b;
   background: transparent;
   font-size: 11px;
   font-weight: 650;
@@ -2556,7 +2556,7 @@ button.notification-item:focus-visible {
   gap: 5px;
 }
 .inventory-summary-box > div > span {
-  color: #89948c;
+  color: #6c776f;
   font-size: 12px;
 }
 .inventory-summary-box strong {
@@ -2565,7 +2565,7 @@ button.notification-item:focus-visible {
   font-weight: 650;
 }
 .inventory-summary-box strong small {
-  color: #9da69e;
+  color: #6c766d;
   font-size: 12px;
   font-weight: 500;
 }
@@ -2577,7 +2577,7 @@ button.notification-item:focus-visible {
   letter-spacing: 0;
 }
 .inventory-supplier > div > small {
-  color: #9ba59e;
+  color: #6b776e;
   font-size: 11px;
 }
 .supplier-icon {
@@ -2714,7 +2714,7 @@ button.notification-item:focus-visible {
   gap: 6px;
   padding: 5px 7px;
   border-radius: 6px;
-  color: #9d795d;
+  color: #85664f;
   background: #f8f2e9;
   font-size: 11px;
   font-weight: 680;
@@ -2743,11 +2743,11 @@ button.notification-item:focus-visible {
   background: #fbede6;
 }
 .incident-severity-warning {
-  color: #896b2f;
+  color: #85682e;
   background: #f8f2e5;
 }
 .incident-severity-info {
-  color: #527c70;
+  color: #4d7469;
   background: #edf5ee;
 }
 .incident-record-status-open {
@@ -2755,11 +2755,11 @@ button.notification-item:focus-visible {
   background: #fbf2ea;
 }
 .incident-record-status-resolved {
-  color: #5c7e65;
+  color: #54745d;
   background: #edf5ee;
 }
 .incident-time {
-  color: #738178;
+  color: #6b786f;
   font-size: 12px;
 }
 .incident-card > h2 {
@@ -2778,7 +2778,7 @@ button.notification-item:focus-visible {
 .incident-description {
   max-width: 680px;
   margin: 0;
-  color: #89948b;
+  color: #6c776e;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -2797,7 +2797,7 @@ button.notification-item:focus-visible {
   gap: 5px;
 }
 .incident-context-grid dt {
-  color: #748178;
+  color: #6a766e;
   font-size: 11px;
 }
 .incident-context-grid dd {
@@ -2818,7 +2818,7 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #8c795f;
+  color: #84725a;
   font-size: 11px;
 }
 .incident-actions-row > span svg {
@@ -2870,7 +2870,7 @@ button.notification-item:focus-visible {
   align-items: flex-start;
   gap: 8px;
   margin: 18px 1px 0;
-  color: #727f75;
+  color: #667269;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -2927,7 +2927,7 @@ button.notification-item:focus-visible {
   font-weight: 640;
 }
 .resolved-incident-row > div > span {
-  color: #a0aaa2;
+  color: #667268;
   font-size: 11px;
 }
 
@@ -3021,7 +3021,7 @@ button.notification-item:focus-visible {
   letter-spacing: 0.06em;
 }
 .incident-status-open {
-  color: #a77b58;
+  color: #8c674a;
 }
 .incident-status-open i {
   background: #ce8d61;
@@ -3076,7 +3076,7 @@ button.notification-item:focus-visible {
   padding: 5px 7px;
   border: 1px solid #f0dfd1;
   border-radius: 6px;
-  color: #bd7655;
+  color: #a25f3f;
   background: #fff6ee;
   font-size: 10px;
   letter-spacing: 0.03em;
@@ -3125,7 +3125,7 @@ button.notification-item:focus-visible {
   flex: 0 0 23px;
   place-items: center;
   border-radius: 7px;
-  color: #987b57;
+  color: #806749;
   background: #f6f0e5;
   font-size: 11px;
   font-weight: 680;
@@ -3209,7 +3209,7 @@ button.notification-item:focus-visible {
 }
 .supporting-card p {
   margin: 0;
-  color: #728076;
+  color: #6b786f;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -3226,7 +3226,7 @@ button.notification-item:focus-visible {
   gap: 3px;
 }
 .insight-trigger-snapshot small {
-  color: #7c897f;
+  color: #6b776d;
   font-size: 12px;
 }
 .insight-trigger-snapshot strong {
@@ -3266,11 +3266,11 @@ button.notification-item:focus-visible {
   display: flex;
   justify-content: space-between;
   margin-bottom: 6px;
-  color: #8d998f;
+  color: #6a776c;
   font-size: 11px;
 }
 .confidence-meter-top strong {
-  color: #657e65;
+  color: #637b63;
   font-size: 12px;
 }
 .confidence-meter > i {
@@ -3288,7 +3288,7 @@ button.notification-item:focus-visible {
 }
 .insight-confidence-card > p {
   margin: 0;
-  color: #939e94;
+  color: #6c786d;
   font-size: 11px;
   line-height: 1.6;
 }
@@ -3316,7 +3316,7 @@ button.notification-item:focus-visible {
   font-weight: 650;
 }
 .confidence-source span {
-  color: #a0aaa2;
+  color: #667268;
   font-size: 10px;
   line-height: 1.45;
 }
@@ -3373,7 +3373,7 @@ button.notification-item:focus-visible {
   padding: 13px 15px;
 }
 .analytics-kpi > span {
-  color: #89948c;
+  color: #6c776f;
   font-size: 12px;
 }
 .analytics-kpi > strong {
@@ -3387,7 +3387,7 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: #779174;
+  color: #637960;
   font-size: 11px;
 }
 .analytics-grid {
@@ -3404,7 +3404,7 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #8a958d;
+  color: #68726b;
   font-size: 11px;
 }
 .chart-legend i {
@@ -3456,7 +3456,7 @@ button.notification-item:focus-visible {
 }
 .analytics-day {
   margin: 8px 0 9px;
-  color: #9ba59e;
+  color: #6b776e;
   font-size: 11px;
 }
 .analytics-bar-wrap:last-child .analytics-day {
@@ -3503,7 +3503,7 @@ button.notification-item:focus-visible {
   letter-spacing: -0.04em;
 }
 .mix-donut span {
-  color: #9ba59e;
+  color: #6b776e;
   font-size: 11px;
 }
 .mix-legend {
@@ -3516,7 +3516,7 @@ button.notification-item:focus-visible {
   grid-template-columns: 7px auto;
   align-items: center;
   gap: 4px 5px;
-  color: #8b968e;
+  color: #6b766e;
   font-size: 10px;
 }
 .mix-legend i {
@@ -3590,7 +3590,7 @@ button.notification-item:focus-visible {
 }
 .analytics-toolbar p {
   margin: 0;
-  color: #8a958d;
+  color: #68726b;
   font-size: 12px;
 }
 .analytics-toolbar-controls {
@@ -3601,7 +3601,7 @@ button.notification-item:focus-visible {
 .analytics-toolbar-controls label {
   display: grid;
   gap: 4px;
-  color: #89948c;
+  color: #6c776f;
   font-size: 11px;
 }
 .analytics-toolbar-controls select {
@@ -3635,7 +3635,7 @@ button.notification-item:focus-visible {
 }
 .analytics-state-card p {
   margin: 5px 0 0;
-  color: #89948c;
+  color: #6c776f;
   font-size: 12px;
 }
 .analytics-state-icon {
@@ -3682,7 +3682,7 @@ button.notification-item:focus-visible {
   flex-wrap: wrap;
 }
 .analytics-peak-note {
-  color: #71856a;
+  color: #677a61;
   font-size: 11px;
   font-weight: 650;
 }
@@ -3725,7 +3725,7 @@ button.notification-item:focus-visible {
   position: absolute;
   bottom: -18px;
   left: 50%;
-  color: #9ba59e;
+  color: #6b776e;
   font-size: 10px;
   white-space: nowrap;
   transform: translateX(-50%);
@@ -3742,7 +3742,7 @@ button.notification-item:focus-visible {
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid #f0f2ee;
-  color: #859188;
+  color: #6c776f;
   font-size: 11px;
 }
 .analytics-operational-rows > div:last-child {
@@ -3755,7 +3755,7 @@ button.notification-item:focus-visible {
 }
 .analytics-footnote {
   margin: 10px 2px 0;
-  color: #929c94;
+  color: #68726a;
   font-size: 11px;
   line-height: 1.6;
 }
@@ -3801,7 +3801,7 @@ button.notification-item:focus-visible {
   gap: 5px;
   padding: 5px 7px;
   border-radius: 6px;
-  color: #8e9a87;
+  color: #65715f;
   background: #f1f5ec;
   font-size: 10px;
   font-weight: 700;
@@ -3821,7 +3821,7 @@ button.notification-item:focus-visible {
   background: #cc7955;
 }
 .settings-state-preview {
-  color: #9b805e;
+  color: #7e684d;
   background: #f8f2e8;
 }
 .settings-state-preview i {
@@ -3837,12 +3837,12 @@ button.notification-item:focus-visible {
 .settings-card > p {
   min-height: 29px;
   margin: 0 0 12px;
-  color: #939e95;
+  color: #6b776d;
   font-size: 11px;
   line-height: 1.55;
 }
 .settings-card code {
-  color: #71866c;
+  color: #667962;
   font-size: 11px;
 }
 .settings-detail-row {
@@ -3852,7 +3852,7 @@ button.notification-item:focus-visible {
   gap: 8px;
   padding: 8px 0;
   border-top: 1px solid #eff1ed;
-  color: #9ba59e;
+  color: #6b776e;
   font-size: 11px;
 }
 .settings-detail-row strong {
@@ -3897,7 +3897,7 @@ button.notification-item:focus-visible {
 }
 .settings-help p {
   margin: 4px 0 0;
-  color: #939e8e;
+  color: #697464;
   font-size: 11px;
 }
 
@@ -3945,7 +3945,7 @@ button.notification-item:focus-visible {
   padding: 7px 10px;
   border: 1px solid #e5e1d6;
   border-radius: 8px;
-  color: #68766a;
+  color: #647266;
   background: transparent;
   font: inherit;
   font-size: 11px;
@@ -3954,7 +3954,7 @@ button.notification-item:focus-visible {
 }
 .customer-account .profile-avatar {
   color: #fbf4e8;
-  background: #90715d;
+  background: #856856;
 }
 .customer-account > span:last-child {
   display: flex;
@@ -3966,7 +3966,7 @@ button.notification-item:focus-visible {
   font-size: 12px;
 }
 .customer-account small {
-  color: #9aa298;
+  color: #687166;
   font-size: 11px;
 }
 .customer-hero {
@@ -3978,7 +3978,7 @@ button.notification-item:focus-visible {
   padding: 47px 0 31px;
 }
 .customer-hero-copy .eyebrow {
-  color: #9a8d76;
+  color: #786c58;
 }
 .customer-hero h1 {
   margin: 15px 0 11px;
@@ -3998,7 +3998,7 @@ button.notification-item:focus-visible {
   font-weight: 500;
 }
 .customer-hero-copy > p {
-  color: #8e9689;
+  color: #697164;
   font-family: Georgia, serif;
   font-size: 13px;
 }
@@ -4111,7 +4111,7 @@ button.notification-item:focus-visible {
   position: absolute;
   right: 0;
   bottom: 15px;
-  color: #9b896c;
+  color: #7b6c54;
   font-family: Georgia, serif;
   font-size: 11px;
   font-style: italic;
@@ -4152,7 +4152,7 @@ button.notification-item:focus-visible {
   flex: 1;
 }
 .customer-quick-grid article > div > span {
-  color: #a2957c;
+  color: #7f725a;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -4167,7 +4167,7 @@ button.notification-item:focus-visible {
 }
 .customer-quick-grid article p {
   margin: 4px 0 0;
-  color: #95988d;
+  color: #717469;
   font-size: 11px;
 }
 .customer-order-truncated {
@@ -4213,7 +4213,7 @@ button.notification-item:focus-visible {
   justify-content: space-between;
   padding: 14px 0;
   border-top: 1px solid #e8e4d9;
-  color: #a49a85;
+  color: #776d59;
   font-family: Georgia, serif;
   font-size: 11px;
   font-style: italic;
@@ -4259,7 +4259,7 @@ button.notification-item:focus-visible {
 }
 .landing-nav a,
 .landing-login-link {
-  color: #718076;
+  color: #65726a;
   font-size: 12px;
   font-weight: 580;
   transition: color 0.16s ease;
@@ -4310,7 +4310,7 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #9a8d76;
+  color: #786c58;
   font-size: 12px;
   font-weight: 710;
   letter-spacing: 0.14em;
@@ -4342,7 +4342,7 @@ button.notification-item:focus-visible {
 .landing-hero-copy > p {
   max-width: 430px;
   margin: 0;
-  color: #858e84;
+  color: #687067;
   font-family: Georgia, serif;
   font-size: clamp(14px, 1.35vw, 16px);
   line-height: 1.7;
@@ -4401,7 +4401,7 @@ button.notification-item:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #8a9588;
+  color: #677165;
   font-size: 12px;
 }
 .landing-promise-list i {
@@ -4560,7 +4560,7 @@ button.notification-item:focus-visible {
   position: absolute;
   top: 4%;
   right: 0;
-  color: #9d9077;
+  color: #786d57;
   font-size: 11px;
   font-weight: 680;
   letter-spacing: 0.16em;
@@ -4587,7 +4587,7 @@ button.notification-item:focus-visible {
 }
 .landing-section-intro > p {
   margin: 0;
-  color: #8b958a;
+  color: #677166;
   font-size: 11px;
 }
 .landing-feature-grid {
@@ -4607,7 +4607,7 @@ button.notification-item:focus-visible {
   background: #fffdf8;
 }
 .landing-feature-index {
-  color: #a2957c;
+  color: #7f725a;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -4643,7 +4643,7 @@ button.notification-item:focus-visible {
 .landing-feature-card p {
   max-width: 320px;
   margin: 0 0 18px;
-  color: #8e968b;
+  color: #6e766b;
   font-size: 12px;
   line-height: 1.65;
 }
@@ -4652,7 +4652,7 @@ button.notification-item:focus-visible {
   align-items: center;
   gap: 8px;
   margin-top: auto;
-  color: #648066;
+  color: #607a61;
   font-size: 12px;
   font-weight: 660;
 }
@@ -4672,7 +4672,7 @@ button.notification-item:focus-visible {
   justify-content: space-between;
   gap: 20px;
   border-top: 1px solid #e8e4d9;
-  color: #9b998b;
+  color: #716f61;
   font-size: 11px;
 }
 .landing-footer > span {
@@ -4962,7 +4962,7 @@ button.notification-item:focus-visible {
   display: none;
 }
 .auth-form-eyebrow {
-  color: #829184;
+  color: #69776b;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -4981,7 +4981,7 @@ button.notification-item:focus-visible {
 }
 .auth-form-card > p {
   margin: 0 0 21px;
-  color: #87928a;
+  color: #67726a;
   font-size: 12px;
   line-height: 1.55;
 }
@@ -5045,7 +5045,7 @@ button.notification-item:focus-visible {
   align-items: center;
   gap: 9px;
   margin: 17px 0;
-  color: #a8b0a8;
+  color: #6c776c;
   font-size: 11px;
 }
 .auth-divider::before,
@@ -5072,7 +5072,7 @@ button.notification-item:focus-visible {
 }
 .auth-switch {
   margin: 0;
-  color: #89948c;
+  color: #6c776f;
   font-size: 12px;
   text-align: center;
 }
@@ -5087,7 +5087,7 @@ button.notification-item:focus-visible {
   margin-top: 17px;
   padding: 10px;
   border-radius: 8px;
-  color: #8f8d78;
+  color: #716f5e;
   background: #f8f6ef;
   font-size: 11px;
   line-height: 1.5;
@@ -5103,7 +5103,7 @@ button.notification-item:focus-visible {
   margin-bottom: 16px;
   padding: 0;
   border: 0;
-  color: #7b8a7e;
+  color: #6a776d;
   background: transparent;
   font-size: 11px;
   cursor: pointer;
@@ -5118,7 +5118,7 @@ button.notification-item:focus-visible {
   align-self: flex-start;
   padding: 2px 0;
   border: 0;
-  color: #6b866d;
+  color: #627b64;
   background: transparent;
   font-size: 11px;
   font-weight: 650;
@@ -5132,7 +5132,7 @@ button.notification-item:focus-visible {
   display: flex;
   justify-content: center;
   margin-top: 16px;
-  color: #718274;
+  color: #69786b;
   font-size: 11px;
 }
 
@@ -5834,7 +5834,7 @@ button.notification-item:focus-visible {
 }
 .auth-hint {
   margin: 10px 0 0;
-  color: #6f7c74;
+  color: #6a776f;
   font-size: 12px;
   line-height: 1.5;
   text-align: center;
