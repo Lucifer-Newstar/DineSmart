@@ -64,6 +64,7 @@ test("every job sets a timeout, checks out without credentials, and pins Node", 
 		"backend",
 		"frontend",
 		"preflight",
+		"secrets",
 	]);
 
 	for (const name of jobNames) {
@@ -83,8 +84,8 @@ test("every job sets a timeout, checks out without credentials, and pins Node", 
 			/persist-credentials:\s*false/,
 			`${name} must not persist credentials`,
 		);
-		// actionlint is a single verified binary and needs no Node runtime.
-		if (name === "actionlint") continue;
+		// actionlint and gitleaks are single verified binaries and need no Node runtime.
+		if (name === "actionlint" || name === "secrets") continue;
 		assert.match(
 			body,
 			/uses:\s*actions\/setup-node@[0-9a-f]{40} # v\d+/,
@@ -166,4 +167,12 @@ test("the actionlint job verifies the downloaded binary before running it", () =
 		body.indexOf("sha256sum") < body.indexOf("./actionlint"),
 		"the checksum must be verified before actionlint runs",
 	);
+});
+
+test("the secret scan verifies gitleaks and scans the full history", () => {
+	const body = job("secrets");
+	assert.match(body, /GITLEAKS_SHA256:\s*[0-9a-f]{64}/);
+	assert.match(body, /sha256sum --check --strict/);
+	assert.match(body, /fetch-depth:\s*0/);
+	assert.match(body, /gitleaks git [^\n]*--redact[^\n]*--exit-code 1/);
 });
