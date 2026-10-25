@@ -55,6 +55,10 @@ npm run dev
 
 The API listens on `http://localhost:3001` by default. `GET /health` reports process liveness only; it does not indicate a database connection. The local MongoDB service is bound to loopback; do not expose it to a network. See the [backend guide](backend/README.md) for quality commands and current scope.
 
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Only `main` is supported.
+
 ## Continuous integration
 
 The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It declares `contents: read` permissions and a concurrency group that cancels superseded runs, then checks the frontend, the backend, and the demo preflight as separate jobs with their own timeouts, pinned actions, `persist-credentials: false`, the Node version from `.nvmrc`, `npm ci` installation, high-severity dependency audits, and the full lint/test/typecheck/build sequence. `tools/ci-workflow.test.mjs` guards those invariants locally. Local runs of the same checks on Node `24.21.0`: backend 328 tests, frontend 50 tests, Biome, typechecks and production builds pass, and `npm audit --audit-level=high` reports no high or critical advisories in either package. Deployment (CD) is not configured; see the [deployment checklist](Docs/Developers%20Guide/Deployment.md).
