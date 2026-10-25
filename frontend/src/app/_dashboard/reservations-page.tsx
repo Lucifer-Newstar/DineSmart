@@ -1,7 +1,7 @@
 "use client";
 
 import type { Reservation, ReservationViewStatus } from "./types";
-import { Icon, StatusPill } from "./ui";
+import { Icon, ScrollRegion, StatusPill } from "./ui";
 
 export function ReservationsPage({
   reservations,
@@ -91,7 +91,7 @@ export function ReservationsPage({
             <span>{status === "loading" ? "Loading…" : "Refresh"}</span>
           </button>
         </div>
-        <div className="table-scroll">
+        <ScrollRegion label="Reservations">
           <table className="data-table reservation-table">
             <thead>
               <tr>
@@ -173,7 +173,7 @@ export function ReservationsPage({
               )}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
         <div className="reservation-foot">
           <span>
             {status === "live" ? <i className="small-live-dot" /> : null}

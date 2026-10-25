@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "./ui";
+import { Icon, ScrollRegion } from "./ui";
 import { apiSend, isRecord, useApiResource } from "./use-api";
 
 export const STAFF_ROLES = ["Reception", "Kitchen Staff", "Manager", "Administrator"] as const;
@@ -79,7 +79,7 @@ export function StaffPanel({ accessToken, currentUserId, onToast }: StaffPanelPr
       ) : members.length === 0 ? (
         <p className="panel-state">No staff accounts yet. Add them with the bootstrap command.</p>
       ) : (
-        <div className="table-scroll">
+        <ScrollRegion label="Staff roster">
           <table className="data-table staff-table">
             <thead>
               <tr>
@@ -135,7 +135,7 @@ export function StaffPanel({ accessToken, currentUserId, onToast }: StaffPanelPr
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
     </article>
   );

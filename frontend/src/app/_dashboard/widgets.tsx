@@ -6,7 +6,7 @@ import { type Arrival, type ArrivalNoun, describeArrivals } from "../live-announ
 import type { Recommendation } from "../recommendation-data";
 import { displayOrderId } from "./parsers";
 import type { InventoryItem, Order, OrderFeedStatus } from "./types";
-import { Icon, StatusPill } from "./ui";
+import { Icon, ScrollRegion, StatusPill } from "./ui";
 
 /**
  * Announces items that arrive after the first load, once each, through a
@@ -53,7 +53,7 @@ export function OrdersTable({
   compact?: boolean;
 }) {
   return (
-    <div className="table-scroll">
+    <ScrollRegion label="Orders">
       <table className={`data-table ${compact ? "data-table-compact" : ""}`}>
         <thead>
           <tr>
@@ -137,7 +137,7 @@ export function OrdersTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 

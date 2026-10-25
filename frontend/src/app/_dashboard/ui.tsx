@@ -264,6 +264,19 @@ export function Icon({
   );
 }
 
+/**
+ * A horizontally scrollable wrapper for wide tables. It is a labelled,
+ * focusable region so keyboard users can scroll it (WCAG 2.1.1).
+ */
+export function ScrollRegion({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: axe scrollable-region-focusable needs the scroller in the tab order
+    <section className="table-scroll" aria-label={label} tabIndex={0}>
+      {children}
+    </section>
+  );
+}
+
 export function statusClass(status: string): string {
   return `status-pill status-${status.toLowerCase().replaceAll(" ", "-")}`;
 }
