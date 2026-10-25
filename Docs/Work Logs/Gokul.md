@@ -152,3 +152,39 @@ Review follow-up after the repository was published (environment, email, notific
 - `.env.example` files now list every production variable, with the Render/Vercel values in the [deployment checklist](../Developers%20Guide/Deployment.md).
 - **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
 - **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
+
+## 2026-10-25
+
+### Sprint 4 Day 1: guard rails, end-to-end tests, accessibility, security and menu management
+
+My part:
+
+- `d290502` ci(S4-01): add commitlint with the conventional config and the demo type
+- `faa6f05` ci(S4-01): lint commit messages on pull requests and pushes
+- `f5561e5` ci(S4-01): run actionlint on workflow changes
+- `7c426e4` chore(S4-01): add Dependabot for npm and GitHub Actions
+- `8445ba1` ci(S4-01): add CodeQL analysis for JavaScript and TypeScript
+- `c031cb0` feat(S4-02): let the end-to-end backend switch off auth rate limits under NODE_ENV=test
+- `e3fb575` test(S4-02): add Playwright with a config that boots both servers
+- `7822af1` test(S4-02): add a seeded MongoDB fixture and role login helpers
+- `8381f23` test(S4-02): cover email sign-up with the OTP code end to end
+- `ae3ff63` test(S4-02): cover login, logout and session renewal
+- `8a92dec` test(S4-02): cover the forgot-password flow
+- `b9d94a9` test(S4-02): cover menu browsing and order placement for a customer
+- `d3e3777` test(S4-02): cover table booking for a customer
+- `51760c9` test(S4-02): cover the kitchen queue status transitions
+- `e3e240f` test(S4-02): cover inventory edits and the low-stock incident
+- `332d415` test(S4-02): cover role-based dashboard access for each role
+- `e6b1c1d` test(S4-02): cover live notifications over the WebSocket
+- `47d977d` ci(S4-02): run the Playwright suite against a MongoDB service container
+- `0f87fce` docs(S4-02): document running and debugging the end-to-end tests
+- `c9e8afb` test(S4-03): add axe scans for every public and dashboard page
+- `f1fcd7a` test(S4-03): fail the e2e suite on any serious or critical axe violation
+- `db32d42` ci(S4-04): add a secret scan to CI
+- `1b06fa4` test(S4-05): update e2e for the Menu section and the required rice portion
+- `dacb1d2` test(S4-05): add e2e for menu manager, live 86 and item options
+- `6c9106d` test(S4-05): scan the menu manager and option picker with axe
+- `0d138ed` test(S4-04): include the secret scan job in the workflow checks
+- The secret scan downloads gitleaks 8.30.1 and checks it against the published SHA-256 before scanning the whole history; a local run over 330 commits found no leaks.
+- **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
+- **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
