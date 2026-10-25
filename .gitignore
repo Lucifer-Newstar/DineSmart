@@ -25,6 +25,14 @@ coverage/
 next-env.d.ts
 **/next-env.d.ts
 
+# Playwright output (frontend/e2e)
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
+blob-report/
+**/blob-report/
+
 # Python bytecode (tools/docx_to_markdown.py)
 __pycache__/
 *.py[cod]
