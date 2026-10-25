@@ -16,6 +16,8 @@ interface OrderItem {
   name: string;
   unitPriceMinor: number;
   quantity: number;
+  /** "Large · Roasted papad" for dishes ordered with options. */
+  options: string;
 }
 
 interface CustomerOrder {
@@ -86,6 +88,14 @@ function parseOrder(value: unknown): CustomerOrder | null {
       name: entry.name,
       unitPriceMinor: entry.unitPriceMinor,
       quantity: entry.quantity,
+      options: Array.isArray(entry.options)
+        ? entry.options
+            .map((option) =>
+              isRecord(option) && typeof option.choice === "string" ? option.choice : "",
+            )
+            .filter(Boolean)
+            .join(" · ")
+        : "",
     });
   }
 
@@ -339,6 +349,9 @@ export default function OrdersPage() {
                       <div className="customer-order-line" key={item.id}>
                         <div>
                           <strong>{item.name}</strong>
+                          {item.options ? (
+                            <span className="customer-order-detail">{item.options}</span>
+                          ) : null}
                           <span className="customer-order-detail">
                             {item.quantity} × {currency(item.unitPriceMinor, order.currency)}
                           </span>

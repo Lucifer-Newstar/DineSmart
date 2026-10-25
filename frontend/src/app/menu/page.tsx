@@ -15,18 +15,24 @@ import {
   availableDietaryFilters,
   type CartLine,
   calculateCartTotalMinor,
+  cartLineKey,
   type DietaryFilter,
+  defaultSelection,
   filterMenuItems,
+  isCompleteSelection,
   MAX_ITEM_QUANTITY,
   MAX_ORDER_LINES,
   MAX_ORDER_UNITS,
   type MenuItem,
   menuAllergens,
   OBJECT_ID_PATTERN,
+  type OptionSelection,
+  optionSummary,
   parseMenu,
   parsePendingCart,
   type RestaurantMenu,
   reconcileCart,
+  unitPriceMinor,
 } from "./menu-data";
 import { useLiveMenuAvailability } from "./use-live-menu";
 
@@ -291,17 +297,20 @@ export default function MenuPage() {
   const cartTotalMinor = calculateCartTotalMinor(cart);
   const displayCurrency = menu?.currency ?? "INR";
 
-  const canIncrease = (itemId: string) => {
-    const line = cart.find((candidate) => candidate.item.id === itemId);
+  const lineKey = (line: CartLine) => cartLineKey(line.item.id, line.options);
+
+  const canIncrease = (key: string) => {
+    const line = cart.find((candidate) => lineKey(candidate) === key);
     return (
       quantity < MAX_ORDER_UNITS &&
       (line ? line.quantity < MAX_ITEM_QUANTITY : cart.length < MAX_ORDER_LINES)
     );
   };
 
-  const changeCart = (item: MenuItem, change: number) => {
+  const changeCart = (item: MenuItem, change: number, options: OptionSelection = {}) => {
+    const key = cartLineKey(item.id, options);
     setCart((current) => {
-      const existing = current.find((line) => line.item.id === item.id);
+      const existing = current.find((line) => lineKey(line) === key);
       const currentUnits = current.reduce((sum, line) => sum + line.quantity, 0);
       if (
         change > 0 &&
@@ -311,39 +320,61 @@ export default function MenuPage() {
       ) {
         return current;
       }
-      if (!existing && change > 0) return [...current, { item, quantity: 1 }];
+      if (!existing && change > 0) {
+        const chosen = Object.keys(options).length ? { options } : {};
+        return [...current, { item, quantity: 1, ...chosen }];
+      }
       if (!existing) return current;
       return current
         .map((line) =>
-          line.item.id === item.id ? { ...line, quantity: line.quantity + change } : line,
+          lineKey(line) === key ? { ...line, quantity: line.quantity + change } : line,
         )
         .filter((line) => line.quantity > 0);
     });
   };
 
-  const addItem = (item: MenuItem) => {
-    if (!canIncrease(item.id)) {
+  const addItem = (item: MenuItem, options: OptionSelection = {}) => {
+    if (!canIncrease(cartLineKey(item.id, options))) {
       setCartError("Your bag reached the order limit. Remove an item to add something else.");
       setCartOpen(true);
       return;
     }
     setCartError("");
-    changeCart(item, 1);
-    setToast(`${item.name} added to your bag.`);
+    changeCart(item, 1, options);
+    const summary = optionSummary(item, options);
+    setToast(`${item.name}${summary ? ` (${summary})` : ""} added to your bag.`);
     window.setTimeout(() => setToast(""), 2600);
   };
 
-  const quantityFor = (id: string) => cart.find((line) => line.item.id === id)?.quantity ?? 0;
+  /** Units of a dish across all of its option lines. */
+  const quantityFor = (id: string) =>
+    cart.filter((line) => line.item.id === id).reduce((sum, line) => sum + line.quantity, 0);
+
+  // Option picker for dishes with choices such as portion or spice level.
+  const [pickerItem, setPickerItem] = useState<MenuItem | null>(null);
+  const [pickerSelection, setPickerSelection] = useState<OptionSelection>({});
+  const pickerRef = useRef<HTMLElement>(null);
+  const closePicker = useCallback(() => setPickerItem(null), []);
+  useDialogFocus(pickerItem !== null, pickerRef, closePicker);
+  const openPicker = (item: MenuItem) => {
+    setPickerSelection(defaultSelection(item));
+    setPickerItem(item);
+  };
+  const pickerPrice = pickerItem ? unitPriceMinor(pickerItem, pickerSelection) : null;
+
+  const orderLines = () =>
+    cart.map((line) => ({
+      menuItemId: line.item.id,
+      quantity: line.quantity,
+      ...(line.options ? { options: line.options } : {}),
+    }));
 
   const saveCartAndSignIn = () => {
     if (!menu || cart.length === 0) return;
     try {
       window.sessionStorage.setItem(
         CART_STORAGE_KEY,
-        JSON.stringify({
-          restaurantId: menu.id,
-          items: cart.map((line) => ({ menuItemId: line.item.id, quantity: line.quantity })),
-        }),
+        JSON.stringify({ restaurantId: menu.id, items: orderLines() }),
       );
       router.push(`/login?next=${encodeURIComponent("/menu")}`);
     } catch {
@@ -386,10 +417,7 @@ export default function MenuPage() {
           authorization: `Bearer ${accessToken}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          restaurantId: menu.id,
-          items: cart.map((line) => ({ menuItemId: line.item.id, quantity: line.quantity })),
-        }),
+        body: JSON.stringify({ restaurantId: menu.id, items: orderLines() }),
       });
       if (!response.ok) throw new Error(await responseError(response));
       const saved = parsePlacedOrder(await response.json());
@@ -642,6 +670,19 @@ export default function MenuPage() {
                         </span>
                         {!item.isAvailable ? (
                           <span className="menu-soldout-badge">Sold out</span>
+                        ) : item.optionGroups.length ? (
+                          <button
+                            className="menu-add-button"
+                            type="button"
+                            aria-label={`Choose options for ${item.name}`}
+                            onClick={() => openPicker(item)}
+                          >
+                            <MenuIcon name="plus" size={14} />
+                            Choose
+                            {quantityFor(item.id) ? (
+                              <span className="menu-in-bag"> · {quantityFor(item.id)} in bag</span>
+                            ) : null}
+                          </button>
                         ) : quantityFor(item.id) ? (
                           <div className="menu-quantity-control">
                             <button
@@ -792,43 +833,50 @@ export default function MenuPage() {
             {cart.length ? (
               <>
                 <div className="cart-lines">
-                  {cart.map((line) => (
-                    <div className="cart-line" key={line.item.id}>
-                      <span className={`cart-line-art menu-art-${line.item.art}`}>
-                        <span className="dish-food" />
-                      </span>
-                      <div className="cart-line-copy">
-                        <strong>{line.item.name}</strong>
-                        <span>
-                          {currency(line.item.priceMinor, displayCurrency)} · {line.quantity} item
-                          {line.quantity > 1 ? "s" : ""}
+                  {cart.map((line) => {
+                    const key = lineKey(line);
+                    const summary = optionSummary(line.item, line.options);
+                    const label = summary ? `${line.item.name} (${summary})` : line.item.name;
+                    return (
+                      <div className="cart-line" key={key}>
+                        <span className={`cart-line-art menu-art-${line.item.art}`}>
+                          <span className="dish-food" />
                         </span>
-                      </div>
-                      <div className="cart-line-actions">
-                        <strong>
-                          {safeCurrency(calculateCartTotalMinor([line]), displayCurrency)}
-                        </strong>
-                        <div className="menu-quantity-control">
-                          <button
-                            type="button"
-                            aria-label={`Remove one ${line.item.name}`}
-                            onClick={() => changeCart(line.item, -1)}
-                          >
-                            <MenuIcon name="minus" size={13} />
-                          </button>
-                          <span>{line.quantity}</span>
-                          <button
-                            type="button"
-                            aria-label={`Add one ${line.item.name}`}
-                            disabled={!canIncrease(line.item.id)}
-                            onClick={() => changeCart(line.item, 1)}
-                          >
-                            <MenuIcon name="plus" size={13} />
-                          </button>
+                        <div className="cart-line-copy">
+                          <strong>{line.item.name}</strong>
+                          {summary ? <span className="cart-line-options">{summary}</span> : null}
+                          <span>
+                            {safeCurrency(unitPriceMinor(line.item, line.options), displayCurrency)}{" "}
+                            · {line.quantity} item
+                            {line.quantity > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className="cart-line-actions">
+                          <strong>
+                            {safeCurrency(calculateCartTotalMinor([line]), displayCurrency)}
+                          </strong>
+                          <div className="menu-quantity-control">
+                            <button
+                              type="button"
+                              aria-label={`Remove one ${label}`}
+                              onClick={() => changeCart(line.item, -1, line.options)}
+                            >
+                              <MenuIcon name="minus" size={13} />
+                            </button>
+                            <span>{line.quantity}</span>
+                            <button
+                              type="button"
+                              aria-label={`Add one ${label}`}
+                              disabled={!canIncrease(key)}
+                              onClick={() => changeCart(line.item, 1, line.options)}
+                            >
+                              <MenuIcon name="plus" size={13} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="cart-summary">
                   <div>
@@ -885,6 +933,95 @@ export default function MenuPage() {
                 </button>
               </div>
             )}
+          </aside>
+        </div>
+      ) : null}
+      {pickerItem ? (
+        <div className="cart-overlay option-overlay">
+          <button
+            className="cart-backdrop"
+            type="button"
+            aria-label="Close options"
+            onClick={closePicker}
+          />
+          <aside
+            ref={pickerRef}
+            className="option-picker"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="option-picker-title"
+          >
+            <div className="cart-head">
+              <div>
+                <div className="menu-section-eyebrow">MAKE IT YOURS</div>
+                <h2 id="option-picker-title">{pickerItem.name}</h2>
+              </div>
+              <button
+                className="cart-close"
+                type="button"
+                aria-label="Close options"
+                onClick={closePicker}
+              >
+                <MenuIcon name="close" size={18} />
+              </button>
+            </div>
+            <form
+              className="option-picker-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!isCompleteSelection(pickerItem, pickerSelection)) return;
+                addItem(pickerItem, pickerSelection);
+                closePicker();
+              }}
+            >
+              {pickerItem.optionGroups.map((group) => (
+                <fieldset key={group.id} className="option-group">
+                  <legend>
+                    {group.name}
+                    <span>{group.required ? "Required" : "Optional"}</span>
+                  </legend>
+                  {group.required ? null : (
+                    <label className="option-choice">
+                      <input
+                        type="radio"
+                        name={`option-${group.id}`}
+                        checked={pickerSelection[group.id] === undefined}
+                        onChange={() =>
+                          setPickerSelection((current) => {
+                            const { [group.id]: _removed, ...rest } = current;
+                            return rest;
+                          })
+                        }
+                      />
+                      <span>None</span>
+                    </label>
+                  )}
+                  {group.choices.map((choice) => (
+                    <label key={choice.id} className="option-choice">
+                      <input
+                        type="radio"
+                        name={`option-${group.id}`}
+                        checked={pickerSelection[group.id] === choice.id}
+                        onChange={() =>
+                          setPickerSelection((current) => ({ ...current, [group.id]: choice.id }))
+                        }
+                      />
+                      <span>{choice.label}</span>
+                      {choice.priceDeltaMinor > 0 ? (
+                        <small>+{currency(choice.priceDeltaMinor, displayCurrency)}</small>
+                      ) : null}
+                    </label>
+                  ))}
+                </fieldset>
+              ))}
+              <button
+                className="menu-checkout-button"
+                type="submit"
+                disabled={!isCompleteSelection(pickerItem, pickerSelection) || pickerPrice === null}
+              >
+                Add to bag · {safeCurrency(pickerPrice, displayCurrency)}
+              </button>
+            </form>
           </aside>
         </div>
       ) : null}

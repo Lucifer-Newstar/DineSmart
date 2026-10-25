@@ -1,5 +1,22 @@
 export type Category = string;
 
+export interface MenuOptionChoice {
+  id: string;
+  label: string;
+  priceDeltaMinor: number;
+}
+
+/** A single-choice group such as size or spice level (S4-05). */
+export interface MenuOptionGroup {
+  id: string;
+  name: string;
+  required: boolean;
+  choices: MenuOptionChoice[];
+}
+
+/** Chosen choice id per group id, e.g. `{ spice: "hot" }`. */
+export type OptionSelection = Record<string, string>;
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -12,6 +29,7 @@ export interface MenuItem {
   allergenLabels: string[];
   /** False while the restaurant has 86'd the dish: shown greyed out, cannot be added. */
   isAvailable: boolean;
+  optionGroups: MenuOptionGroup[];
   art: string;
 }
 
@@ -26,6 +44,8 @@ export interface RestaurantMenu {
 export interface CartLine {
   item: MenuItem;
   quantity: number;
+  /** Present only for dishes with options; the same dish with other options is another line. */
+  options?: OptionSelection;
 }
 
 export const ALL_DISHES = "All dishes";
@@ -62,6 +82,97 @@ export function artForItem(name: string): string {
   if (normalized.includes("okra")) return "okra";
   if (normalized.includes("rasam")) return "rasam";
   return "rice";
+}
+
+const OPTION_ID = /^[a-z0-9][a-z0-9-]{0,23}$/;
+
+function parseOptionGroups(value: unknown): MenuOptionGroup[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 4) return null;
+  const groups: MenuOptionGroup[] = [];
+  for (const group of value) {
+    if (
+      !isRecord(group) ||
+      typeof group.id !== "string" ||
+      !OPTION_ID.test(group.id) ||
+      typeof group.name !== "string" ||
+      !group.name.trim() ||
+      typeof group.required !== "boolean" ||
+      !Array.isArray(group.choices) ||
+      group.choices.length === 0
+    ) {
+      return null;
+    }
+    const choices: MenuOptionChoice[] = [];
+    for (const choice of group.choices) {
+      if (
+        !isRecord(choice) ||
+        typeof choice.id !== "string" ||
+        !OPTION_ID.test(choice.id) ||
+        typeof choice.label !== "string" ||
+        !choice.label.trim() ||
+        typeof choice.priceDeltaMinor !== "number" ||
+        !Number.isSafeInteger(choice.priceDeltaMinor) ||
+        choice.priceDeltaMinor < 0
+      ) {
+        return null;
+      }
+      choices.push({ id: choice.id, label: choice.label, priceDeltaMinor: choice.priceDeltaMinor });
+    }
+    groups.push({ id: group.id, name: group.name, required: group.required, choices });
+  }
+  return groups;
+}
+
+/** Required groups start on their first choice; optional groups start unanswered. */
+export function defaultSelection(item: MenuItem): OptionSelection {
+  const selection: OptionSelection = {};
+  for (const group of item.optionGroups) {
+    const first = group.choices[0];
+    if (group.required && first) selection[group.id] = first.id;
+  }
+  return selection;
+}
+
+/** True when every chosen choice exists and every required group is answered. */
+export function isCompleteSelection(item: MenuItem, selection: OptionSelection): boolean {
+  if (Object.keys(selection).some((groupId) => !item.optionGroups.some((g) => g.id === groupId))) {
+    return false;
+  }
+  return item.optionGroups.every((group) => {
+    const choiceId = selection[group.id];
+    if (choiceId === undefined) return !group.required;
+    return group.choices.some((choice) => choice.id === choiceId);
+  });
+}
+
+/** One key per dish and choice set, so "rice, large" and "rice, regular" are separate lines. */
+export function cartLineKey(itemId: string, selection: OptionSelection = {}): string {
+  const parts = Object.entries(selection)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([group, choice]) => `${group}=${choice}`);
+  return parts.length ? `${itemId}|${parts.join("&")}` : itemId;
+}
+
+/** Base price plus the chosen options' deltas; null for an unknown choice or an unsafe sum. */
+export function unitPriceMinor(item: MenuItem, selection: OptionSelection = {}): number | null {
+  let total = item.priceMinor;
+  for (const [groupId, choiceId] of Object.entries(selection)) {
+    const choice = item.optionGroups
+      .find((group) => group.id === groupId)
+      ?.choices.find((candidate) => candidate.id === choiceId);
+    if (!choice) return null;
+    total += choice.priceDeltaMinor;
+  }
+  return Number.isSafeInteger(total) && total > 0 ? total : null;
+}
+
+/** "Large · Roasted papad", in the order the restaurant lists the groups. */
+export function optionSummary(item: MenuItem, selection: OptionSelection = {}): string {
+  return item.optionGroups
+    .map((group) => group.choices.find((choice) => choice.id === selection[group.id])?.label)
+    .filter((label): label is string => Boolean(label))
+    .join(" · ");
 }
 
 export function parseMenu(value: unknown): RestaurantMenu | null {
@@ -101,6 +212,8 @@ export function parseMenu(value: unknown): RestaurantMenu | null {
     ) {
       return null;
     }
+    const optionGroups = parseOptionGroups(entry.optionGroups);
+    if (!optionGroups) return null;
     items.push({
       id: entry.id,
       name: entry.name,
@@ -115,6 +228,7 @@ export function parseMenu(value: unknown): RestaurantMenu | null {
       allergenLabels: entry.allergenLabels,
       // Older API builds only sent available items, so a missing flag means available.
       isAvailable: entry.isAvailable !== false,
+      optionGroups,
       art: artForItem(entry.name),
     });
   }
@@ -138,6 +252,7 @@ export function parsePendingCart(value: unknown, menu: RestaurantMenu): CartLine
     return [];
   }
   const lines: CartLine[] = [];
+  const keys = new Set<string>();
   let totalUnits = 0;
   for (const entry of value.items) {
     if (
@@ -145,15 +260,27 @@ export function parsePendingCart(value: unknown, menu: RestaurantMenu): CartLine
       typeof entry.menuItemId !== "string" ||
       !Number.isInteger(entry.quantity) ||
       (entry.quantity as number) < 1 ||
-      (entry.quantity as number) > MAX_ITEM_QUANTITY
+      (entry.quantity as number) > MAX_ITEM_QUANTITY ||
+      (entry.options !== undefined && !isRecord(entry.options))
     ) {
       return [];
     }
     const item = menu.items.find((candidate) => candidate.id === entry.menuItemId);
-    if (!item?.isAvailable || lines.some((line) => line.item.id === item.id)) return [];
+    if (!item?.isAvailable) return [];
+    const options = (entry.options ?? {}) as Record<string, unknown>;
+    if (!Object.values(options).every((choice) => typeof choice === "string")) return [];
+    const selection = options as OptionSelection;
+    if (!isCompleteSelection(item, selection)) return [];
+    const key = cartLineKey(item.id, selection);
+    if (keys.has(key)) return [];
+    keys.add(key);
     totalUnits += entry.quantity as number;
     if (totalUnits > MAX_ORDER_UNITS) return [];
-    lines.push({ item, quantity: entry.quantity as number });
+    lines.push({
+      item,
+      quantity: entry.quantity as number,
+      ...(Object.keys(selection).length ? { options: selection } : {}),
+    });
   }
   return lines;
 }
@@ -161,15 +288,11 @@ export function parsePendingCart(value: unknown, menu: RestaurantMenu): CartLine
 export function calculateCartTotalMinor(lines: CartLine[]): number | null {
   let total = 0;
   for (const line of lines) {
-    if (
-      !Number.isSafeInteger(line.item.priceMinor) ||
-      line.item.priceMinor <= 0 ||
-      !Number.isSafeInteger(line.quantity) ||
-      line.quantity < 1
-    ) {
+    const unit = unitPriceMinor(line.item, line.options);
+    if (unit === null || !Number.isSafeInteger(line.quantity) || line.quantity < 1) {
       return null;
     }
-    const lineTotal = line.item.priceMinor * line.quantity;
+    const lineTotal = unit * line.quantity;
     if (!Number.isSafeInteger(lineTotal) || !Number.isSafeInteger(total + lineTotal)) return null;
     total += lineTotal;
   }
