@@ -136,6 +136,20 @@ class FakeAuthRepository implements AuthRepository {
   async lockLogin(): Promise<void> {}
 
   async clearFailedLogins(): Promise<void> {}
+
+  async setSessionDeviceLabel(): Promise<void> {}
+
+  async listActiveSessions(): Promise<WithId<RefreshSessionDocument>[]> {
+    return [];
+  }
+
+  async revokeUserSession(): Promise<boolean> {
+    return false;
+  }
+
+  async revokeOtherSessions(): Promise<number> {
+    return 0;
+  }
 }
 
 class CapturingEmailSender implements EmailOtpSender {

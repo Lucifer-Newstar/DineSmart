@@ -94,6 +94,8 @@ export interface RefreshSessionDocument extends TimestampedDocument {
   expiresAt: Date;
   revokedAt: Date | null;
   lastUsedAt: Date | null;
+  /** A coarse label such as "Chrome on macOS" for the signed-in devices list; never the raw user agent. */
+  deviceLabel?: string;
 }
 
 export interface RestaurantDocument extends TimestampedDocument {

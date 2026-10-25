@@ -1,9 +1,10 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import argon2, { type HashOptions as Argon2HashOptions } from "argon2";
 import { jwtVerify, SignJWT } from "jose";
-import type { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import { normalizeEmail, type UserDocument, type UserRole } from "../database/schema.js";
 import type { AuthRepository } from "./auth.repository.js";
+import { describeUserAgent } from "./device-label.js";
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
@@ -55,7 +56,7 @@ export const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 
 export class AuthError extends Error {
   constructor(
-    readonly statusCode: 400 | 401 | 403 | 423 | 503,
+    readonly statusCode: 400 | 401 | 403 | 404 | 423 | 503,
     readonly code: string,
     message: string,
     /** Sent as Retry-After when the client must wait (423). */
@@ -128,6 +129,22 @@ function safeUser(user: UserDocument & { _id: ObjectId }): SafeAuthUser {
     role: user.role,
     restaurantId: user.restaurantId?.toHexString() ?? null,
   };
+}
+
+export interface ActiveSessionSummary {
+  id: string;
+  deviceLabel: string;
+  createdAt: Date;
+  lastUsedAt: Date;
+  expiresAt: Date;
+  current: boolean;
+}
+
+function parseUserId(userId: string): ObjectId {
+  if (!/^[a-f\d]{24}$/i.test(userId)) {
+    throw new AuthError(401, "invalid_access_token", "A valid access token is required.");
+  }
+  return new ObjectId(userId);
 }
 
 function lockedError(until: Date, now: Date): AuthError {
@@ -241,6 +258,57 @@ export class AuthService {
     }
 
     return this.createSession(user, nextRefreshToken, rotated.expiresAt);
+  }
+
+  /** Labels a new session for the signed-in devices list; best effort. */
+  async recordSessionDevice(session: AuthSession, userAgent: string | undefined): Promise<void> {
+    await this.repository.setSessionDeviceLabel(
+      hashRefreshToken(session.refreshToken),
+      describeUserAgent(userAgent),
+    );
+  }
+
+  async listSessions(
+    userId: string,
+    currentRefreshToken: string | undefined,
+  ): Promise<ActiveSessionSummary[]> {
+    const currentHash = isRefreshTokenShape(currentRefreshToken)
+      ? hashRefreshToken(currentRefreshToken)
+      : null;
+    const sessions = await this.repository.listActiveSessions(parseUserId(userId), this.clock());
+    return sessions.map((session) => ({
+      id: session._id.toHexString(),
+      deviceLabel: session.deviceLabel ?? "Unknown device",
+      createdAt: session.createdAt,
+      lastUsedAt: session.lastUsedAt ?? session.createdAt,
+      expiresAt: session.expiresAt,
+      current: currentHash !== null && session.tokenHash === currentHash,
+    }));
+  }
+
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    if (!/^[a-f\d]{24}$/i.test(sessionId)) {
+      throw new AuthError(400, "invalid_session_id", "A valid session ID is required.");
+    }
+    const revoked = await this.repository.revokeUserSession(
+      parseUserId(userId),
+      new ObjectId(sessionId),
+      this.clock(),
+    );
+    if (!revoked) {
+      throw new AuthError(404, "session_not_found", "That session was not found or has ended.");
+    }
+  }
+
+  /** Signs out every other device; the session making the request stays signed in. */
+  async revokeOtherSessions(
+    userId: string,
+    currentRefreshToken: string | undefined,
+  ): Promise<number> {
+    const keep = isRefreshTokenShape(currentRefreshToken)
+      ? hashRefreshToken(currentRefreshToken)
+      : null;
+    return this.repository.revokeOtherSessions(parseUserId(userId), keep, this.clock());
   }
 
   async logout(refreshToken: string | undefined): Promise<void> {

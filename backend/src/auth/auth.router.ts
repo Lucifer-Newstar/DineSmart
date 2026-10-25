@@ -5,6 +5,7 @@ import { requireTrustedOrigin } from "../http/origin-check.js";
 import {
   AuthConfigurationError,
   AuthError,
+  type AuthPrincipal,
   type AuthService,
   type AuthSession,
 } from "./auth.service.js";
@@ -87,6 +88,39 @@ function clearRefreshCookie(response: Response, nodeEnvironment: string): void {
     sameSite: nodeEnvironment === "production" ? "none" : "lax",
     path: AUTH_COOKIE_PATH,
   });
+}
+
+/** Best effort: a failed label never fails the sign-in. */
+async function labelDevice(service: AuthService, session: AuthSession, request: Request) {
+  try {
+    await service.recordSessionDevice(session, request.get("user-agent"));
+  } catch {
+    // The session works without a label; the devices list shows "Unknown device".
+  }
+}
+
+/** The signed-in user behind a bearer token, or null after answering 401. */
+async function bearerPrincipal(
+  service: AuthService,
+  request: Request,
+  response: Response,
+): Promise<AuthPrincipal | null> {
+  const header = request.get("authorization") ?? "";
+  const match = /^Bearer ([A-Za-z0-9._~+/=-]+)$/.exec(header);
+  if (!match?.[1]) {
+    response.status(401).json({
+      error: { code: "missing_access_token", message: "Authentication is required." },
+    });
+    return null;
+  }
+  try {
+    return await service.verifyAccessToken(match[1]);
+  } catch {
+    response.status(401).json({
+      error: { code: "invalid_access_token", message: "A valid access token is required." },
+    });
+    return null;
+  }
 }
 
 function sendSession(response: Response, session: AuthSession, nodeEnvironment: string): void {
@@ -254,6 +288,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
         body.code,
         body.password,
       );
+      await labelDevice(await options.createService(), session, request);
       sendSession(response, session, options.nodeEnvironment);
     } catch (error) {
       handleAuthError(error, response);
@@ -336,7 +371,9 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
     }
 
     try {
-      const session = await (await options.createService()).login(body.email, body.password);
+      const service = await options.createService();
+      const session = await service.login(body.email, body.password);
+      await labelDevice(service, session, request);
       sendSession(response, session, options.nodeEnvironment);
     } catch (error) {
       handleAuthError(error, response);
@@ -356,6 +393,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       if (!options.googleSession)
         throw new AuthConfigurationError("Google sign-in is not configured.");
       const session = await options.googleSession(body.idToken);
+      await labelDevice(await options.createService(), session, request);
       sendSession(response, session, options.nodeEnvironment);
     } catch (error) {
       handleAuthError(error, response);
@@ -386,6 +424,64 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
       response.status(204).end();
     } catch (error) {
       clearRefreshCookie(response, options.nodeEnvironment);
+      handleAuthError(error, response);
+    }
+  });
+
+  // Signed-in devices (S4-04). The refresh cookie only identifies which
+  // session is "this device"; every route needs a valid access token.
+  router.get("/sessions", async (request: Request, response: Response) => {
+    try {
+      const service = await options.createService();
+      const principal = await bearerPrincipal(service, request, response);
+      if (!principal) return;
+      const sessions = await service.listSessions(
+        principal.userId,
+        request.cookies?.[REFRESH_COOKIE_NAME],
+      );
+      response.set("Cache-Control", "no-store");
+      response.status(200).json({
+        sessions: sessions.map((session) => ({
+          id: session.id,
+          deviceLabel: session.deviceLabel,
+          createdAt: session.createdAt.toISOString(),
+          lastUsedAt: session.lastUsedAt.toISOString(),
+          expiresAt: session.expiresAt.toISOString(),
+          current: session.current,
+        })),
+      });
+    } catch (error) {
+      handleAuthError(error, response);
+    }
+  });
+
+  router.delete("/sessions", async (request: Request, response: Response) => {
+    try {
+      const service = await options.createService();
+      const principal = await bearerPrincipal(service, request, response);
+      if (!principal) return;
+      const revoked = await service.revokeOtherSessions(
+        principal.userId,
+        request.cookies?.[REFRESH_COOKIE_NAME],
+      );
+      response.status(200).json({ revoked });
+    } catch (error) {
+      handleAuthError(error, response);
+    }
+  });
+
+  router.delete("/sessions/:id", async (request: Request, response: Response) => {
+    try {
+      const service = await options.createService();
+      const principal = await bearerPrincipal(service, request, response);
+      if (!principal) return;
+      const rawId = request.params.id;
+      await service.revokeSession(
+        principal.userId,
+        (Array.isArray(rawId) ? rawId[0] : rawId) ?? "",
+      );
+      response.status(204).end();
+    } catch (error) {
       handleAuthError(error, response);
     }
   });

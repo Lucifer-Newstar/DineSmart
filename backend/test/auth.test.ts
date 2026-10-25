@@ -123,6 +123,44 @@ class FakeAuthRepository implements AuthRepository {
     this.user.failedLoginAttempts = 0;
     delete this.user.loginLockedUntil;
   }
+
+  async setSessionDeviceLabel(tokenHash: string, deviceLabel: string): Promise<void> {
+    for (const session of this.sessions.values()) {
+      if (session.tokenHash === tokenHash) session.deviceLabel = deviceLabel;
+    }
+  }
+
+  async listActiveSessions(userId: ObjectId, now: Date): Promise<WithId<RefreshSessionDocument>[]> {
+    return [...this.sessions.values()].filter(
+      (session) => session.userId.equals(userId) && !session.revokedAt && session.expiresAt > now,
+    );
+  }
+
+  async revokeUserSession(userId: ObjectId, sessionId: ObjectId, now: Date): Promise<boolean> {
+    const session = this.sessions.get(sessionId.toHexString());
+    if (!session?.userId.equals(userId) || session.revokedAt) return false;
+    session.revokedAt = now;
+    return true;
+  }
+
+  async revokeOtherSessions(
+    userId: ObjectId,
+    keepTokenHash: string | null,
+    now: Date,
+  ): Promise<number> {
+    let revoked = 0;
+    for (const session of this.sessions.values()) {
+      if (
+        session.userId.equals(userId) &&
+        !session.revokedAt &&
+        session.tokenHash !== keepTokenHash
+      ) {
+        session.revokedAt = now;
+        revoked += 1;
+      }
+    }
+    return revoked;
+  }
 }
 
 async function createTestService(repository: FakeAuthRepository) {

@@ -33,6 +33,13 @@ export interface AuthRepository {
   /** Locks password sign-in until the given time and restarts the count. */
   lockLogin(userId: ObjectId, until: Date, now: Date): Promise<void>;
   clearFailedLogins(userId: ObjectId, now: Date): Promise<void>;
+  setSessionDeviceLabel(tokenHash: string, deviceLabel: string): Promise<void>;
+  /** Unrevoked, unexpired sessions for one user, most recently used first. */
+  listActiveSessions(userId: ObjectId, now: Date): Promise<WithId<RefreshSessionDocument>[]>;
+  /** Revokes one of the user's sessions; false when it is not theirs or already ended. */
+  revokeUserSession(userId: ObjectId, sessionId: ObjectId, now: Date): Promise<boolean>;
+  /** Revokes every active session of the user except the one holding keepTokenHash. */
+  revokeOtherSessions(userId: ObjectId, keepTokenHash: string | null, now: Date): Promise<number>;
 }
 
 export class MongoAuthRepository implements AuthRepository {
@@ -145,5 +152,44 @@ export class MongoAuthRepository implements AuthRepository {
       { _id: userId },
       { $set: { failedLoginAttempts: 0, updatedAt: now }, $unset: { loginLockedUntil: "" } },
     );
+  }
+
+  async setSessionDeviceLabel(tokenHash: string, deviceLabel: string): Promise<void> {
+    await this.sessions.updateOne({ tokenHash, revokedAt: null }, { $set: { deviceLabel } });
+  }
+
+  listActiveSessions(userId: ObjectId, now: Date): Promise<WithId<RefreshSessionDocument>[]> {
+    return this.sessions
+      .find(
+        { userId, revokedAt: null, expiresAt: { $gt: now } },
+        { projection: { usedTokenHashes: 0 } },
+      )
+      .sort({ lastUsedAt: -1, createdAt: -1 })
+      .limit(50)
+      .toArray();
+  }
+
+  async revokeUserSession(userId: ObjectId, sessionId: ObjectId, now: Date): Promise<boolean> {
+    const result = await this.sessions.updateOne(
+      { _id: sessionId, userId, revokedAt: null },
+      { $set: { revokedAt: now, updatedAt: now } },
+    );
+    return result.modifiedCount === 1;
+  }
+
+  async revokeOtherSessions(
+    userId: ObjectId,
+    keepTokenHash: string | null,
+    now: Date,
+  ): Promise<number> {
+    const result = await this.sessions.updateMany(
+      {
+        userId,
+        revokedAt: null,
+        ...(keepTokenHash ? { tokenHash: { $ne: keepTokenHash } } : {}),
+      },
+      { $set: { revokedAt: now, updatedAt: now } },
+    );
+    return result.modifiedCount;
   }
 }

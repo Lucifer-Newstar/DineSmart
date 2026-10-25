@@ -52,6 +52,20 @@ class LockoutRepository implements AuthRepository {
     this.user.failedLoginAttempts = 0;
     delete this.user.loginLockedUntil;
   }
+
+  async setSessionDeviceLabel(): Promise<void> {}
+
+  async listActiveSessions(): Promise<WithId<RefreshSessionDocument>[]> {
+    return [];
+  }
+
+  async revokeUserSession(): Promise<boolean> {
+    return false;
+  }
+
+  async revokeOtherSessions(): Promise<number> {
+    return 0;
+  }
 }
 
 async function setup() {
