@@ -1,0 +1,78 @@
+# Weekly, grouped dependency updates. Each ecosystem opens at most one pull
+# request per group so reviews stay small; security updates still arrive
+# individually as soon as GitHub publishes an advisory.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - dependencies
+      - backend
+    groups:
+      backend-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - dependencies
+      - frontend
+    groups:
+      frontend-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - dependencies
+      - tooling
+    groups:
+      tooling:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+      include: scope
+    labels:
+      - dependencies
+      - ci
+    groups:
+      github-actions:
+        patterns:
+          - "*"
