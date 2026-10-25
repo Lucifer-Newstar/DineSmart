@@ -109,7 +109,7 @@ export function Dashboard() {
   const [inventoryStatus, setInventoryStatus] = useState<InventoryViewStatus>("preview");
   const [inventoryTruncated, setInventoryTruncated] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
-  const [menuRefreshKey] = useState(0);
+  const [menuRefreshKey, setMenuRefreshKey] = useState(0);
   const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
   const [reservationsStatus, setReservationsStatus] = useState<ReservationViewStatus>("preview");
   const [reservationsTruncated, setReservationsTruncated] = useState(false);
@@ -143,6 +143,7 @@ export function Dashboard() {
       if (target === "reservations") setReservationsRefreshKey(bump);
       if (target === "incidents") setIncidentRefreshKey(bump);
       if (target === "healthScore") setHealthScoreRefreshKey(bump);
+      if (target === "menu") setMenuRefreshKey(bump);
     }
   });
   const role = user?.role;

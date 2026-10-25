@@ -16,6 +16,7 @@ export const REALTIME_EVENTS = [
   "incident.updated",
   "recommendation.updated",
   "healthscore.updated",
+  "menu.availability",
   "notification.created",
 ] as const;
 export type RealtimeEventName = (typeof REALTIME_EVENTS)[number];
@@ -96,7 +97,8 @@ export type RefreshTarget =
   | "inventory"
   | "reservations"
   | "incidents"
-  | "healthScore";
+  | "healthScore"
+  | "menu";
 
 /** Which dashboard panels an invalidation event makes stale. */
 export function refreshTargetsForEvent(event: RealtimeEventName): RefreshTarget[] {
@@ -114,6 +116,8 @@ export function refreshTargetsForEvent(event: RealtimeEventName): RefreshTarget[
       return ["incidents"];
     case "healthscore.updated":
       return ["healthScore"];
+    case "menu.availability":
+      return ["menu"];
     default:
       return [];
   }

@@ -242,6 +242,7 @@ export function MenuManagerPage({ accessToken, refreshKey, onToast }: MenuManage
   >(null);
   const [saving, setSaving] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (resource.data) setMenu(resource.data);
@@ -266,6 +267,36 @@ export function MenuManagerPage({ accessToken, refreshKey, onToast }: MenuManage
     );
     setMode(null);
     resource.reload();
+  };
+
+  const setLocalAvailability = (itemId: string, isAvailable: boolean) =>
+    setMenu((current) =>
+      current
+        ? {
+            ...current,
+            items: current.items.map((entry) =>
+              entry.id === itemId ? { ...entry, isAvailable } : entry,
+            ),
+          }
+        : current,
+    );
+
+  /** 86 switch: flips at once, then reverts if the API refuses. */
+  const toggleAvailability = async (item: ManagedMenuItem) => {
+    if (!accessToken) return;
+    const next = !item.isAvailable;
+    setLocalAvailability(item.id, next);
+    setTogglingId(item.id);
+    const result = await apiSend(`/menu/items/${item.id}/availability`, accessToken, "PATCH", {
+      isAvailable: next,
+    });
+    setTogglingId(null);
+    if (!result.ok) {
+      setLocalAvailability(item.id, item.isAvailable);
+      onToast(`${item.name} could not be changed: ${result.message}`);
+      return;
+    }
+    onToast(next ? `${item.name} is back on the menu.` : `${item.name} is marked sold out.`);
   };
 
   const archive = async (item: ManagedMenuItem) => {
@@ -401,11 +432,20 @@ export function MenuManagerPage({ accessToken, refreshKey, onToast }: MenuManage
                           </span>
                         ) : null}
                       </div>
-                      <span
+                      <button
                         className={`menu-availability ${item.isAvailable ? "menu-availability-on" : ""}`}
+                        type="button"
+                        role="switch"
+                        aria-checked={item.isAvailable}
+                        aria-label={`${item.name} available`}
+                        disabled={togglingId === item.id}
+                        onClick={() => void toggleAvailability(item)}
                       >
+                        <span className="menu-switch-track" aria-hidden="true">
+                          <span className="menu-switch-thumb" />
+                        </span>
                         {item.isAvailable ? "On the menu" : "Sold out"}
-                      </span>
+                      </button>
                       <div className="menu-manager-actions">
                         <button
                           className="icon-button"
