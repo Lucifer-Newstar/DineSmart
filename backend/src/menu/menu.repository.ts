@@ -5,9 +5,11 @@ import {
   MANAGED_MENU_LIMIT,
   type ManagedMenuItem,
   type ManagedMenuList,
+  MENU_PREP_STATIONS,
   type MenuAdminRepository,
   type MenuItemInput,
   type MenuItemPatch,
+  type MenuPrepStation,
   type MenuReader,
   type PublicMenu,
   type PublicMenuItem,
@@ -20,6 +22,10 @@ const NOT_ARCHIVED = { archivedAt: null } as const;
 /** Saved position first; items never arranged fall back to name order. */
 const MENU_SORT = { sortPosition: 1, name: 1, _id: 1 } as const;
 
+function isPrepStation(value: unknown): value is MenuPrepStation {
+  return typeof value === "string" && (MENU_PREP_STATIONS as readonly string[]).includes(value);
+}
+
 function toManagedItem(document: WithId<MenuItemDocument>): ManagedMenuItem {
   return {
     id: document._id,
@@ -30,6 +36,8 @@ function toManagedItem(document: WithId<MenuItemDocument>): ManagedMenuItem {
     isAvailable: document.isAvailable,
     dietaryLabels: document.dietaryLabels ?? [],
     allergenLabels: document.allergenLabels ?? [],
+    ...(isPrepStation(document.prepStation) ? { prepStation: document.prepStation } : {}),
+    ...(document.prepMinutes === undefined ? {} : { prepMinutes: document.prepMinutes }),
     updatedAt: document.updatedAt,
   };
 }
@@ -111,6 +119,8 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       isAvailable: input.isAvailable,
       dietaryLabels: input.dietaryLabels,
       allergenLabels: input.allergenLabels,
+      ...(input.prepStation === undefined ? {} : { prepStation: input.prepStation }),
+      ...(input.prepMinutes === undefined ? {} : { prepMinutes: input.prepMinutes }),
       archivedAt: null,
       createdAt: now,
       updatedAt: now,
@@ -141,6 +151,10 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
     if (patch.allergenLabels !== undefined) set.allergenLabels = patch.allergenLabels;
     if (patch.description === null) unset.description = "";
     else if (patch.description !== undefined) set.description = patch.description;
+    if (patch.prepStation === null) unset.prepStation = "";
+    else if (patch.prepStation !== undefined) set.prepStation = patch.prepStation;
+    if (patch.prepMinutes === null) unset.prepMinutes = "";
+    else if (patch.prepMinutes !== undefined) set.prepMinutes = patch.prepMinutes;
 
     const updated = await this.menuItems.findOneAndUpdate(
       { _id: itemId, restaurantId, ...NOT_ARCHIVED },

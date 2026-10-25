@@ -11,6 +11,7 @@ import {
   requireLocalSeedTarget,
   requireSeedTarget,
 } from "../src/database/seed-safety.js";
+import { MENU_PREP_STATIONS } from "../src/menu/menu.types.js";
 
 const FIXED_NOW = new Date("2026-10-10T12:00:00.000Z");
 
@@ -141,4 +142,18 @@ test("seed CLI options accept flag, spaced and equals forms", () => {
   assert.equal(readCliOption(["--confirm=andhrimnir"], "confirm"), "andhrimnir");
   assert.equal(readCliOption(["--confirm", "--allow-remote"], "confirm"), true);
   assert.equal(readCliOption([], "confirm"), undefined);
+});
+
+test("seeded menu items carry a prep station, prep minutes and a menu position", () => {
+  const seed = buildDemoSeedData("$argon2id$fixture-hash", FIXED_NOW);
+  for (const item of seed.menuItems) {
+    assert.ok(
+      (MENU_PREP_STATIONS as readonly string[]).includes(item.prepStation ?? ""),
+      `${item.name} needs a known prep station`,
+    );
+    assert.ok(Number.isInteger(item.prepMinutes) && (item.prepMinutes ?? 0) > 0, item.name);
+    assert.ok(Number.isInteger(item.sortPosition), item.name);
+  }
+  const categories = new Set(seed.menuItems.map((item) => item.category));
+  assert.deepEqual(new Set(seed.restaurants[0]?.menuCategoryOrder), categories);
 });

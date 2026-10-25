@@ -15,9 +15,12 @@ import {
   MENU_DESCRIPTION_MAX,
   MENU_DIETARY_LABELS,
   MENU_NAME_MAX,
+  MENU_PREP_MINUTES_MAX,
+  MENU_PREP_STATIONS,
   MENU_PRICE_MAX_MINOR,
   type MenuItemInput,
   type MenuItemPatch,
+  type MenuPrepStation,
 } from "./menu.types.js";
 
 export interface MenuAdminRuntime {
@@ -40,6 +43,8 @@ const ITEM_FIELDS = new Set([
   "isAvailable",
   "dietaryLabels",
   "allergenLabels",
+  "prepStation",
+  "prepMinutes",
 ]);
 const PATCH_FIELDS = new Set([...ITEM_FIELDS].filter((field) => field !== "isAvailable"));
 const DIETARY = new Set<string>(MENU_DIETARY_LABELS);
@@ -157,6 +162,38 @@ export function parseMenuItemBody(
     }
     result.allergenLabels = labels;
   }
+  if (value.prepStation !== undefined) {
+    if (value.prepStation === null) {
+      if (partial) result.prepStation = null;
+    } else if (
+      typeof value.prepStation !== "string" ||
+      !(MENU_PREP_STATIONS as readonly string[]).includes(value.prepStation)
+    ) {
+      return {
+        ok: false,
+        message: `Prep station must be one of: ${MENU_PREP_STATIONS.join(", ")}.`,
+      };
+    } else {
+      result.prepStation = value.prepStation as MenuPrepStation;
+    }
+  }
+  if (value.prepMinutes !== undefined) {
+    if (value.prepMinutes === null) {
+      if (partial) result.prepMinutes = null;
+    } else if (
+      typeof value.prepMinutes !== "number" ||
+      !Number.isInteger(value.prepMinutes) ||
+      value.prepMinutes < 1 ||
+      value.prepMinutes > MENU_PREP_MINUTES_MAX
+    ) {
+      return {
+        ok: false,
+        message: `Prep minutes must be a whole number from 1 to ${MENU_PREP_MINUTES_MAX}.`,
+      };
+    } else {
+      result.prepMinutes = value.prepMinutes;
+    }
+  }
   if (!partial) {
     if (value.isAvailable !== undefined && typeof value.isAvailable !== "boolean") {
       return { ok: false, message: "isAvailable must be true or false." };
@@ -176,6 +213,8 @@ export function serializeManagedItem(item: ManagedMenuItem) {
     isAvailable: item.isAvailable,
     dietaryLabels: item.dietaryLabels,
     allergenLabels: item.allergenLabels,
+    ...(item.prepStation === undefined ? {} : { prepStation: item.prepStation }),
+    ...(item.prepMinutes === undefined ? {} : { prepMinutes: item.prepMinutes }),
     updatedAt: item.updatedAt.toISOString(),
   };
 }

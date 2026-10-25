@@ -89,10 +89,13 @@ class MemoryMenuRepository implements MenuAdminRepository {
   async updateItem(restaurantId: ObjectId, itemId: ObjectId, patch: MenuItemPatch, at: Date) {
     const item = this.live(restaurantId, itemId);
     if (!item) return null;
-    const { description, ...rest } = patch;
-    Object.assign(item, rest, { updatedAt: at });
-    if (description === null) delete item.description;
-    else if (description !== undefined) item.description = description;
+    // Like the Mongo repository: undefined leaves a field alone, null removes it.
+    const fields = item as unknown as Record<string, unknown>;
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null) delete fields[key];
+      else if (value !== undefined) fields[key] = value;
+    }
+    item.updatedAt = at;
     return { ...item };
   }
 
@@ -391,5 +394,35 @@ test("a manager rearranges the menu; a stale or partial arrangement is refused",
       (await call("PUT", "/arrangement", "reception", { categories: [], itemIds: [] })).status,
       403,
     );
+  });
+});
+
+test("prep station and minutes are validated, stored and can be cleared", async () => {
+  await withApi(async (call) => {
+    const created = await call("POST", "/", "manager", {
+      ...newItem,
+      prepStation: "tawa",
+      prepMinutes: 8,
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.item.prepStation, "tawa");
+    assert.equal(created.body.item.prepMinutes, 8);
+
+    for (const body of [
+      { prepStation: "grill" },
+      { prepMinutes: 0 },
+      { prepMinutes: 121 },
+      { prepMinutes: 7.5 },
+    ]) {
+      assert.equal((await call("POST", "/", "manager", { ...newItem, ...body })).status, 400);
+    }
+
+    const cleared = await call("PATCH", `/${created.body.item.id}`, "manager", {
+      prepStation: null,
+      prepMinutes: null,
+    });
+    assert.equal(cleared.status, 200);
+    assert.equal("prepStation" in cleared.body.item, false);
+    assert.equal("prepMinutes" in cleared.body.item, false);
   });
 });

@@ -36,6 +36,8 @@ function auditView(item: ManagedMenuItem | null): Record<string, unknown> {
     description: item.description ?? null,
     dietaryLabels: item.dietaryLabels,
     allergenLabels: item.allergenLabels,
+    prepStation: item.prepStation ?? null,
+    prepMinutes: item.prepMinutes ?? null,
   };
 }
 

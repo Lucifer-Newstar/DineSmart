@@ -136,6 +136,10 @@ export interface MenuItemDocument extends TimestampedDocument {
   isAvailable: boolean;
   dietaryLabels?: string[];
   allergenLabels?: string[];
+  /** Kitchen station that cooks the item, from MENU_PREP_STATIONS. */
+  prepStation?: string;
+  /** Typical minutes from firing to pass; the kitchen display uses it to spot late tickets. */
+  prepMinutes?: number;
   /** Position within the restaurant's menu, lowest first; set on create and by rearranging. */
   sortPosition?: number;
   /** Set when a manager archives the item; archived items leave every menu but keep order history. */

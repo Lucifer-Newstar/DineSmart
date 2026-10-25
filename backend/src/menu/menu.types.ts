@@ -43,6 +43,20 @@ export const MENU_DIETARY_LABELS = [
 
 export type MenuDietaryLabel = (typeof MENU_DIETARY_LABELS)[number];
 
+/** Kitchen stations an item can be routed to. */
+export const MENU_PREP_STATIONS = [
+  "tawa",
+  "tandoor",
+  "curry",
+  "rice",
+  "fryer",
+  "beverages",
+  "desserts",
+] as const;
+
+export type MenuPrepStation = (typeof MENU_PREP_STATIONS)[number];
+
+export const MENU_PREP_MINUTES_MAX = 120;
 export const MENU_NAME_MAX = 80;
 export const MENU_CATEGORY_MAX = 40;
 export const MENU_DESCRIPTION_MAX = 280;
@@ -62,6 +76,8 @@ export interface ManagedMenuItem {
   isAvailable: boolean;
   dietaryLabels: string[];
   allergenLabels: string[];
+  prepStation?: MenuPrepStation;
+  prepMinutes?: number;
   updatedAt: Date;
 }
 
@@ -80,6 +96,8 @@ export interface MenuItemInput {
   isAvailable: boolean;
   dietaryLabels: string[];
   allergenLabels: string[];
+  prepStation?: MenuPrepStation;
+  prepMinutes?: number;
 }
 
 /** A partial edit; `description: null` clears the description. */
@@ -90,6 +108,9 @@ export interface MenuItemPatch {
   priceMinor?: number;
   dietaryLabels?: string[];
   allergenLabels?: string[];
+  /** `null` clears the station or the minutes. */
+  prepStation?: MenuPrepStation | null;
+  prepMinutes?: number | null;
 }
 
 export interface MenuAdminRepository {
