@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_MONGODB_URI } from "./e2e/fixtures/demo";
 
 /**
  * End-to-end tests for Andhrímnir. Playwright boots the API and the built
@@ -10,8 +11,6 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const API_PORT = Number(process.env.E2E_API_PORT ?? 3001);
 const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3000);
-export const E2E_MONGODB_URI =
-  process.env.E2E_MONGODB_URI ?? "mongodb://127.0.0.1:27017/andhrimnir_e2e";
 const webOrigin = `http://localhost:${WEB_PORT}`;
 const isCI = Boolean(process.env.CI);
 
