@@ -41,6 +41,7 @@ import { MongoHealthScoreRepository } from "./healthscore/health-score.repositor
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 import { NO_STORE_CACHE_CONTROL, sendNoStoreApiResponse } from "./http/cache-policy.js";
+import { createSecurityHeaders } from "./http/security-headers.js";
 import { resolveTrustProxy } from "./http/trust-proxy.js";
 import { MongoIncidentDetectionRepository } from "./incidents/incident.repository.js";
 import { createIncidentRouter } from "./incidents/incident.router.js";
@@ -210,6 +211,7 @@ export function createApp(options: AppOptions = {}) {
   }
 
   app.disable("x-powered-by");
+  app.use(createSecurityHeaders(nodeEnvironment));
   const trustProxy = resolveTrustProxy(
     options.trustProxy ?? process.env.TRUST_PROXY,
     nodeEnvironment,
