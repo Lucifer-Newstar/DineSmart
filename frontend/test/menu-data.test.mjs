@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ALL_DISHES,
+  applyAvailability,
+  availableDietaryFilters,
   calculateCartTotalMinor,
+  filterMenuItems,
   MAX_ITEM_QUANTITY,
   MAX_ORDER_LINES,
   MAX_ORDER_UNITS,
+  menuAllergens,
+  parseAvailabilityEvent,
   parseMenu,
   parsePendingCart,
+  reconcileCart,
 } from "../src/app/menu/menu-data.ts";
 
 const id = (value) => value.toString(16).padStart(24, "0");
@@ -226,4 +233,131 @@ test("calculateCartTotalMinor keeps safe integer totals and rejects overflow", (
     null,
   );
   assert.equal(calculateCartTotalMinor([{ item: menu.items[0], quantity: 1.5 }]), null);
+});
+
+/** A small parsed menu: dosa (veg, dairy), lemon rice (vegan, gluten-free, peanuts), coffee, chicken. */
+function sampleMenu() {
+  const menu = parseMenu(
+    menuResponse([
+      menuItem(100, "Ghee podi dosa", {
+        category: "South Indian",
+        description: "Crisp dosa, podi.",
+      }),
+      menuItem(101, "Curry leaf lemon rice", {
+        dietaryLabels: ["vegan", "gluten-free"],
+        allergenLabels: ["Peanuts"],
+      }),
+      menuItem(102, "Madras filter coffee", { category: "Drinks", isAvailable: false }),
+      menuItem(103, "Pepper chicken", { dietaryLabels: ["non-vegetarian"], allergenLabels: [] }),
+    ]),
+  );
+  assert.ok(menu);
+  return menu;
+}
+
+const names = (items) => items.map((item) => item.name);
+const noFilters = { category: ALL_DISHES, search: "", dietary: [], withoutAllergens: [] };
+
+test("parseMenu keeps sold-out items flagged and treats a missing flag as available", () => {
+  const menu = sampleMenu();
+  assert.equal(menu.items.find((item) => item.name === "Madras filter coffee")?.isAvailable, false);
+  assert.equal(menu.items.find((item) => item.name === "Ghee podi dosa")?.isAvailable, true);
+  assert.equal(parseMenu(menuResponse([menuItem(100, "Dosa", { isAvailable: "no" })])), null);
+});
+
+test("filters narrow by category, every search word, dietary labels and allergens", () => {
+  const { items } = sampleMenu();
+  assert.equal(filterMenuItems(items, noFilters).length, 4);
+  assert.deepEqual(names(filterMenuItems(items, { ...noFilters, category: "Drinks" })), [
+    "Madras filter coffee",
+  ]);
+  assert.deepEqual(names(filterMenuItems(items, { ...noFilters, search: "  DOSA podi " })), [
+    "Ghee podi dosa",
+  ]);
+  assert.deepEqual(
+    names(filterMenuItems(items, { ...noFilters, search: "south" })),
+    ["Ghee podi dosa"],
+    "search also matches the category",
+  );
+  assert.deepEqual(names(filterMenuItems(items, { ...noFilters, search: "dosa coffee" })), []);
+});
+
+test("vegetarian includes vegan dishes; combined dietary filters must all apply", () => {
+  const { items } = sampleMenu();
+  assert.deepEqual(names(filterMenuItems(items, { ...noFilters, dietary: ["vegetarian"] })), [
+    "Ghee podi dosa",
+    "Curry leaf lemon rice",
+    "Madras filter coffee",
+  ]);
+  assert.deepEqual(
+    names(filterMenuItems(items, { ...noFilters, dietary: ["vegan", "gluten-free"] })),
+    ["Curry leaf lemon rice"],
+  );
+  assert.deepEqual(names(filterMenuItems(items, { ...noFilters, dietary: ["jain"] })), []);
+});
+
+test("leaving out an allergen hides every dish that names it, whatever its case", () => {
+  const { items } = sampleMenu();
+  assert.deepEqual(
+    names(filterMenuItems(items, { ...noFilters, withoutAllergens: ["dairy", "peanuts"] })),
+    ["Pepper chicken"],
+  );
+  assert.deepEqual(
+    names(
+      filterMenuItems(items, {
+        ...noFilters,
+        dietary: ["vegetarian"],
+        withoutAllergens: ["peanuts"],
+        category: "Mains",
+      }),
+    ),
+    [],
+  );
+});
+
+test("the menu offers only dietary filters and allergens its dishes actually have", () => {
+  const { items } = sampleMenu();
+  assert.deepEqual(availableDietaryFilters(items), ["vegetarian", "vegan", "gluten-free"]);
+  assert.deepEqual(menuAllergens(items), ["dairy", "peanuts"]);
+});
+
+test("availability events are validated and applied to one item only", () => {
+  const menu = sampleMenu();
+  assert.deepEqual(parseAvailabilityEvent({ menuItemId: id(100), isAvailable: false }), {
+    menuItemId: id(100),
+    isAvailable: false,
+  });
+  for (const bad of [null, { menuItemId: "x", isAvailable: false }, { menuItemId: id(100) }]) {
+    assert.equal(parseAvailabilityEvent(bad), null);
+  }
+
+  const soldOut = applyAvailability(menu, id(100), false);
+  assert.equal(soldOut.items[0].isAvailable, false);
+  assert.equal(soldOut.items[1].isAvailable, true);
+  assert.equal(menu.items[0].isAvailable, true, "the original menu is not mutated");
+  assert.equal(applyAvailability(menu, id(100), true), menu, "no change keeps the same object");
+  assert.equal(applyAvailability(menu, id(999), false), menu, "unknown items are ignored");
+});
+
+test("a dish that sells out is taken out of the bag and named", () => {
+  const menu = sampleMenu();
+  const lines = [
+    { item: menu.items[0], quantity: 2 },
+    { item: menu.items[1], quantity: 1 },
+  ];
+  const after = applyAvailability(menu, id(100), false);
+
+  const result = reconcileCart(lines, after);
+  assert.deepEqual(result.removed, ["Ghee podi dosa"]);
+  assert.deepEqual(
+    result.lines.map((line) => [line.item.name, line.quantity]),
+    [["Curry leaf lemon rice", 1]],
+  );
+  assert.deepEqual(reconcileCart(lines, menu).removed, []);
+});
+
+test("a saved bag never restores a sold-out dish", () => {
+  const menu = sampleMenu();
+  const stored = { restaurantId: id(1), items: [{ menuItemId: id(102), quantity: 1 }] };
+  assert.deepEqual(parsePendingCart(stored, menu), []);
 });
