@@ -5,8 +5,10 @@ import { API_ORIGIN, DEMO_ACCOUNTS, DEMO_PASSWORD, type DemoRole } from "./demo"
 export async function signInAs(page: Page, role: DemoRole, password = DEMO_PASSWORD) {
   const account = DEMO_ACCOUNTS[role];
   await page.goto("/login");
-  await page.getByLabel("Email address").fill(account.email);
-  await page.getByLabel("Password").fill(password);
+  // Role queries skip the hidden copy of a page that a client-side navigation
+  // can briefly leave mounted.
+  await page.getByRole("textbox", { name: "Email address" }).fill(account.email);
+  await page.getByRole("textbox", { name: "Password" }).fill(password);
   await page.getByRole("button", { name: "Sign in securely" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
   await expect(page.getByText(account.name, { exact: true }).first()).toBeVisible();
@@ -49,6 +51,25 @@ export async function latestEmailCode(request: APIRequestContext, email: string)
     )
     .toMatch(/^\d{6}$/);
   return code as string;
+}
+
+/** Creates and verifies a fresh Customer over the API; specs own its password. */
+export async function registerCustomer(
+  request: APIRequestContext,
+  options: { name: string; email: string; password: string },
+): Promise<void> {
+  const headers = { origin: "http://localhost:3000" };
+  const registered = await request.post(`${API_ORIGIN}/api/v1/auth/register`, {
+    headers,
+    data: options,
+  });
+  expect(registered.status(), "registration accepted").toBeLessThan(300);
+  const code = await latestEmailCode(request, options.email);
+  const verified = await request.post(`${API_ORIGIN}/api/v1/auth/otp/verify`, {
+    headers,
+    data: { email: options.email, code, password: options.password },
+  });
+  expect(verified.status(), "verification accepted").toBe(200);
 }
 
 export const test = base;
