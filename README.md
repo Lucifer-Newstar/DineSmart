@@ -59,6 +59,10 @@ The API listens on `http://localhost:3001` by default. `GET /health` reports pro
 
 Setup, the required checks, the commit message rules and the pull request flow are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Accessibility
+
+The app targets WCAG 2.2 AA; how it is tested, what was fixed and the known gaps are in the [accessibility statement](Docs/Quality/Andhrimnir_Accessibility_Statement.md).
+
 ## Security
 
 Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Only `main` is supported.
