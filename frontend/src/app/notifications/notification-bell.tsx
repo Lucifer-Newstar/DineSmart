@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../_dashboard/ui";
 import { LiveAnnouncer, useArrivalAnnouncement } from "../_dashboard/widgets";
+import { useDialogFocus } from "../dialog-focus";
 import { relativeTime } from "./notification-data";
 import type { NotificationFeed } from "./use-notifications";
 
@@ -25,20 +26,19 @@ export function NotificationBell({ feed, onViewActivity }: NotificationBellProps
   );
   const announcement = useArrivalAnnouncement(arrivals, NOTIFICATION_NOUN, feed?.status === "live");
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  // Focus moves into the panel, Tab stays inside, Escape closes it and focus
+  // returns to the bell.
+  useDialogFocus(open, panelRef, close);
+
   useEffect(() => {
     if (!open) return;
     const onPointer = (event: PointerEvent) => {
       if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
     };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
     document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("pointerdown", onPointer);
   }, [open]);
 
   const label = !feed
@@ -66,7 +66,12 @@ export function NotificationBell({ feed, onViewActivity }: NotificationBellProps
         ) : null}
       </button>
       {open ? (
-        <div className="notification-popover" role="dialog" aria-label="Notifications">
+        <div
+          className="notification-popover"
+          role="dialog"
+          aria-label="Notifications"
+          ref={panelRef}
+        >
           <div className="popover-heading">
             <strong>Notifications</strong>
             <span>

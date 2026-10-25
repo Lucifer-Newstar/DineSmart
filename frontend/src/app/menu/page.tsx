@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { formatMinorCurrency } from "../currency";
+import { useDialogFocus } from "../dialog-focus";
 import {
   ALL_DISHES,
   type CartLine,
@@ -147,6 +148,10 @@ export default function MenuPage() {
   const [search, setSearch] = useState("");
   const [vegetarianOnly, setVegetarianOnly] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const cartRef = useRef<HTMLElement>(null);
+  const closeCart = useCallback(() => setCartOpen(false), []);
+  // Focus moves into the bag, stays there, and returns to the bag button on close.
+  useDialogFocus(cartOpen, cartRef, closeCart);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartRestored, setCartRestored] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -638,6 +643,7 @@ export default function MenuPage() {
             onClick={() => setCartOpen(false)}
           />
           <aside
+            ref={cartRef}
             className="cart-drawer"
             role="dialog"
             aria-modal="true"
