@@ -197,8 +197,11 @@ export default function MenuPage() {
           restaurantId: RESTAURANT_ID,
           refresh: String(reloadMenu),
         });
+        // The API lets shared caches keep the public menu for 30 s; the page
+        // itself always reads past the browser cache so 86s and archives show.
         const response = await fetchWithTimeout(`${API_BASE}/menu?${query.toString()}`, {
           signal: controller.signal,
+          cache: "no-store",
         });
         if (!response.ok) {
           throw new Error(
@@ -232,11 +235,10 @@ export default function MenuPage() {
   const resyncMenu = useCallback(async () => {
     if (!OBJECT_ID_PATTERN.test(RESTAURANT_ID)) return;
     try {
-      const query = new URLSearchParams({
-        restaurantId: RESTAURANT_ID,
-        resync: String(Date.now()),
+      const query = new URLSearchParams({ restaurantId: RESTAURANT_ID });
+      const response = await fetchWithTimeout(`${API_BASE}/menu?${query.toString()}`, {
+        cache: "no-store",
       });
-      const response = await fetchWithTimeout(`${API_BASE}/menu?${query.toString()}`);
       if (!response.ok) return;
       const parsed = parseMenu(await response.json());
       if (parsed && parsed.id.toLowerCase() === RESTAURANT_ID.toLowerCase()) setMenu(parsed);
