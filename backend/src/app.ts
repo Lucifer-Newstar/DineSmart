@@ -32,6 +32,11 @@ import {
   EmailConfigurationError,
   type EmailTransport,
 } from "./email/email-transport.js";
+import {
+  createMockOutboxRouter,
+  isMockOutboxEnabled,
+  MOCK_OUTBOX_PATH,
+} from "./email/mock-outbox.router.js";
 import { MongoHealthScoreRepository } from "./healthscore/health-score.repository.js";
 import { createHealthScoreRouter } from "./healthscore/health-score.router.js";
 import { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
@@ -500,6 +505,10 @@ export function createApp(options: AppOptions = {}) {
       },
     }),
   );
+
+  if (isMockOutboxEnabled(nodeEnvironment)) {
+    app.use(MOCK_OUTBOX_PATH, createMockOutboxRouter({ getTransport: getEmailTransport }));
+  }
 
   // Unknown versioned routes return the JSON error envelope instead of the
   // framework's HTML 404, so API clients never parse a page as data.

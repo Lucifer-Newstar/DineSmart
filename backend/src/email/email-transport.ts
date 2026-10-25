@@ -83,12 +83,36 @@ export function resolveEmailProvider(
   return provider as EmailProviderName;
 }
 
+/** How many messages the mock outbox keeps; older ones are dropped first. */
+export const MOCK_OUTBOX_LIMIT = 50;
+
+export interface OutboxMessage extends EmailMessage {
+  sentAt: Date;
+}
+
 export class MockEmailTransport implements EmailTransport {
   readonly provider = "mock" as const;
+  private readonly messages: OutboxMessage[] = [];
 
-  async send(_message: EmailMessage): Promise<void> {
-    // Development only. The code reaches the developer through the API's
-    // developmentCode field; it is never written to logs.
+  constructor(private readonly now: () => Date = () => new Date()) {}
+
+  async send(message: EmailMessage): Promise<void> {
+    // Development and tests only. Nothing leaves the process and the code is
+    // never written to logs; the outbox is held in memory so the end-to-end
+    // tests can read a message the way a person would read their inbox.
+    this.messages.push({ ...message, sentAt: this.now() });
+    if (this.messages.length > MOCK_OUTBOX_LIMIT) {
+      this.messages.splice(0, this.messages.length - MOCK_OUTBOX_LIMIT);
+    }
+  }
+
+  /** Messages sent to one address, newest first. Matching ignores case. */
+  outbox(to: string): OutboxMessage[] {
+    const recipient = to.trim().toLowerCase();
+    return this.messages
+      .filter((message) => message.to.trim().toLowerCase() === recipient)
+      .reverse()
+      .map((message) => ({ ...message }));
   }
 }
 
