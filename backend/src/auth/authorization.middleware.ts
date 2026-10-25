@@ -39,7 +39,8 @@ export type Permission =
   | "bills:write"
   | "notifications:own:read"
   | "notifications:own:update"
-  | "notifications:restaurant:read";
+  | "notifications:restaurant:read"
+  | "audit:read";
 
 const MANAGER_PERMISSIONS: readonly Permission[] = [
   "menu:read",
@@ -70,6 +71,7 @@ const MANAGER_PERMISSIONS: readonly Permission[] = [
   "bills:write",
   "notifications:restaurant:read",
   "notifications:own:update",
+  "audit:read",
 ];
 
 /**

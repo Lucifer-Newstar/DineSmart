@@ -15,6 +15,7 @@ import { MongoAnalyticsRepository } from "./analytics/analytics.repository.js";
 import { createAnalyticsRouter } from "./analytics/analytics.router.js";
 import { AnalyticsService } from "./analytics/analytics.service.js";
 import { MongoAuditRepository } from "./audit/audit.repository.js";
+import { createAuditRouter } from "./audit/audit.router.js";
 import { AuditService } from "./audit/audit.service.js";
 import { MongoAuthRepository } from "./auth/auth.repository.js";
 import { createAuthRouter } from "./auth/auth.router.js";
@@ -380,6 +381,19 @@ export function createApp(options: AppOptions = {}) {
         const { db, service: authService } = await createAuthRuntime();
         return {
           service: new BillService(new MongoBillRepository(db)),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/audit-logs",
+    createAuditRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new AuditService(new MongoAuditRepository(db)),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
