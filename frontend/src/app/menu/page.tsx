@@ -11,6 +11,7 @@ import { useDialogFocus } from "../dialog-focus";
 import { tabId, tabIndexForKey } from "../roving-tabs";
 import {
   ALL_DISHES,
+  applyAvailability,
   type CartLine,
   calculateCartTotalMinor,
   MAX_ITEM_QUANTITY,
@@ -21,7 +22,9 @@ import {
   parseMenu,
   parsePendingCart,
   type RestaurantMenu,
+  reconcileCart,
 } from "./menu-data";
+import { useLiveMenuAvailability } from "./use-live-menu";
 
 type MenuStatus = "loading" | "ready" | "error";
 
@@ -205,6 +208,46 @@ export default function MenuPage() {
     void loadMenu();
     return () => controller.abort();
   }, [reloadMenu]);
+
+  // Re-reads the menu in place (no loading state) so sold-out changes appear live.
+  const resyncMenu = useCallback(async () => {
+    if (!OBJECT_ID_PATTERN.test(RESTAURANT_ID)) return;
+    try {
+      const query = new URLSearchParams({
+        restaurantId: RESTAURANT_ID,
+        resync: String(Date.now()),
+      });
+      const response = await fetchWithTimeout(`${API_BASE}/menu?${query.toString()}`);
+      if (!response.ok) return;
+      const parsed = parseMenu(await response.json());
+      if (parsed && parsed.id.toLowerCase() === RESTAURANT_ID.toLowerCase()) setMenu(parsed);
+    } catch {
+      // A failed background check keeps the current menu; the next one retries.
+    }
+  }, []);
+
+  useLiveMenuAvailability({
+    accessToken,
+    enabled: menuStatus === "ready",
+    onAvailability: (menuItemId, isAvailable) =>
+      setMenu((current) =>
+        current ? applyAvailability(current, menuItemId, isAvailable) : current,
+      ),
+    onResync: () => void resyncMenu(),
+  });
+
+  // A dish that sells out while it sits in the bag is taken out, and the guest is told.
+  useEffect(() => {
+    if (!menu) return;
+    setCart((current) => {
+      const { lines, removed } = reconcileCart(current, menu);
+      if (removed.length === 0) return current;
+      setCartError(
+        `${removed.join(", ")} just sold out and ${removed.length === 1 ? "was" : "were"} removed from your bag.`,
+      );
+      return lines;
+    });
+  }, [menu]);
 
   useEffect(() => {
     if (menuStatus !== "ready" || !menu || cartRestored) return;
@@ -500,7 +543,9 @@ export default function MenuPage() {
                 <span>Vegetarian only</span>
                 <i />
               </button>
-              <span>{filteredItems.length} available dishes</span>
+              <span>
+                {filteredItems.filter((item) => item.isAvailable).length} available dishes
+              </span>
             </div>
             {filteredItems.length ? (
               <div
@@ -510,7 +555,10 @@ export default function MenuPage() {
                 aria-labelledby={tabId("menu-tab", category)}
               >
                 {filteredItems.map((item) => (
-                  <article className="menu-item-card" key={item.id}>
+                  <article
+                    className={`menu-item-card ${item.isAvailable ? "" : "menu-item-soldout"}`}
+                    key={item.id}
+                  >
                     <div className={`menu-item-art menu-art-${item.art}`} aria-hidden="true">
                       <div className="dish-plate">
                         <span className="dish-food" />
@@ -540,9 +588,14 @@ export default function MenuPage() {
                       ) : null}
                       <div className="menu-item-footer">
                         <span>
-                          <MenuIcon name="clock" size={13} /> Availability checked at order time
+                          <MenuIcon name="clock" size={13} />{" "}
+                          {item.isAvailable
+                            ? "Availability checked at order time"
+                            : "Sold out for now"}
                         </span>
-                        {quantityFor(item.id) ? (
+                        {!item.isAvailable ? (
+                          <span className="menu-soldout-badge">Sold out</span>
+                        ) : quantityFor(item.id) ? (
                           <div className="menu-quantity-control">
                             <button
                               type="button"

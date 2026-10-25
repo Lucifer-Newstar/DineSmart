@@ -1626,3 +1626,22 @@
   font-size: 12px;
   font-weight: 650;
 }
+
+/* S4-05: a dish the kitchen has 86'd stays visible but cannot be added. Text keeps full contrast. */
+.menu-item-soldout .menu-item-art {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.menu-soldout-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #e3c2b2;
+  border-radius: 999px;
+  color: #8a3f22;
+  background: #fbefe8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}

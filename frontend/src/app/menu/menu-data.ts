@@ -8,6 +8,8 @@ export interface MenuItem {
   category: Category;
   vegetarian: boolean;
   allergenLabels: string[];
+  /** False while the restaurant has 86'd the dish: shown greyed out, cannot be added. */
+  isAvailable: boolean;
   art: string;
 }
 
@@ -77,7 +79,8 @@ export function parseMenu(value: unknown): RestaurantMenu | null {
       !Array.isArray(entry.dietaryLabels) ||
       !entry.dietaryLabels.every((label) => typeof label === "string") ||
       !Array.isArray(entry.allergenLabels) ||
-      !entry.allergenLabels.every((label) => typeof label === "string")
+      !entry.allergenLabels.every((label) => typeof label === "string") ||
+      (entry.isAvailable !== undefined && typeof entry.isAvailable !== "boolean")
     ) {
       return null;
     }
@@ -92,6 +95,8 @@ export function parseMenu(value: unknown): RestaurantMenu | null {
       category: entry.category,
       vegetarian: entry.dietaryLabels.some((label) => label.toLowerCase() === "vegetarian"),
       allergenLabels: entry.allergenLabels,
+      // Older API builds only sent available items, so a missing flag means available.
+      isAvailable: entry.isAvailable !== false,
       art: artForItem(entry.name),
     });
   }
@@ -127,7 +132,7 @@ export function parsePendingCart(value: unknown, menu: RestaurantMenu): CartLine
       return [];
     }
     const item = menu.items.find((candidate) => candidate.id === entry.menuItemId);
-    if (!item || lines.some((line) => line.item.id === item.id)) return [];
+    if (!item?.isAvailable || lines.some((line) => line.item.id === item.id)) return [];
     totalUnits += entry.quantity as number;
     if (totalUnits > MAX_ORDER_UNITS) return [];
     lines.push({ item, quantity: entry.quantity as number });
@@ -151,4 +156,50 @@ export function calculateCartTotalMinor(lines: CartLine[]): number | null {
     total += lineTotal;
   }
   return total;
+}
+
+/** A `menu.availability` realtime payload, or null when it is malformed. */
+export function parseAvailabilityEvent(
+  data: unknown,
+): { menuItemId: string; isAvailable: boolean } | null {
+  if (
+    !isRecord(data) ||
+    typeof data.menuItemId !== "string" ||
+    !OBJECT_ID_PATTERN.test(data.menuItemId) ||
+    typeof data.isAvailable !== "boolean"
+  ) {
+    return null;
+  }
+  return { menuItemId: data.menuItemId, isAvailable: data.isAvailable };
+}
+
+/** The menu with one item's availability changed; the same object when nothing changes. */
+export function applyAvailability(
+  menu: RestaurantMenu,
+  menuItemId: string,
+  isAvailable: boolean,
+): RestaurantMenu {
+  const item = menu.items.find((candidate) => candidate.id === menuItemId);
+  if (!item || item.isAvailable === isAvailable) return menu;
+  return {
+    ...menu,
+    items: menu.items.map((candidate) =>
+      candidate.id === menuItemId ? { ...candidate, isAvailable } : candidate,
+    ),
+  };
+}
+
+/** Cart lines whose dish is still on the menu and available; the rest are named so the bag can say so. */
+export function reconcileCart(
+  lines: CartLine[],
+  menu: RestaurantMenu,
+): { lines: CartLine[]; removed: string[] } {
+  const kept: CartLine[] = [];
+  const removed: string[] = [];
+  for (const line of lines) {
+    const current = menu.items.find((item) => item.id === line.item.id);
+    if (current?.isAvailable) kept.push({ ...line, item: current });
+    else removed.push(line.item.name);
+  }
+  return { lines: kept, removed };
 }
