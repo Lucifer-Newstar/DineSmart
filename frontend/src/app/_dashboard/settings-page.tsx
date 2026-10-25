@@ -1,7 +1,99 @@
 "use client";
 import { useState } from "react";
 import { fetchWithTimeout } from "../api-client";
+import { relativeTime } from "../notifications/notification-data";
+import { parseSessions, type SignedInDevice } from "./session-data";
 import { Icon } from "./ui";
+import { apiSend, useApiResource } from "./use-api";
+
+/** S4-04: the signed-in user sees where they are signed in and can end other sessions. */
+export function DevicesPanel({
+  accessToken,
+  onToast,
+}: {
+  accessToken: string | null;
+  onToast: (message: string) => void;
+}) {
+  const sessions = useApiResource("/auth/sessions", accessToken, parseSessions);
+  const [busy, setBusy] = useState<string | null>(null);
+  const devices = sessions.data ?? [];
+  const others = devices.filter((device) => !device.current);
+
+  const signOut = async (device: SignedInDevice) => {
+    if (!accessToken) return;
+    setBusy(device.id);
+    const result = await apiSend(`/auth/sessions/${device.id}`, accessToken, "DELETE");
+    setBusy(null);
+    onToast(result.ok ? `Signed out of ${device.deviceLabel}.` : result.message);
+    sessions.reload();
+  };
+
+  const signOutOthers = async () => {
+    if (!accessToken) return;
+    setBusy("others");
+    const result = await apiSend<{ revoked: number }>("/auth/sessions", accessToken, "DELETE");
+    setBusy(null);
+    const revoked = result.data?.revoked ?? 0;
+    onToast(
+      result.ok
+        ? `Signed out of ${revoked} other ${revoked === 1 ? "device" : "devices"}.`
+        : result.message,
+    );
+    sessions.reload();
+  };
+
+  return (
+    <article className="card devices-card" aria-labelledby="devices-title">
+      <div className="orders-toolbar">
+        <div>
+          <div className="card-overline">SECURITY</div>
+          <h2 id="devices-title">Signed-in devices</h2>
+        </div>
+        <button
+          className="select-button"
+          type="button"
+          onClick={signOutOthers}
+          disabled={!accessToken || others.length === 0 || busy !== null}
+        >
+          <Icon name="logout" size={15} />
+          <span>Sign out of all other devices</span>
+        </button>
+      </div>
+      {!accessToken ? (
+        <p className="panel-state">Sign in to see where your account is signed in.</p>
+      ) : sessions.status === "loading" && !sessions.data ? (
+        <p className="panel-state">Loading your devices…</p>
+      ) : sessions.status === "unavailable" || sessions.status === "restricted" ? (
+        <p className="panel-state panel-state-error">Your devices could not be loaded.</p>
+      ) : (
+        <ul className="devices-list">
+          {devices.map((device) => (
+            <li key={device.id}>
+              <span>
+                <strong>{device.deviceLabel}</strong>
+                <small>
+                  {device.current ? "This device · " : ""}Last active{" "}
+                  {relativeTime(device.lastUsedAt)}
+                </small>
+              </span>
+              {device.current ? null : (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => signOut(device)}
+                  disabled={busy !== null}
+                  aria-label={`Sign out of ${device.deviceLabel}, last active ${relativeTime(device.lastUsedAt)}`}
+                >
+                  Sign out
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
+}
 
 export function SettingsPage({
   userName,

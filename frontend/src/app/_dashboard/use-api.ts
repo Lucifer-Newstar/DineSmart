@@ -78,15 +78,18 @@ export interface ApiSendResult<T> {
 export async function apiSend<T>(
   path: string,
   accessToken: string,
-  method: "POST" | "PUT" | "PATCH",
-  body: unknown,
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  body?: unknown,
 ): Promise<ApiSendResult<T>> {
   try {
     const response = await fetchWithTimeout(`${API_BASE}${path}`, {
       method,
       credentials: "include",
-      headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        ...(body === undefined ? {} : { "content-type": "application/json" }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     let payload: unknown = null;
     try {

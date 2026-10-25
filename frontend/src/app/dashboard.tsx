@@ -35,7 +35,7 @@ import {
 import { ReservationsPage } from "./_dashboard/reservations-page";
 import { useServiceClock } from "./_dashboard/service-clock";
 import { KitchenPage, OrdersPage } from "./_dashboard/service-pages";
-import { SettingsPage } from "./_dashboard/settings-page";
+import { DevicesPanel, SettingsPage } from "./_dashboard/settings-page";
 import { StaffPanel } from "./_dashboard/staff-panel";
 import type {
   HealthScoreData,
@@ -1314,6 +1314,7 @@ export function Dashboard() {
                 role={user?.role ?? "Manager preview"}
                 onToast={notify}
               />
+              {user ? <DevicesPanel accessToken={accessToken} onToast={notify} /> : null}
               {!user || user.role === "Manager" || user.role === "Administrator" ? (
                 <StaffPanel
                   accessToken={accessToken}
