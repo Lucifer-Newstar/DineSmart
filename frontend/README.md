@@ -89,6 +89,21 @@ npm run lint       # Biome check (lint, format, import organization)
 npm run format     # Format supported files with Biome
 npm run typecheck  # TypeScript check
 npm run build      # Production build
+npm run e2e        # Playwright end-to-end suite (needs MongoDB and a build)
 ```
+
+### End-to-end tests
+
+The Playwright suite in `e2e/` boots the API from `../backend` and this app's production build, seeds the Saffron & Co. demo data into `andhrimnir_e2e`, and drives the main journeys in Chromium.
+
+```bash
+npx playwright install --only-shell chromium   # once per machine
+npm run build
+npm run e2e                                    # all specs
+npm run e2e -- rbac --headed                   # one spec, with a visible browser
+npx playwright show-trace test-results/<test>/trace.zip   # inspect a failure
+```
+
+Set `E2E_MONGODB_URI` for a MongoDB other than `mongodb://127.0.0.1:27017`. The full guide is section 40 of the [test plan](../Docs/Quality/Andhrimnir_Test_Plan_and_Acceptance_Criteria.md).
 
 The package uses Next.js `16.4.2`, React `19.3.0`, Tailwind CSS `4.3.3`, and Biome `2.5.15`. `package-lock.json` is authoritative for resolved dependency versions.

@@ -449,3 +449,41 @@ A review of the published repository found these problems, now fixed on `main`:
 **Local verification on Node `24.21.0` (final `main`):** backend Biome checked 170 files, typecheck and build pass, **328** tests pass; frontend Biome checked 66 files, typecheck and Next.js production build pass, **50** tests pass; `tools/*.test.mjs` 17 pass; `node tools/demo-readiness.mjs --strict` 14/14; `node tools/api-contract-check.mjs --strict` finds 41 frontend calls and no call without a route; `actionlint` reports nothing; `npm audit --audit-level=high` finds no high or critical advisory in either package.
 
 **Not verified live:** every test above uses fakes or in-memory doubles. MongoDB Atlas persistence and indexes, SMTP/Resend delivery, Google sign-in, Gemini responses, WebSocket delivery across processes, rate limiting behind Vercel → Render, and browser end-to-end flows still need a live check after deployment; the list is in the [deployment checklist](../Developers%20Guide/Deployment.md#7-after-deploying-what-to-check-live). The first GitHub Actions run of the fixed workflow happens on the next push.
+
+## 40. S4-02 End-to-End Tests (Playwright)
+
+The browser suite lives in `frontend/e2e/` and runs the real API against a real MongoDB with the production frontend build. It is the first check in this plan that exercises MongoDB persistence and indexes, the HttpOnly refresh cookie and the WebSocket in a browser.
+
+| Spec | Journey | Acceptance |
+| --- | --- | --- |
+| `smoke.spec.ts` | Both servers answer; every seeded demo account signs in | API `/health` 200; five tokens |
+| `auth-register.spec.ts` | Sign-up → emailed code → verify | Lands on the customer home; a wrong code keeps the account pending |
+| `auth-session.spec.ts` | Login, reload, logout; forced token expiry | Reload restores the session from the cookie; a 401 triggers one renewal; sign-out revokes the cookie |
+| `auth-reset.spec.ts` | Forgot password | New password signs in, old one fails; unknown emails get the same answer |
+| `customer-order.spec.ts` | Menu → bag → order → history | Bag total ₹475; the order shows as "Sent to restaurant" |
+| `customer-booking.spec.ts` | Book a table; reception confirms | The customer home shows "Confirmed" |
+| `kitchen-queue.spec.ts` | Kitchen board | A ticket moves Accepted → Preparing → Ready |
+| `inventory.spec.ts` | Manager stock count | A depleted count opens a critical inventory incident |
+| `rbac.spec.ts` | Each role's sections; API denials | Reception and Kitchen Staff see five sections, Manager and Administrator nine; customers get the guest portal |
+| `realtime.spec.ts` | Notification bell | An incident alert arrives over the WebSocket and the unread count rises without a reload |
+
+### Running the suite
+
+```bash
+docker compose up -d mongodb          # or any local MongoDB
+cd backend && npm ci && cd ../frontend && npm ci
+npx playwright install --only-shell chromium   # once per machine (about 100 MB)
+npm run build                          # the suite serves the production build
+npm run e2e                            # boots the API and the frontend, seeds, runs every spec
+```
+
+- The database defaults to `mongodb://127.0.0.1:27017/andhrimnir_e2e`; set `E2E_MONGODB_URI` to use another local database. The seed CLI refuses remote hosts, so the suite cannot reach Atlas by accident.
+- The API runs with `NODE_ENV=test`, `EMAIL_PROVIDER=mock` and `E2E_DISABLE_RATE_LIMITS=1`. Codes are read from `GET /api/v1/testing/outbox`, which is not mounted when `NODE_ENV=production` and answers 404 when a real email provider is configured.
+- Outside CI, Playwright reuses servers that already listen on ports 3000 and 3001; stop your development servers first, or they must point at the e2e database.
+
+### Debugging
+
+- `npm run e2e -- --list` lists the specs; `npm run e2e -- auth-session` runs one file; `npm run e2e -- --headed --workers=1` shows the browser.
+- A failing test keeps its trace: `npx playwright show-trace test-results/<test>/trace.zip` opens the timeline with every request, DOM snapshot and console message.
+- In CI the `End-to-end` workflow uploads `playwright-report/` and `test-results/` as an artifact when a run fails.
+
