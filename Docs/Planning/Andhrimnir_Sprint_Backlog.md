@@ -11,6 +11,8 @@ Project: Andhrímnir – AI Incident Intelligence Platform for Restaurants
 | Sprint 1 | Day 1 | Foundation, Authentication & Core Backend |
 | Sprint 2 | Day 2 | Customer Portal, Dashboard & Incident Detection |
 | Sprint 3 | Day 3 | AI Integration, Testing, Deployment & Presentation |
+| Sprint 4 | Day 4 | Guard Rails, End-to-End Tests, Accessibility, Security & Menu Management |
+| Sprints 5–7 | Days 5–7 | Planned (see below) |
 
 ## Sprint Goal
 
@@ -97,6 +99,30 @@ Goal: Complete AI features, testing, deployment and presentation.
 | S3-11 | README | Navin | Medium | 2 | Ready to Push |
 | S3-12 | Presentation & Demo | Entire Team | High | 3 | In Progress |
 | S3-13 | AI Fallback Implementation | Navin | Medium | 2 | Ready to Push |
+
+## Sprint 4 – Guard Rails, Quality & Menu Management
+
+Goal: Protect the repository with automated checks, prove the main journeys in a real browser, meet WCAG 2.2 AA on the core pages, harden authentication, and let managers run the menu.
+
+| Task ID | Task | Owner | Priority | Story Points | Status | Acceptance criteria |
+| --- | --- | --- | --- | --- | --- | --- |
+| S4-00 | Sprint 4–7 planning and release notes | Navin | Medium | 1 | Ready to Push | New task IDs match the commit scopes; the changelog lists the sprint |
+| S4-01 | Repository guard rails | Gokul & Navin | High | 5 | Ready to Push | commitlint, actionlint, Dependabot and CodeQL run in CI; PR template, issue forms, CODEOWNERS, SECURITY.md and CONTRIBUTING.md exist |
+| S4-02 | Playwright end-to-end tests | Gokul | High | 8 | Ready to Push | Auth, ordering, booking, kitchen, inventory, RBAC and realtime journeys pass against a real MongoDB in CI |
+| S4-03 | Accessibility (WCAG 2.2 AA) | Dhanush | High | 8 | Ready to Push | axe reports 0 serious or critical violations on every public and dashboard page; keyboard-only paths exist for drag actions |
+| S4-04 | Security hardening | Navin & Dhanush & Jegatheesan | High | 8 | Ready to Push | Security headers and CSP, audit log, login lockout, session list/revoke, ObjectId validation, origin checks and a secret scan |
+| S4-05 | Menu management and 86-ing | Jegatheesan & Dhanush | High | 8 | Ready to Push | Managers add, edit, archive, reorder and 86 items; customers see sold-out items live and can filter and pick options |
+| S4-90 | Sprint 4 documentation and work logs | Entire Team | Low | 2 | Ready to Push | API, design and test docs describe the new routes; work logs match the commits |
+
+## Sprints 5–7 – Planned
+
+These epics are planned and not started. Each becomes a task table when its sprint begins.
+
+| Sprint | Epic | Owner | Status |
+| --- | --- | --- | --- |
+| Sprint 5 | Reservations 2.0, guest profiles, QR ordering and live tracking, customer notifications, installable app | Jegatheesan & Dhanush & Gokul | To Do |
+| Sprint 6 | Kitchen display, inventory with recipes and food cost, GST billing, feedback, observability | Jegatheesan & Dhanush & Gokul | To Do |
+| Sprint 7 | Incident lifecycle, AI resilience and daily summary, analytics, performance, API contract, Tamil, release 1.0.0 | Navin & Dhanush | To Do |
 
 ## Status Meanings
 
