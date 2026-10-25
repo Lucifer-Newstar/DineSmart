@@ -68,7 +68,7 @@ class CustomerWorkflowRepository implements MenuReader, OrderRepository {
     return {
       restaurant: { id: RESTAURANT_ID, name: "Saffron & Co.", currency: "INR" },
       categories: ["Tiffin", "Beverages"],
-      items: this.menuItems.filter((item) => item.isAvailable).map(publicMenuItem),
+      items: this.menuItems.map(publicMenuItem),
       truncated: false,
     };
   }
@@ -137,8 +137,8 @@ class CustomerWorkflowRepository implements MenuReader, OrderRepository {
   }
 }
 
-function publicMenuItem({ isAvailable: _isAvailable, ...item }: StoredMenuItem): PublicMenuItem {
-  return item;
+function publicMenuItem(item: StoredMenuItem): PublicMenuItem {
+  return { ...item };
 }
 
 function principalForToken(token: string): AuthPrincipal {
@@ -302,10 +302,16 @@ test("menu availability is rechecked at order time and order history stays custo
       `${baseUrl}/api/v1/menu?restaurantId=${RESTAURANT_ID.toHexString()}`,
     );
     assert.equal(refreshedMenu.status, 200);
-    const currentMenu = (await refreshedMenu.json()) as { items: Array<{ id: string }> };
+    const currentMenu = (await refreshedMenu.json()) as {
+      items: Array<{ id: string; isAvailable: boolean }>;
+    };
+    // A sold-out item stays on the menu, flagged, so customers see it greyed out.
     assert.deepEqual(
-      currentMenu.items.map((item) => item.id),
-      [COFFEE_ID.toHexString()],
+      currentMenu.items.map((item) => [item.id, item.isAvailable]),
+      [
+        [DOSA_ID.toHexString(), false],
+        [COFFEE_ID.toHexString(), true],
+      ],
     );
 
     const staleCartOrder = await fetch(`${baseUrl}/api/v1/orders`, {

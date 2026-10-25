@@ -51,7 +51,7 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
     if (!restaurant) return null;
 
     const documents = await this.menuItems
-      .find({ restaurantId, isAvailable: true, ...NOT_ARCHIVED })
+      .find({ restaurantId, ...NOT_ARCHIVED })
       .sort(MENU_SORT)
       .limit(PUBLIC_MENU_LIMIT + 1)
       .toArray();
@@ -62,6 +62,7 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       ...(item.description === undefined ? {} : { description: item.description }),
       category: item.category,
       priceMinor: item.priceMinor,
+      isAvailable: item.isAvailable,
       dietaryLabels: item.dietaryLabels ?? [],
       allergenLabels: item.allergenLabels ?? [],
     }));

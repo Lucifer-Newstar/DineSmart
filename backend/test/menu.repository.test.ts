@@ -77,6 +77,7 @@ test("public menu repository returns active available items with restaurant curr
       description: "Crisp dosa and house podi.",
       category: "Tiffin",
       priceMinor: 28_500,
+      isAvailable: true,
       dietaryLabels: ["vegetarian"],
       allergenLabels: ["dairy"],
     },
@@ -87,7 +88,7 @@ test("public menu repository returns active available items with restaurant curr
     { collection: COLLECTIONS.restaurants, filter: { _id: restaurantId, status: "active" } },
     {
       collection: COLLECTIONS.menuItems,
-      filter: { restaurantId, isAvailable: true, archivedAt: null },
+      filter: { restaurantId, archivedAt: null },
     },
   ]);
 });

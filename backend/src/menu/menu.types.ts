@@ -12,6 +12,8 @@ export interface PublicMenuItem {
   description?: string;
   category: string;
   priceMinor: number;
+  /** False while the item is 86'd: shown greyed out, never orderable. */
+  isAvailable: boolean;
   dietaryLabels: string[];
   allergenLabels: string[];
 }
@@ -25,6 +27,7 @@ export interface PublicMenu {
 }
 
 export interface MenuReader {
+  /** The live (not archived) menu of an active restaurant, sold-out items included and flagged. */
   getAvailableMenu(restaurantId: ObjectId): Promise<PublicMenu | null>;
 }
 

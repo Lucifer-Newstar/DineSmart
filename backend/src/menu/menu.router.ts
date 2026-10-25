@@ -60,6 +60,7 @@ export function createMenuRouter(options: MenuRouterOptions) {
           ...(item.description === undefined ? {} : { description: item.description }),
           category: item.category,
           priceMinor: item.priceMinor,
+          isAvailable: item.isAvailable,
           dietaryLabels: item.dietaryLabels,
           allergenLabels: item.allergenLabels,
         })),
