@@ -206,3 +206,28 @@ Review follow-up after the repository was published (backend setup, seed data an
 - `fce0944` feat(S2-18): add a read-only table list for the floor view
 - **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
 - **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
+
+## 2026-10-25
+
+### Sprint 4 Day 1: guard rails, end-to-end tests, accessibility, security and menu management
+
+My part:
+
+- `add863a` feat(S4-02): expose the mock email outbox to tests in non-production only
+- `9b305fb` feat(S4-04): validate ObjectId route parameters in one middleware
+- `4a0c619` test(S4-04): cover malformed ids across every router
+- `cbe65b3` feat(S4-05): add menu item create, update and archive to the repository
+- `80e0d60` feat(S4-05): add manager menu routes behind menu:write
+- `1b37103` test(S4-05): cover menu writes, validation and permissions
+- `074d277` feat(S4-05): mark items out of stock (86) and back with a live event
+- `a78f1d7` test(S4-05): cover the 86 toggle and its realtime event
+- `b6b7069` feat(S4-05): order categories and items with a sort position
+- `752010c` feat(S4-05): keep sold-out items on the public menu, flagged unavailable
+- `06dc729` feat(S4-05): add prep station and prep minutes to menu items
+- `1e324ce` feat(S4-05): add item options such as size and spice level
+- `49a72c8` test(S4-05): cover option validation and price deltas on orders
+- `7a2082c` docs(S4-05): document the menu admin and availability API
+- Manager menu routes use a dedicated `menu:write` permission (Manager and Administrator) instead of the backlog's `restaurant:write`, so menu editing can be granted on its own.
+- Option groups can be set through the API only; the manager page does not edit them yet.
+- **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
+- **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
