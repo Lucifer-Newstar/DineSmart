@@ -17,6 +17,7 @@ export const COLLECTIONS = {
   recommendations: "recommendations",
   notifications: "notifications",
   bills: "bills",
+  auditLogs: "audit_logs",
 } as const;
 
 export type CollectionName = keyof typeof COLLECTIONS;
@@ -245,6 +246,22 @@ export interface BillDocument extends TimestampedDocument {
   status: string;
 }
 
+/**
+ * One sensitive change (S4-04): who did what to which record, with the fields
+ * that changed. Entries are append-only and always belong to one restaurant.
+ */
+export interface AuditLogDocument extends Document {
+  _id?: ObjectId;
+  restaurantId: ObjectId;
+  actorUserId: ObjectId;
+  actorRole: UserRole;
+  action: string;
+  target: { type: string; id: ObjectId; label?: string };
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  createdAt: Date;
+}
+
 export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
   users: [
     { key: { normalizedEmail: 1 }, name: "users_normalized_email_unique", unique: true },
@@ -364,6 +381,13 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
   ],
   bills: [
     { key: { restaurantId: 1, orderId: 1 }, name: "bills_restaurant_order_unique", unique: true },
+  ],
+  auditLogs: [
+    { key: { restaurantId: 1, createdAt: -1, _id: -1 }, name: "audit_logs_restaurant_created" },
+    {
+      key: { restaurantId: 1, action: 1, createdAt: -1 },
+      name: "audit_logs_restaurant_action_created",
+    },
   ],
 };
 
