@@ -128,6 +128,14 @@ class FakeAuthRepository implements AuthRepository {
   async revokeRefreshToken(): Promise<void> {}
 
   async revokeRefreshSession(): Promise<void> {}
+
+  async recordFailedLogin(): Promise<number> {
+    return 0;
+  }
+
+  async lockLogin(): Promise<void> {}
+
+  async clearFailedLogins(): Promise<void> {}
 }
 
 class CapturingEmailSender implements EmailOtpSender {

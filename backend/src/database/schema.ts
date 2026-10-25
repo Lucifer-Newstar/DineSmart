@@ -65,6 +65,10 @@ interface UserBaseDocument extends TimestampedDocument {
   passwordResetAttempts?: number;
   passwordChangedAt?: Date;
   refreshSessionsInvalidBefore?: Date;
+  /** Consecutive wrong passwords since the last success or lock (S4-04). */
+  failedLoginAttempts?: number;
+  /** Password sign-in is refused until this moment. */
+  loginLockedUntil?: Date;
 }
 
 export interface CustomerUserDocument extends UserBaseDocument {

@@ -28,6 +28,11 @@ export interface AuthRepository {
   ): Promise<WithId<RefreshSessionDocument> | null>;
   revokeRefreshToken(tokenHash: string, now: Date): Promise<void>;
   revokeRefreshSession(sessionId: ObjectId, now: Date): Promise<void>;
+  /** Atomically counts one wrong password and returns the new total. */
+  recordFailedLogin(userId: ObjectId, now: Date): Promise<number>;
+  /** Locks password sign-in until the given time and restarts the count. */
+  lockLogin(userId: ObjectId, until: Date, now: Date): Promise<void>;
+  clearFailedLogins(userId: ObjectId, now: Date): Promise<void>;
 }
 
 export class MongoAuthRepository implements AuthRepository {
@@ -116,6 +121,29 @@ export class MongoAuthRepository implements AuthRepository {
     await this.sessions.updateOne(
       { _id: sessionId, revokedAt: null },
       { $set: { revokedAt: now, updatedAt: now } },
+    );
+  }
+
+  async recordFailedLogin(userId: ObjectId, now: Date): Promise<number> {
+    const user = await this.users.findOneAndUpdate(
+      { _id: userId },
+      { $inc: { failedLoginAttempts: 1 }, $set: { updatedAt: now } },
+      { returnDocument: "after", projection: { failedLoginAttempts: 1 } },
+    );
+    return user?.failedLoginAttempts ?? 0;
+  }
+
+  async lockLogin(userId: ObjectId, until: Date, now: Date): Promise<void> {
+    await this.users.updateOne(
+      { _id: userId },
+      { $set: { loginLockedUntil: until, failedLoginAttempts: 0, updatedAt: now } },
+    );
+  }
+
+  async clearFailedLogins(userId: ObjectId, now: Date): Promise<void> {
+    await this.users.updateOne(
+      { _id: userId },
+      { $set: { failedLoginAttempts: 0, updatedAt: now }, $unset: { loginLockedUntil: "" } },
     );
   }
 }

@@ -105,6 +105,24 @@ class FakeAuthRepository implements AuthRepository {
       session.updatedAt = now;
     }
   }
+
+  async recordFailedLogin(userId: ObjectId): Promise<number> {
+    if (!this.user?._id.equals(userId)) return 0;
+    this.user.failedLoginAttempts = (this.user.failedLoginAttempts ?? 0) + 1;
+    return this.user.failedLoginAttempts;
+  }
+
+  async lockLogin(userId: ObjectId, until: Date): Promise<void> {
+    if (!this.user?._id.equals(userId)) return;
+    this.user.loginLockedUntil = until;
+    this.user.failedLoginAttempts = 0;
+  }
+
+  async clearFailedLogins(userId: ObjectId): Promise<void> {
+    if (!this.user?._id.equals(userId)) return;
+    this.user.failedLoginAttempts = 0;
+    delete this.user.loginLockedUntil;
+  }
 }
 
 async function createTestService(repository: FakeAuthRepository) {

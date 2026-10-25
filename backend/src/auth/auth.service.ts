@@ -49,11 +49,17 @@ export interface AuthSession {
   user: SafeAuthUser;
 }
 
+/** Wrong passwords allowed before password sign-in is locked (S4-04). */
+export const LOGIN_LOCKOUT_THRESHOLD = 5;
+export const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+
 export class AuthError extends Error {
   constructor(
-    readonly statusCode: 400 | 401 | 403 | 503,
+    readonly statusCode: 400 | 401 | 403 | 423 | 503,
     readonly code: string,
     message: string,
+    /** Sent as Retry-After when the client must wait (423). */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "AuthError";
@@ -124,6 +130,17 @@ function safeUser(user: UserDocument & { _id: ObjectId }): SafeAuthUser {
   };
 }
 
+function lockedError(until: Date, now: Date): AuthError {
+  const seconds = Math.max(1, Math.ceil((until.getTime() - now.getTime()) / 1000));
+  const minutes = Math.ceil(seconds / 60);
+  return new AuthError(
+    423,
+    "account_locked",
+    `Too many incorrect passwords. Try again in ${minutes} minute${minutes === 1 ? "" : "s"} or reset your password.`,
+    seconds,
+  );
+}
+
 export class AuthService {
   private readonly jwtKey: Uint8Array;
 
@@ -160,10 +177,28 @@ export class AuthService {
       throw new AuthError(401, "invalid_credentials", "Email or password is incorrect.");
     }
 
+    const now = this.clock();
+    if (user.loginLockedUntil && user.loginLockedUntil > now) {
+      throw lockedError(user.loginLockedUntil, now);
+    }
+
     if (!(await verifyPassword(password, user.passwordHash)) || !user._id) {
+      if (user._id) {
+        const attempts = await this.repository.recordFailedLogin(user._id, now);
+        if (attempts >= LOGIN_LOCKOUT_THRESHOLD) {
+          await this.repository.lockLogin(
+            user._id,
+            new Date(now.getTime() + LOGIN_LOCKOUT_MS),
+            now,
+          );
+        }
+      }
       throw new AuthError(401, "invalid_credentials", "Email or password is incorrect.");
     }
 
+    if (user.failedLoginAttempts || user.loginLockedUntil) {
+      await this.repository.clearFailedLogins(user._id, now);
+    }
     return this.createSession(user);
   }
 

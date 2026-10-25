@@ -40,7 +40,18 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 
 function handleAuthError(error: unknown, response: Response): void {
   if (error instanceof AuthError) {
-    response.status(error.statusCode).json({ error: { code: error.code, message: error.message } });
+    if (error.retryAfterSeconds !== undefined) {
+      response.setHeader("Retry-After", String(error.retryAfterSeconds));
+    }
+    response.status(error.statusCode).json({
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(error.retryAfterSeconds === undefined
+          ? {}
+          : { retryAfterSeconds: error.retryAfterSeconds }),
+      },
+    });
     return;
   }
 
