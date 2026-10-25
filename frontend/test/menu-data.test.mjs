@@ -5,15 +5,20 @@ import {
   applyAvailability,
   availableDietaryFilters,
   calculateCartTotalMinor,
+  cartLineKey,
+  defaultSelection,
   filterMenuItems,
+  isCompleteSelection,
   MAX_ITEM_QUANTITY,
   MAX_ORDER_LINES,
   MAX_ORDER_UNITS,
   menuAllergens,
+  optionSummary,
   parseAvailabilityEvent,
   parseMenu,
   parsePendingCart,
   reconcileCart,
+  unitPriceMinor,
 } from "../src/app/menu/menu-data.ts";
 
 const id = (value) => value.toString(16).padStart(24, "0");
@@ -362,4 +367,108 @@ test("a saved bag never restores a sold-out dish", () => {
   const menu = sampleMenu();
   const stored = { restaurantId: id(1), items: [{ menuItemId: id(102), quantity: 1 }] };
   assert.deepEqual(parsePendingCart(stored, menu), []);
+});
+
+const PORTION = {
+  id: "portion",
+  name: "Portion",
+  required: true,
+  choices: [
+    { id: "regular", label: "Regular", priceDeltaMinor: 0 },
+    { id: "large", label: "Large", priceDeltaMinor: 6_000 },
+  ],
+};
+const EXTRAS = {
+  id: "extras",
+  name: "Extras",
+  required: false,
+  choices: [{ id: "papad", label: "Roasted papad", priceDeltaMinor: 2_000 }],
+};
+
+function riceMenu() {
+  const menu = parseMenu(
+    menuResponse([
+      menuItem(110, "Curry leaf lemon rice", {
+        priceMinor: 26_500,
+        optionGroups: [PORTION, EXTRAS],
+      }),
+    ]),
+  );
+  assert.ok(menu);
+  return menu;
+}
+
+test("dishes with options parse their groups, and malformed groups fail the menu closed", () => {
+  assert.deepEqual(riceMenu().items[0].optionGroups, [PORTION, EXTRAS]);
+  for (const optionGroups of [
+    "size",
+    [{ ...PORTION, choices: [] }],
+    [{ ...PORTION, choices: [{ id: "big", label: "Big", priceDeltaMinor: -1 }] }],
+    [{ ...PORTION, id: "Has Spaces" }],
+  ]) {
+    assert.equal(parseMenu(menuResponse([menuItem(110, "Rice", { optionGroups })])), null);
+  }
+});
+
+test("required groups start on their first choice and the price follows the choices", () => {
+  const [rice] = riceMenu().items;
+  assert.deepEqual(defaultSelection(rice), { portion: "regular" });
+  assert.equal(isCompleteSelection(rice, {}), false, "a required group must be answered");
+  assert.equal(isCompleteSelection(rice, { portion: "large" }), true);
+  assert.equal(isCompleteSelection(rice, { portion: "jumbo" }), false);
+  assert.equal(isCompleteSelection(rice, { portion: "large", sauce: "mint" }), false);
+  assert.equal(unitPriceMinor(rice, { portion: "large", extras: "papad" }), 34_500);
+  assert.equal(unitPriceMinor(rice, { portion: "jumbo" }), null);
+  assert.equal(optionSummary(rice, { extras: "papad", portion: "large" }), "Large · Roasted papad");
+});
+
+test("the same dish with different options is a separate bag line with its own total", () => {
+  const [rice] = riceMenu().items;
+  assert.equal(
+    cartLineKey(rice.id, { portion: "large", extras: "papad" }),
+    cartLineKey(rice.id, { extras: "papad", portion: "large" }),
+  );
+  assert.notEqual(
+    cartLineKey(rice.id, { portion: "large" }),
+    cartLineKey(rice.id, { portion: "regular" }),
+  );
+  assert.equal(cartLineKey(rice.id), rice.id);
+  assert.equal(
+    calculateCartTotalMinor([
+      { item: rice, quantity: 2, options: { portion: "large" } },
+      { item: rice, quantity: 1, options: { portion: "regular", extras: "papad" } },
+    ]),
+    2 * 32_500 + 28_500,
+  );
+});
+
+test("a saved bag keeps chosen options and drops an entry whose options no longer fit", () => {
+  const menu = riceMenu();
+  const restored = parsePendingCart(
+    {
+      restaurantId: id(1),
+      items: [
+        { menuItemId: id(110), quantity: 1, options: { portion: "large" } },
+        { menuItemId: id(110), quantity: 2, options: { portion: "regular" } },
+      ],
+    },
+    menu,
+  );
+  assert.deepEqual(
+    restored.map((line) => [line.quantity, line.options]),
+    [
+      [1, { portion: "large" }],
+      [2, { portion: "regular" }],
+    ],
+  );
+  const missingRequired = { restaurantId: id(1), items: [{ menuItemId: id(110), quantity: 1 }] };
+  assert.deepEqual(parsePendingCart(missingRequired, menu), []);
+  const duplicate = {
+    restaurantId: id(1),
+    items: [
+      { menuItemId: id(110), quantity: 1, options: { portion: "large" } },
+      { menuItemId: id(110), quantity: 1, options: { portion: "large" } },
+    ],
+  };
+  assert.deepEqual(parsePendingCart(duplicate, menu), []);
 });
