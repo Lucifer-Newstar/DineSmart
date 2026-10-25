@@ -1,0 +1,77 @@
+name: Bug report
+description: Something in Andhrímnir does not work as documented.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please do not include passwords, tokens, one-time codes or customer data.
+        Security problems go through the private route in SECURITY.md instead of a public issue.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Backend API
+        - Frontend (customer pages)
+        - Frontend (staff dashboard)
+        - Authentication
+        - Realtime notifications
+        - CI or tooling
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Signed-in role
+      description: The role you were using when the problem happened.
+      options:
+        - Signed out
+        - Customer
+        - Reception
+        - Kitchen Staff
+        - Manager
+        - Administrator
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in as manager@saffronandco.demo
+        2. Open Inventory
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the error message, the HTTP status and a screenshot when you have one.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      placeholder: "main at 357eb68"
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Local (Docker Compose MongoDB)
+        - Local (other MongoDB)
+        - Deployed
+    validations:
+      required: true

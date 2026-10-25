@@ -1,0 +1,46 @@
+name: Feature request
+description: Propose a change or a new capability for Andhrímnir.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who is affected and what is hard today?
+      placeholder: As a manager, I cannot ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How a reviewer can tell the change is done.
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: dropdown
+    id: roles
+    attributes:
+      label: Roles affected
+      multiple: true
+      options:
+        - Customer
+        - Reception
+        - Kitchen Staff
+        - Manager
+        - Administrator
+  - type: input
+    id: task
+    attributes:
+      label: Backlog task ID
+      description: Leave empty if the task does not exist yet.
+      placeholder: S5-01
