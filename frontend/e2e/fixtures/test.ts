@@ -4,6 +4,16 @@ import { API_ORIGIN, DEMO_ACCOUNTS, DEMO_PASSWORD, type DemoRole } from "./demo"
 /** Signs in through the real login form and waits for the role's home view. */
 export async function signInAs(page: Page, role: DemoRole, password = DEMO_PASSWORD) {
   const account = DEMO_ACCOUNTS[role];
+  await signInWith(page, { ...account, password });
+  return account;
+}
+
+/** Signs any account in through the login form and waits for its name to show. */
+export async function signInWith(
+  page: Page,
+  account: { email: string; password: string; name: string },
+): Promise<void> {
+  const { password } = account;
   await page.goto("/login");
   // Role queries skip the hidden copy of a page that a client-side navigation
   // can briefly leave mounted.
@@ -12,7 +22,6 @@ export async function signInAs(page: Page, role: DemoRole, password = DEMO_PASSW
   await page.getByRole("button", { name: "Sign in securely" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
   await expect(page.getByText(account.name, { exact: true }).first()).toBeVisible();
-  return account;
 }
 
 /** Signs in over the API and returns a bearer token for setup and assertions. */
