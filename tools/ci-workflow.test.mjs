@@ -50,7 +50,8 @@ test("triggers stay read-only and never use privileged events", () => {
 	assert.match(triggers, /pull_request:/);
 	assert.match(triggers, /workflow_dispatch:/);
 	assert.doesNotMatch(triggers, /pull_request_target/);
-	assert.doesNotMatch(workflow, /curl\s+[^|]*\|\s*(sudo\s+)?(ba)?sh/);
+	// One line at a time, so a later "| sha256sum" is not read as "| sh".
+	assert.doesNotMatch(workflow, /curl\s+[^|\n]*\|\s*(sudo\s+)?(ba)?sh\b/);
 });
 
 test("every job sets a timeout, checks out without credentials, and pins Node", () => {
@@ -58,7 +59,12 @@ test("every job sets a timeout, checks out without credentials, and pins Node", 
 	const jobNames = [...jobs.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map(
 		(match) => match[1],
 	);
-	assert.deepEqual(jobNames.sort(), ["backend", "frontend", "preflight"]);
+	assert.deepEqual(jobNames.sort(), [
+		"actionlint",
+		"backend",
+		"frontend",
+		"preflight",
+	]);
 
 	for (const name of jobNames) {
 		const body = job(name);
@@ -77,6 +83,8 @@ test("every job sets a timeout, checks out without credentials, and pins Node", 
 			/persist-credentials:\s*false/,
 			`${name} must not persist credentials`,
 		);
+		// actionlint is a single verified binary and needs no Node runtime.
+		if (name === "actionlint") continue;
 		assert.match(
 			body,
 			/uses:\s*actions\/setup-node@[0-9a-f]{40} # v\d+/,
@@ -147,4 +155,15 @@ test("no job-level condition calls hashFiles, which GitHub rejects outside steps
 test("the preflight job enforces demo readiness in strict mode", () => {
 	const body = job("preflight");
 	assert.match(body, /node tools\/demo-readiness\.mjs --strict/);
+});
+
+test("the actionlint job verifies the downloaded binary before running it", () => {
+	const body = job("actionlint");
+	assert.match(body, /ACTIONLINT_VERSION:\s*\d+\.\d+\.\d+/);
+	assert.match(body, /ACTIONLINT_SHA256:\s*[0-9a-f]{64}/);
+	assert.match(body, /sha256sum --check --strict/);
+	assert.ok(
+		body.indexOf("sha256sum") < body.indexOf("./actionlint"),
+		"the checksum must be verified before actionlint runs",
+	);
 });
