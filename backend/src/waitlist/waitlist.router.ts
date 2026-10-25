@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { isObjectIdString, requireObjectIdParam } from "../http/object-id-param.js";
 import { WaitlistServiceError } from "./waitlist.service.js";
 import type { WaitlistCreateInput, WaitlistServiceReader } from "./waitlist.types.js";
 
@@ -15,7 +16,6 @@ export interface WaitlistRouterOptions {
   createRuntime: () => Promise<WaitlistRuntime>;
 }
 
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 const RESOLUTION_STATUSES = ["seated", "cancelled", "no_show"] as const;
 
 type WaitlistResolutionStatus = (typeof RESOLUTION_STATUSES)[number];
@@ -60,7 +60,7 @@ function parseResolution(
   }
 
   if (value.status === "seated") {
-    if (typeof value.tableId !== "string" || !OBJECT_ID_PATTERN.test(value.tableId)) return null;
+    if (!isObjectIdString(value.tableId)) return null;
     return { status: "seated", tableId: new ObjectId(value.tableId) };
   }
   if (value.tableId !== undefined) return null;
@@ -189,6 +189,7 @@ export function createWaitlistRouter(options: WaitlistRouterOptions): Router {
     "/:id",
     requirePermissions("waitlist:write"),
     requireRestaurantScope(),
+    requireObjectIdParam("id", "invalid_waitlist_id", "A valid waitlist entry ID is required."),
     async (request: Request, response: Response) => {
       const restaurantId = request.auth?.restaurantId;
       const runtime = runtimes.get(request);
@@ -200,12 +201,6 @@ export function createWaitlistRouter(options: WaitlistRouterOptions): Router {
       }
       const rawEntryId = request.params.id;
       const entryId = Array.isArray(rawEntryId) ? rawEntryId[0] : rawEntryId;
-      if (!entryId || !OBJECT_ID_PATTERN.test(entryId)) {
-        response.status(400).json({
-          error: { code: "invalid_waitlist_id", message: "A valid waitlist entry ID is required." },
-        });
-        return;
-      }
       if (Object.keys(request.query).length > 0) {
         response.status(400).json({
           error: { code: "invalid_waitlist_query", message: "Waitlist filters are not supported." },

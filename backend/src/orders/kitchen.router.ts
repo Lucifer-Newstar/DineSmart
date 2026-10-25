@@ -1,12 +1,11 @@
 import { type NextFunction, type Request, type Response, Router } from "express";
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
 import { OrderError } from "./order.service.js";
 import type { KitchenPreparationUpdate, StaffOrderServiceReader } from "./order.staff.types.js";
-
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 export interface KitchenRuntime {
   service: StaffOrderServiceReader;
@@ -27,7 +26,7 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 }
 
 function objectId(value: unknown): ObjectId | null {
-  return typeof value === "string" && OBJECT_ID_PATTERN.test(value) ? new ObjectId(value) : null;
+  return parseObjectId(value);
 }
 
 function preparationUpdate(value: unknown): KitchenPreparationUpdate | null {
@@ -116,6 +115,7 @@ export function createKitchenRouter(options: KitchenRouterOptions): ReturnType<t
     "/queue/:orderId",
     requirePermissions("kitchen:queue:update"),
     requireRestaurantScope(),
+    requireObjectIdParam("orderId", "invalid_order_id", "A valid order ID is required."),
     async (request: Request, response: Response) => {
       const runtime = runtimes.get(request);
       const principal = request.auth;

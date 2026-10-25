@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { requireObjectIdParam } from "../http/object-id-param.js";
 import { StaffServiceError } from "./staff.service.js";
 import type { ManageableStaffRole, StaffServiceReader, StaffUpdate } from "./staff.types.js";
 import { MANAGEABLE_STAFF_ROLES } from "./staff.types.js";
@@ -15,8 +16,6 @@ export interface StaffRuntime {
 export interface StaffRouterOptions {
   createRuntime: () => Promise<StaffRuntime>;
 }
-
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -124,6 +123,7 @@ export function createStaffRouter(options: StaffRouterOptions): Router {
     "/:id",
     requirePermissions("staff:write"),
     requireRestaurantScope(),
+    requireObjectIdParam("id", "invalid_staff_id", "A valid staff ID is required."),
     async (request: Request, response: Response) => {
       const restaurantId = request.auth?.restaurantId;
       const actorUserId = request.auth?.userId;
@@ -136,12 +136,6 @@ export function createStaffRouter(options: StaffRouterOptions): Router {
       }
       const rawStaffId = request.params.id;
       const staffId = Array.isArray(rawStaffId) ? rawStaffId[0] : rawStaffId;
-      if (!staffId || !OBJECT_ID_PATTERN.test(staffId)) {
-        response.status(400).json({
-          error: { code: "invalid_staff_id", message: "A valid staff ID is required." },
-        });
-        return;
-      }
       if (Object.keys(request.query).length > 0) {
         response.status(400).json({
           error: { code: "invalid_staff_query", message: "Staff filters are not supported." },

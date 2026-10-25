@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { requireObjectIdParam } from "../http/object-id-param.js";
 import { TableStatusServiceError } from "./table-status.service.js";
 import type { TableOperationalStatus, TableStatusServiceReader } from "./table-status.types.js";
 import { TABLE_STATUSES } from "./table-status.types.js";
@@ -15,8 +16,6 @@ export interface TableStatusRuntime {
 export interface TableStatusRouterOptions {
   createRuntime: () => Promise<TableStatusRuntime>;
 }
-
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -113,6 +112,7 @@ export function createTableStatusRouter(options: TableStatusRouterOptions): Rout
     "/:id/status",
     requirePermissions("tables:write"),
     requireRestaurantScope(),
+    requireObjectIdParam("id", "invalid_table_id", "A valid table ID is required."),
     async (request: Request, response: Response) => {
       const restaurantId = request.auth?.restaurantId;
       const runtime = runtimes.get(request);
@@ -125,12 +125,6 @@ export function createTableStatusRouter(options: TableStatusRouterOptions): Rout
 
       const rawTableId = request.params.id;
       const tableId = Array.isArray(rawTableId) ? rawTableId[0] : rawTableId;
-      if (!tableId || !OBJECT_ID_PATTERN.test(tableId)) {
-        response.status(400).json({
-          error: { code: "invalid_table_id", message: "A valid table ID is required." },
-        });
-        return;
-      }
       if (Object.keys(request.query).length > 0) {
         response.status(400).json({
           error: {

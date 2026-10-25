@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { requireObjectIdParam } from "../http/object-id-param.js";
 import { InventoryError } from "./inventory.service.js";
 import type { InventoryAdjustment, InventoryServiceReader } from "./inventory.types.js";
 
@@ -14,8 +15,6 @@ export interface InventoryRuntime {
 export interface InventoryRouterOptions {
   createRuntime: () => Promise<InventoryRuntime>;
 }
-
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 function sendUnavailable(response: Response): void {
   response.status(503).json({
@@ -122,6 +121,7 @@ export function createInventoryRouter(options: InventoryRouterOptions): Router {
     "/:id",
     requirePermissions("inventory:write"),
     requireRestaurantScope(),
+    requireObjectIdParam("id", "invalid_inventory_id", "A valid inventory item ID is required."),
     async (request: Request, response: Response) => {
       const restaurantId = request.auth?.restaurantId;
       const runtime = runtimes.get(request);
@@ -133,15 +133,6 @@ export function createInventoryRouter(options: InventoryRouterOptions): Router {
       }
       const rawItemId = request.params.id;
       const itemId = Array.isArray(rawItemId) ? rawItemId[0] : rawItemId;
-      if (!itemId || !OBJECT_ID_PATTERN.test(itemId)) {
-        response.status(400).json({
-          error: {
-            code: "invalid_inventory_id",
-            message: "A valid inventory item ID is required.",
-          },
-        });
-        return;
-      }
 
       const adjustment = parseAdjustment(request.body);
       if (!adjustment) {

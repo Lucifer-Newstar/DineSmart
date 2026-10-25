@@ -4,6 +4,7 @@ import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthService } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
 import type { RecommendationDocument } from "../database/schema.js";
+import { requireObjectIdParam } from "../http/object-id-param.js";
 import { RecommendationInputError } from "./incident-context.builder.js";
 import type { RecommendationService } from "./recommendation.service.js";
 
@@ -107,17 +108,14 @@ export function createAiRouter(options: AiRouterOptions): Router {
     "/incidents/:incidentId/recommendations",
     ...requireAiAccess,
     generateRateLimit,
+    requireObjectIdParam(
+      "incidentId",
+      "invalid_incident_reference",
+      "A valid incident ID is required.",
+    ),
     async (request: Request, response: Response) => {
-      const incidentId = request.params.incidentId;
-      if (typeof incidentId !== "string" || !/^[a-f\d]{24}$/i.test(incidentId)) {
-        response.status(400).json({
-          error: {
-            code: "invalid_incident_reference",
-            message: "A valid incident ID is required.",
-          },
-        });
-        return;
-      }
+      // requireObjectIdParam has already checked the format.
+      const incidentId = String(request.params.incidentId);
 
       try {
         const restaurantId = request.auth?.restaurantId;

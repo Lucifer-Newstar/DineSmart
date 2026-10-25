@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { isObjectIdString, parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
 import { ReservationError } from "./reservation.service.js";
 import type {
   ReservationRecord,
@@ -25,7 +26,6 @@ export interface ReservationRouterOptions {
   createRuntime: () => Promise<ReservationRuntime>;
 }
 
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i;
 const VALID_RESERVATION_STATUSES = new Set<ReservationStatus>([
@@ -56,7 +56,7 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 }
 
 function objectId(value: unknown): ObjectId | null {
-  return typeof value === "string" && OBJECT_ID_PATTERN.test(value) ? new ObjectId(value) : null;
+  return parseObjectId(value);
 }
 
 function dateWithTimeZone(value: unknown): Date | null {
@@ -303,6 +303,7 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
   router.put(
     "/:id",
     requireReservationPermission("reservations:own:update", "reservations:write"),
+    requireObjectIdParam("id", "invalid_reservation_id", "A valid reservation ID is required."),
     async (request: Request, response: Response) => {
       const runtime = runtimes.get(request);
       const principal = request.auth;
@@ -354,7 +355,6 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
 }
 
 function asObjectId(value: string | null): ObjectId {
-  if (!value || !OBJECT_ID_PATTERN.test(value))
-    throw new Error("Invalid authenticated identifier.");
+  if (!isObjectIdString(value)) throw new Error("Invalid authenticated identifier.");
   return new ObjectId(value);
 }

@@ -5,14 +5,13 @@ import {
   type Response,
   Router,
 } from "express";
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
 import { BillError } from "./bill.service.js";
 import type { BillRecord, BillServiceReader } from "./bill.types.js";
-
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 export interface BillRuntime {
   service: BillServiceReader;
@@ -44,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function objectId(value: unknown): ObjectId | null {
-  return typeof value === "string" && OBJECT_ID_PATTERN.test(value) ? new ObjectId(value) : null;
+  return parseObjectId(value);
 }
 
 function userObjectId(principal: AuthPrincipal): ObjectId | null {
@@ -186,6 +185,7 @@ export function createBillRouter(options: BillRouterOptions): Router {
     rejectQueryParameters,
     billReadPermission,
     billReadScope,
+    requireObjectIdParam("orderId", "invalid_order_id", "A valid order ID is required."),
     async (request: Request, response: Response) => {
       const runtime = runtimes.get(request);
       const principal = request.auth;
@@ -227,6 +227,7 @@ export function createBillRouter(options: BillRouterOptions): Router {
     rejectQueryParameters,
     billReadPermission,
     billReadScope,
+    requireObjectIdParam("id", "invalid_bill_id", "A valid bill ID is required."),
     async (request: Request, response: Response) => {
       const runtime = runtimes.get(request);
       const principal = request.auth;

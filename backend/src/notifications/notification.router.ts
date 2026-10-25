@@ -6,7 +6,7 @@ import {
   Router,
 } from "express";
 import rateLimit from "express-rate-limit";
-import { ObjectId } from "mongodb";
+import type { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import {
@@ -14,6 +14,7 @@ import {
   requirePermissions,
   requireRestaurantScope,
 } from "../auth/authorization.middleware.js";
+import { parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
 import {
   REALTIME_SOCKET_PATH,
   REALTIME_SOCKET_PROTOCOL,
@@ -26,8 +27,6 @@ import type {
   NotificationRecord,
   NotificationServiceReader,
 } from "./notification.types.js";
-
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 type NotificationOperation = "read" | "update";
 
@@ -66,7 +65,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function objectId(value: unknown): ObjectId | null {
-  return typeof value === "string" && OBJECT_ID_PATTERN.test(value) ? new ObjectId(value) : null;
+  return parseObjectId(value);
 }
 
 function notificationPermission(operation: NotificationOperation): RequestHandler {
@@ -284,6 +283,7 @@ export function createNotificationRouter(options: NotificationRouterOptions): Ro
     "/:id/read",
     notificationPermission("update"),
     requireNotificationTenantScope,
+    requireObjectIdParam("id", "invalid_notification_id", "A valid notification ID is required."),
     async (request: Request, response: Response) => {
       const runtime = runtimes.get(request);
       const scope = recipientScope(request.auth);
