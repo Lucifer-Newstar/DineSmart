@@ -62,6 +62,16 @@ test("standalone text controls declare a 24px minimum hit area", () => {
   }
 });
 
+test("focus scrolling keeps controls clear of the sticky top bar (WCAG 2.4.11)", () => {
+  const topbar = Number.parseFloat(declarations(".topbar").get("min-height") ?? "");
+  const padding = Number.parseFloat(declarations("html").get("scroll-padding-top") ?? "");
+  assert.equal(declarations(".topbar").get("position"), "sticky");
+  assert.ok(
+    padding > topbar,
+    `html scroll-padding-top (${padding}px) must exceed the ${topbar}px sticky top bar`,
+  );
+});
+
 test("the stylesheet keeps a single skip link and reduced-motion guard", () => {
   assert.ok(css.includes(".skip-link:focus"), "keyboard users need a visible skip link");
   assert.ok(

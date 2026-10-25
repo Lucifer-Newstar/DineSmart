@@ -1498,6 +1498,10 @@
   .menu-cart-button > span {
     display: none;
   }
+  /* Keep a focused control clear of the fixed bag button (WCAG 2.4.11). */
+  html:has(.menu-mobile-cart) {
+    scroll-padding-bottom: 76px;
+  }
   .menu-mobile-cart {
     position: fixed;
     z-index: 30;
