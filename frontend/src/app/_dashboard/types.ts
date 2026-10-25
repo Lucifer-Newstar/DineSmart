@@ -4,6 +4,7 @@ export type Section =
   | "Kitchen"
   | "Reservations"
   | "Inventory"
+  | "Menu"
   | "Incidents"
   | "Insights"
   | "Analytics"

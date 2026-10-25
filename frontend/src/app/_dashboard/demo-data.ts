@@ -11,6 +11,7 @@ export const NAVIGATION: Array<{ label: Section; icon: IconName; group: "main" |
   { label: "Kitchen", icon: "kitchen", group: "main" },
   { label: "Reservations", icon: "reservations", group: "main" },
   { label: "Inventory", icon: "inventory", group: "manage" },
+  { label: "Menu", icon: "menu", group: "manage" },
   { label: "Incidents", icon: "incidents", group: "manage" },
   { label: "Insights", icon: "insights", group: "manage" },
   { label: "Analytics", icon: "analytics", group: "manage" },

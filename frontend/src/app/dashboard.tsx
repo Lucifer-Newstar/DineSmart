@@ -19,6 +19,7 @@ import { FloorPanel } from "./_dashboard/floor-panel";
 import { IncidentsPage } from "./_dashboard/incidents-page";
 import { InsightsPage } from "./_dashboard/insights-page";
 import { InventoryPage } from "./_dashboard/inventory-page";
+import { MenuManagerPage } from "./_dashboard/menu-manager-page";
 import { OverviewPage } from "./_dashboard/overview-page";
 import {
   displayOrderId,
@@ -108,6 +109,7 @@ export function Dashboard() {
   const [inventoryStatus, setInventoryStatus] = useState<InventoryViewStatus>("preview");
   const [inventoryTruncated, setInventoryTruncated] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
+  const [menuRefreshKey] = useState(0);
   const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
   const [reservationsStatus, setReservationsStatus] = useState<ReservationViewStatus>("preview");
   const [reservationsTruncated, setReservationsTruncated] = useState(false);
@@ -884,6 +886,12 @@ export function Dashboard() {
         title: "Inventory",
         description: "A live-looking snapshot of what’s on hand and what needs attention.",
       },
+      Menu: {
+        eyebrow: "OPERATIONS",
+        title: "Menu",
+        description:
+          "Add dishes, set prices and their order, and take items off when they run out.",
+      },
       Incidents: {
         eyebrow: "OPERATIONS",
         title: "Incidents",
@@ -1281,6 +1289,12 @@ export function Dashboard() {
               inventoryStatus={inventoryStatus}
               inventoryTruncated={inventoryTruncated}
               onRefresh={() => setInventoryRefreshKey((current) => current + 1)}
+            />
+          ) : currentSection === "Menu" ? (
+            <MenuManagerPage
+              accessToken={accessToken}
+              refreshKey={menuRefreshKey}
+              onToast={notify}
             />
           ) : currentSection === "Incidents" ? (
             <IncidentsPage

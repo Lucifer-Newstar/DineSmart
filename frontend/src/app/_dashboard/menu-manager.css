@@ -1,0 +1,166 @@
+/* S4-05 menu manager. Colours keep at least 4.5:1 contrast on white (S4-03). */
+.menu-manager-card {
+  margin-top: 18px;
+}
+.menu-manager-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.menu-manager-tools .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+}
+.menu-manager-category {
+  margin-top: 18px;
+}
+.menu-manager-category-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.menu-manager-category-head h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+}
+.menu-manager-move,
+.menu-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.menu-manager-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.menu-manager-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.menu-manager-row:has(.menu-item-form) {
+  display: block;
+}
+.menu-manager-item {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.menu-manager-item strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+.menu-manager-meta,
+.menu-manager-tags {
+  color: #56655c;
+  font-size: 12px;
+}
+.menu-availability {
+  min-height: 24px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: #8a4a2f;
+  background: var(--coral-soft);
+  font-size: 12px;
+  font-weight: 620;
+}
+.menu-availability-on {
+  color: #3f6340;
+  background: #eef5ea;
+}
+.menu-archive-confirm {
+  color: #9a4a2a;
+  font-weight: 650;
+}
+.menu-item-form {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fcfdfa;
+}
+.menu-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.menu-form-field {
+  display: grid;
+  gap: 4px;
+}
+.menu-form-field label,
+.menu-form-labels legend {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 620;
+}
+.menu-form-field input,
+.menu-form-field select,
+.menu-form-field textarea {
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #c9d2c6;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+.menu-form-field input[aria-invalid="true"] {
+  border-color: #b5532f;
+}
+.menu-form-hint {
+  color: #56655c;
+  font-size: 12px;
+}
+.menu-form-error {
+  color: #9a3f1f;
+  font-size: 12px;
+  font-weight: 600;
+}
+.menu-form-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.menu-form-labels legend {
+  margin-bottom: 6px;
+}
+.menu-form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.menu-form-check input {
+  width: 16px;
+  height: 16px;
+}
+.menu-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 720px) {
+  .menu-manager-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
