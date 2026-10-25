@@ -53,6 +53,16 @@ export class MongoInventoryRepository implements InventoryRepository {
     };
   }
 
+  async findForRestaurant(
+    restaurantId: ObjectId,
+    itemId: ObjectId,
+  ): Promise<InventoryItemRecord | null> {
+    const document = await this.db
+      .collection<InventoryItemDocument>(COLLECTIONS.inventoryItems)
+      .findOne({ _id: itemId, restaurantId }, { projection: INVENTORY_PROJECTION });
+    return document ? toRecord(document as InventoryItemDocument & { _id: ObjectId }) : null;
+  }
+
   async adjustItem(
     restaurantId: ObjectId,
     itemId: ObjectId,

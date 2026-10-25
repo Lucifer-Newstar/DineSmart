@@ -1,4 +1,6 @@
 import type { ObjectId } from "mongodb";
+import type { AuditRecorder } from "../audit/audit.service.js";
+import type { UserRole } from "../database/schema.js";
 import {
   StaffProjectionSyncError,
   StaffSelfDeactivationError,
@@ -51,7 +53,52 @@ export class StaffService implements StaffServiceReader {
   constructor(
     private readonly repository: StaffRepository,
     private readonly clock: () => Date = () => new Date(),
+    private readonly audit?: AuditRecorder,
   ) {}
+
+  private async findBefore(restaurantId: ObjectId, staffId: ObjectId) {
+    if (this.repository.findForRestaurant) {
+      return this.repository.findForRestaurant(restaurantId, staffId);
+    }
+    const { staff } = await this.repository.listForRestaurant(restaurantId);
+    return staff.find((member) => member.id.equals(staffId)) ?? null;
+  }
+
+  /**
+   * One audit entry per kind of change. A failed write is reported but does
+   * not undo or fail the change the manager already made.
+   */
+  private async recordChanges(
+    restaurantId: ObjectId,
+    actor: { userId: ObjectId; role: UserRole },
+    before: StaffRecord,
+    after: StaffRecord,
+  ): Promise<void> {
+    if (!this.audit) return;
+    const target = { type: "staff", id: after.id, label: after.name };
+    const changes = [];
+    if (before.role !== after.role) {
+      changes.push({
+        action: "staff.role_changed" as const,
+        before: { role: before.role },
+        after: { role: after.role },
+      });
+    }
+    if (before.isActive !== after.isActive) {
+      changes.push({
+        action: after.isActive ? ("staff.activated" as const) : ("staff.deactivated" as const),
+        before: { isActive: before.isActive },
+        after: { isActive: after.isActive },
+      });
+    }
+    for (const change of changes) {
+      try {
+        await this.audit({ restaurantId, actor, target, ...change });
+      } catch {
+        console.error("An audit log entry could not be written.");
+      }
+    }
+  }
 
   list(restaurantId: ObjectId): Promise<StaffListResult> {
     return this.repository.listForRestaurant(restaurantId);
@@ -62,10 +109,12 @@ export class StaffService implements StaffServiceReader {
     staffId: ObjectId,
     actorUserId: ObjectId,
     changes: StaffUpdate,
+    actorRole: UserRole = "Manager",
   ): Promise<StaffRecord> {
     validateUpdate(changes);
 
     try {
+      const before = this.audit ? await this.findBefore(restaurantId, staffId) : null;
       const staff = await this.repository.updateForRestaurant(
         restaurantId,
         staffId,
@@ -75,6 +124,14 @@ export class StaffService implements StaffServiceReader {
       );
       if (!staff) {
         throw new StaffServiceError(404, "staff_not_found", "The staff member was not found.");
+      }
+      if (before) {
+        await this.recordChanges(
+          restaurantId,
+          { userId: actorUserId, role: actorRole },
+          before,
+          staff,
+        );
       }
       return staff;
     } catch (error) {

@@ -165,6 +165,7 @@ export function createStaffRouter(options: StaffRouterOptions): Router {
           new ObjectId(staffId),
           new ObjectId(actorUserId),
           changes,
+          request.auth?.role,
         );
         response.set("Cache-Control", "no-store");
         response.status(200).json({ staff: toResponse(staff) });

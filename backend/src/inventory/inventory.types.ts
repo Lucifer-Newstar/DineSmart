@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { AuditActor } from "../audit/audit.types.js";
 
 export interface InventoryItemRecord {
   id: ObjectId;
@@ -21,6 +22,8 @@ export interface InventoryAdjustment {
 
 export interface InventoryRepository {
   listForRestaurant(restaurantId: ObjectId): Promise<InventoryListResult>;
+  /** Used to capture the audit log's "before" state; optional for test doubles. */
+  findForRestaurant?(restaurantId: ObjectId, itemId: ObjectId): Promise<InventoryItemRecord | null>;
   adjustItem(
     restaurantId: ObjectId,
     itemId: ObjectId,
@@ -34,6 +37,7 @@ export interface InventoryServiceReader {
     restaurantId: ObjectId,
     itemId: ObjectId,
     adjustment: InventoryAdjustment,
+    actor?: AuditActor,
   ): Promise<InventoryItemRecord>;
 }
 

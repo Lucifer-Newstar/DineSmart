@@ -114,6 +114,21 @@ export class MongoStaffRepository implements StaffRepository {
     return { staff, truncated: memberships.length > STAFF_LIST_LIMIT };
   }
 
+  async findForRestaurant(restaurantId: ObjectId, staffId: ObjectId): Promise<StaffRecord | null> {
+    const membership = await this.staff.findOne({ _id: staffId, restaurantId });
+    if (!membership) return null;
+    const user = await this.users.findOne(
+      {
+        _id: membership.userId,
+        restaurantId,
+        role: { $in: [...MANAGEABLE_STAFF_ROLES] },
+        status: { $in: ["active", "disabled"] },
+      },
+      { projection: SAFE_USER_PROJECTION },
+    );
+    return user ? toRecord(membership as WithId<StaffDocument>, user) : null;
+  }
+
   async updateForRestaurant(
     restaurantId: ObjectId,
     staffId: ObjectId,

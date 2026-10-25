@@ -14,6 +14,8 @@ import { RecommendationService } from "./ai/recommendation.service.js";
 import { MongoAnalyticsRepository } from "./analytics/analytics.repository.js";
 import { createAnalyticsRouter } from "./analytics/analytics.router.js";
 import { AnalyticsService } from "./analytics/analytics.service.js";
+import { MongoAuditRepository } from "./audit/audit.repository.js";
+import { AuditService } from "./audit/audit.service.js";
 import { MongoAuthRepository } from "./auth/auth.repository.js";
 import { createAuthRouter } from "./auth/auth.router.js";
 import { AuthConfigurationError, AuthService } from "./auth/auth.service.js";
@@ -317,6 +319,7 @@ export function createApp(options: AppOptions = {}) {
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
             realtimeHub.publishRestaurantEvent,
+            new AuditService(new MongoAuditRepository(db)).record,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -389,7 +392,11 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          service: new StaffService(new MongoStaffRepository(db)),
+          service: new StaffService(
+            new MongoStaffRepository(db),
+            undefined,
+            new AuditService(new MongoAuditRepository(db)).record,
+          ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

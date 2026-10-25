@@ -34,6 +34,8 @@ export interface StaffUpdate {
 
 export interface StaffRepository {
   listForRestaurant(restaurantId: ObjectId): Promise<StaffListResult>;
+  /** Used to capture the audit log's "before" state; optional for test doubles. */
+  findForRestaurant?(restaurantId: ObjectId, staffId: ObjectId): Promise<StaffRecord | null>;
   updateForRestaurant(
     restaurantId: ObjectId,
     staffId: ObjectId,
@@ -50,5 +52,6 @@ export interface StaffServiceReader {
     staffId: ObjectId,
     actorUserId: ObjectId,
     changes: StaffUpdate,
+    actorRole?: UserRole,
   ): Promise<StaffRecord>;
 }

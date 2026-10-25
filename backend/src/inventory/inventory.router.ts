@@ -156,10 +156,12 @@ export function createInventoryRouter(options: InventoryRouterOptions): Router {
       }
 
       try {
+        const auth = request.auth;
         const item = await runtime.service.adjust(
           new ObjectId(restaurantId),
           new ObjectId(itemId),
           adjustment,
+          auth ? { userId: new ObjectId(auth.userId), role: auth.role } : undefined,
         );
         response.status(200).json({
           item: {
