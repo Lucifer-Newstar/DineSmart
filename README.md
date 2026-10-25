@@ -55,6 +55,10 @@ npm run dev
 
 The API listens on `http://localhost:3001` by default. `GET /health` reports process liveness only; it does not indicate a database connection. The local MongoDB service is bound to loopback; do not expose it to a network. See the [backend guide](backend/README.md) for quality commands and current scope.
 
+## Contributing
+
+Setup, the required checks, the commit message rules and the pull request flow are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Security
 
 Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Only `main` is supported.
