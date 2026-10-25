@@ -15,7 +15,13 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | POST | /auth/google | Verify Google Identity Services ID token and start a session | Dhanush |
 | POST | /auth/reset-password/request | Request a password-reset email code (generic response) | Dhanush |
 | POST | /auth/reset-password/confirm | Consume a reset code, update password, and revoke refresh sessions | Dhanush |
-| GET | /menu?restaurantId={id} | Public read-only active menu; available items only | Dhanush |
+| GET | /menu?restaurantId={id} | Public read-only live menu; sold-out items included and flagged `isAvailable: false` | Dhanush |
+| GET | /menu/items | Manager/Administrator: the restaurant's full managed menu, sold-out items and prep fields included | Jegatheesan |
+| POST | /menu/items | Manager/Administrator: create a menu item | Jegatheesan |
+| PATCH | /menu/items/{id} | Manager/Administrator: update a menu item's details | Jegatheesan |
+| PATCH | /menu/items/{id}/availability | Manager/Administrator: 86 an item or bring it back; broadcasts `menu.availability` | Jegatheesan |
+| PUT | /menu/items/arrangement | Manager/Administrator: save the order of categories and items | Jegatheesan |
+| DELETE | /menu/items/{id} | Manager/Administrator: archive a menu item (soft delete) | Jegatheesan |
 | POST | /reservations | Create reservation | Jegatheesan |
 | GET | /reservations | Get reservations | Jegatheesan |
 | PUT | /reservations/{id} | Update reservation | Jegatheesan |
@@ -65,12 +71,38 @@ This section records the team-selected contract. The API, public menu/cart, and 
 
 | Route | Authorization | Request/behavior | Success response |
 | --- | --- | --- | --- |
-| `GET /menu?restaurantId={id}` | Public read-only | Requires one valid restaurant ID; returns an active restaurant's available menu entries, prices in minor currency units, category, dietary/allergen labels, and a bounded/truncated indicator. | `200 { restaurant, items, truncated }` |
+| `GET /menu?restaurantId={id}` | Public read-only | Requires one valid restaurant ID; returns an active restaurant's live (not archived) menu entries in the saved order, prices in minor currency units, category, dietary/allergen labels, `isAvailable` (sold-out items stay listed, flagged `false`), any `optionGroups`, the ordered `categories`, and a bounded/truncated indicator. See S4-05 below. | `200 { restaurant, categories, items, truncated }` |
 | `POST /orders` | Customer: `orders:own:create` | Sends `restaurantId` and distinct `{ menuItemId, quantity }` lines. Customer ID is derived from the signed-in Customer; all prices/status/totals are server-derived. | `201 { order }`, initially `Created`. |
 | `GET /orders/history` | Customer: `orders:own:read` | Returns at most 100 of the customer's own orders across restaurants, newest first, with restaurant name, item snapshots, status, total, currency, and creation time. | `200 { orders, truncated }` |
 | `PUT /orders/{id}/cancel` | Customer: `orders:own:update` | Cancels only the caller's order while it remains `Created`; the write is conditional on the stored status to avoid racing acceptance. | `200 { order }` |
 
-The recommended cart bound is 1–20 distinct lines, quantity 1–20 per line, and 50 total units. Duplicate menu IDs are rejected; menu availability and price are rechecked at order creation. The create body accepts only `{ restaurantId, items: [{ menuItemId, quantity }] }`; caller-supplied Customer ID, price, total, status, and fulfillment fields are rejected. The order response contains item IDs/name/price snapshots, server-calculated `totalMinor`, ISO currency, status, and timestamps; it does not expose per-item kitchen preparation state. History is owner-filtered across restaurants and bounded to 100 orders; the Customer UI fails closed rather than showing or submitting preview menu data. Orders contain a pre-bill subtotal; no taxes, payment capture, table assignment, fulfillment mode, or automatic stock deduction are introduced. The cart is kept in browser session storage only to survive sign-in, and submitted orders are stored in MongoDB. Existing separate `orders` and `order_items` collections require more than one write; local MongoDB standalone mode lacks transaction support, so line items are inserted before the visible order header with best-effort cleanup. Process-crash orphan items and live persistence remain unverified; document this limitation before production. See the [S2-04 team recommendations](Andhrimnir_Implementation_Decisions.md#s2-04-customer-order-placement-recommendation).
+The recommended cart bound is 1–20 distinct lines, quantity 1–20 per line, and 50 total units. Since S4-05 the same dish may appear on two lines when the chosen options differ; an identical dish-and-options line is still rejected. Menu availability, price and options are rechecked at order creation. The create body accepts only `{ restaurantId, items: [{ menuItemId, quantity, options? }] }`; caller-supplied Customer ID, price, total, status, and fulfillment fields are rejected. The order response contains item IDs/name/price snapshots, server-calculated `totalMinor`, ISO currency, status, and timestamps; it does not expose per-item kitchen preparation state. History is owner-filtered across restaurants and bounded to 100 orders; the Customer UI fails closed rather than showing or submitting preview menu data. Orders contain a pre-bill subtotal; no taxes, payment capture, table assignment, fulfillment mode, or automatic stock deduction are introduced. The cart is kept in browser session storage only to survive sign-in, and submitted orders are stored in MongoDB. Existing separate `orders` and `order_items` collections require more than one write; local MongoDB standalone mode lacks transaction support, so line items are inserted before the visible order header with best-effort cleanup. Process-crash orphan items and live persistence remain unverified; document this limitation before production. See the [S2-04 team recommendations](Andhrimnir_Implementation_Decisions.md#s2-04-customer-order-placement-recommendation).
+
+
+## S4-05 Menu management and 86-ing — local implementation
+
+Implemented in `backend/src/menu/menu.admin.router.ts` (routes), `menu.service.ts` (audit and realtime), `menu.repository.ts` (writes, archive, arrangement) and `menu.types.ts` (limits). All routes below are mounted at `/api/v1/menu/items`, before the public `/api/v1/menu` route.
+
+**Authorization.** Every route needs a bearer access token and the `menu:write` permission, which only **Manager** and **Administrator** hold. Customers, Reception and Kitchen Staff get `403`. Every read and write is scoped to the caller's own restaurant; an item from another restaurant answers `404 menu_item_not_found`. A malformed `{id}` answers `400 invalid_menu_item_id` after authentication, so it never hides a `401` or `403`.
+
+| Route | Request/behavior | Success response |
+| --- | --- | --- |
+| `GET /menu/items` | The full managed menu (up to 300 items), sold-out items included, with `prepStation`, `prepMinutes`, `optionGroups`, `sortPosition` and `updatedAt`. Archived items are left out. | `200 { categories, items, truncated }` |
+| `POST /menu/items` | Body fields: `name` (1–80), `category` (1–40), `priceMinor` (integer, 1–10,000,000 paise), optional `description` (≤280), `isAvailable`, `dietaryLabels` (from `vegetarian`, `vegan`, `jain`, `gluten-free`, `contains-egg`, `non-vegetarian`), `allergenLabels` (≤10, each ≤30), `prepStation` (`tawa`, `tandoor`, `curry`, `rice`, `fryer`, `beverages`, `desserts`), `prepMinutes` (1–120) and `optionGroups`. Unknown fields are rejected. The new item goes last in its category. | `201 { item }` |
+| `PATCH /menu/items/{id}` | Any subset of the create fields except `isAvailable`, at least one. `null` clears `description`, `prepStation` or `prepMinutes`. | `200 { item }` |
+| `PATCH /menu/items/{id}/availability` | Body is exactly `{ "isAvailable": true \| false }`. Broadcasts `menu.availability` with `{ menuItemId, isAvailable }` to the restaurant's realtime channel; signed-in customers' sockets receive it as well as staff. | `200 { item }` |
+| `PUT /menu/items/arrangement` | Body `{ categories, itemIds }`: every current category and every live item, each listed once, in the new order. A list that no longer matches the menu (an item added or archived meanwhile) answers `409 menu_arrangement_stale`, and the client reloads. | `200 { categories, items, truncated }` |
+| `DELETE /menu/items/{id}` | Archives the item: it leaves the public and managed menus and can no longer be ordered, while past orders keep their snapshots. | `204` |
+
+**Option groups.** `optionGroups` holds up to 4 single-choice groups `{ id, name, required, choices: [{ id, label, priceDeltaMinor }] }` with up to 8 choices each. Ids are lowercase slugs (`^[a-z0-9][a-z0-9-]{0,23}$`), labels are at most 40 characters, and `priceDeltaMinor` is a whole number ≥ 0. On `POST /orders` a line sends `options: { groupId: choiceId }`. The server checks each choice (`400 invalid_order_options`), requires every required group (`400 order_option_required`), stores the snapshot `{ group, choice, priceDeltaMinor }` on the order line, and prices the unit as base plus deltas. The order, kitchen and staff responses include the stored options.
+
+**Errors.** `400 invalid_menu_item` (the message names the field), `400 invalid_menu_availability`, `400 invalid_menu_arrangement`, `400 invalid_menu_item_id`, `404 menu_item_not_found`, `409 menu_arrangement_stale`, and `503 menu_unavailable` when the database is down.
+
+**Audit.** Create, update, archive and availability changes write `menu.item_created`, `menu.item_updated`, `menu.item_archived` and `menu.availability_changed` audit entries, with the before and after values (see `GET /audit-logs`).
+
+**Caching.** The public menu keeps `Cache-Control: public, max-age=30` for shared caches. The customer page reads it with `cache: "no-store"` and refreshes on the realtime event, on tab focus, and every 30 seconds while no socket is live. The manager routes are `no-store`.
+
+**Deviation from the backlog row.** Backlog row 1.58 named `restaurant:write`. The routes use a dedicated `menu:write` permission (Manager and Administrator) so that menu editing can be granted on its own.
 
 ## S2-05 Kitchen Queue — local backend implementation; recommended contract
 
