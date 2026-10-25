@@ -12,12 +12,16 @@ import { tabId, tabIndexForKey } from "../roving-tabs";
 import {
   ALL_DISHES,
   applyAvailability,
+  availableDietaryFilters,
   type CartLine,
   calculateCartTotalMinor,
+  type DietaryFilter,
+  filterMenuItems,
   MAX_ITEM_QUANTITY,
   MAX_ORDER_LINES,
   MAX_ORDER_UNITS,
   type MenuItem,
+  menuAllergens,
   OBJECT_ID_PATTERN,
   parseMenu,
   parsePendingCart,
@@ -150,7 +154,8 @@ export default function MenuPage() {
   const [reloadMenu, setReloadMenu] = useState(0);
   const [category, setCategory] = useState(ALL_DISHES);
   const [search, setSearch] = useState("");
-  const [vegetarianOnly, setVegetarianOnly] = useState(false);
+  const [dietary, setDietary] = useState<DietaryFilter[]>([]);
+  const [withoutAllergens, setWithoutAllergens] = useState<string[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const cartRef = useRef<HTMLElement>(null);
   const closeCart = useCallback(() => setCartOpen(false), []);
@@ -273,16 +278,14 @@ export default function MenuPage() {
     [menu],
   );
   const filteredItems = useMemo(
-    () =>
-      (menu?.items ?? []).filter((item) => {
-        const matchesCategory = category === ALL_DISHES || item.category === category;
-        const matchesSearch = `${item.name} ${item.description}`
-          .toLowerCase()
-          .includes(search.toLowerCase());
-        return matchesCategory && matchesSearch && (!vegetarianOnly || item.vegetarian);
-      }),
-    [category, menu, search, vegetarianOnly],
+    () => filterMenuItems(menu?.items ?? [], { category, search, dietary, withoutAllergens }),
+    [category, menu, search, dietary, withoutAllergens],
   );
+  const dietaryChoices = useMemo(() => availableDietaryFilters(menu?.items ?? []), [menu]);
+  const allergenChoices = useMemo(() => menuAllergens(menu?.items ?? []), [menu]);
+  const toggle = <T,>(list: T[], value: T): T[] =>
+    list.includes(value) ? list.filter((entry) => entry !== value) : [...list, value];
+  const filtersActive = dietary.length > 0 || withoutAllergens.length > 0 || search.trim() !== "";
 
   const quantity = cart.reduce((sum, line) => sum + line.quantity, 0);
   const cartTotalMinor = calculateCartTotalMinor(cart);
@@ -533,16 +536,60 @@ export default function MenuPage() {
               </label>
             </div>
             <div className="menu-filter-row">
-              <button
-                type="button"
-                className={`veg-filter ${vegetarianOnly ? "veg-filter-active" : ""}`}
-                aria-pressed={vegetarianOnly}
-                onClick={() => setVegetarianOnly(!vegetarianOnly)}
-              >
-                <MenuIcon name="leaf" size={14} />
-                <span>Vegetarian only</span>
-                <i />
-              </button>
+              <div className="menu-filter-groups">
+                {dietaryChoices.length ? (
+                  <fieldset className="menu-filter-group">
+                    <legend>Dietary</legend>
+                    {dietaryChoices.map((filter) => (
+                      <button
+                        key={filter}
+                        type="button"
+                        className={`veg-filter ${dietary.includes(filter) ? "veg-filter-active" : ""}`}
+                        aria-pressed={dietary.includes(filter)}
+                        onClick={() => setDietary((current) => toggle(current, filter))}
+                      >
+                        {filter === "vegetarian" ? <MenuIcon name="leaf" size={14} /> : null}
+                        <span>
+                          {filter === "gluten-free"
+                            ? "Gluten-free"
+                            : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                        </span>
+                        <i />
+                      </button>
+                    ))}
+                  </fieldset>
+                ) : null}
+                {allergenChoices.length ? (
+                  <fieldset className="menu-filter-group">
+                    <legend>Leave out</legend>
+                    {allergenChoices.map((allergen) => (
+                      <button
+                        key={allergen}
+                        type="button"
+                        className={`veg-filter ${withoutAllergens.includes(allergen) ? "veg-filter-active" : ""}`}
+                        aria-pressed={withoutAllergens.includes(allergen)}
+                        onClick={() => setWithoutAllergens((current) => toggle(current, allergen))}
+                      >
+                        <span>No {allergen}</span>
+                        <i />
+                      </button>
+                    ))}
+                  </fieldset>
+                ) : null}
+                {filtersActive ? (
+                  <button
+                    type="button"
+                    className="veg-filter menu-filter-clear"
+                    onClick={() => {
+                      setDietary([]);
+                      setWithoutAllergens([]);
+                      setSearch("");
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                ) : null}
+              </div>
               <span>
                 {filteredItems.filter((item) => item.isAvailable).length} available dishes
               </span>
@@ -642,12 +689,12 @@ export default function MenuPage() {
                 </span>
                 <strong>
                   {menu?.items.length
-                    ? "Nothing on the menu by that name."
+                    ? "No dishes match those choices."
                     : "No items are available right now."}
                 </strong>
                 <p>
                   {menu?.items.length
-                    ? "Try another search or browse a different category."
+                    ? "Try another search, remove a filter or browse a different category."
                     : "Please check back with the restaurant later."}
                 </p>
               </div>

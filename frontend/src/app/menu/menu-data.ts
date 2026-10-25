@@ -7,6 +7,8 @@ export interface MenuItem {
   priceMinor: number;
   category: Category;
   vegetarian: boolean;
+  /** Lowercased dietary labels from the restaurant, e.g. "vegan", "gluten-free". */
+  dietaryLabels: string[];
   allergenLabels: string[];
   /** False while the restaurant has 86'd the dish: shown greyed out, cannot be added. */
   isAvailable: boolean;
@@ -31,6 +33,21 @@ export const MAX_ORDER_LINES = 20;
 export const MAX_ITEM_QUANTITY = 20;
 export const MAX_ORDER_UNITS = 50;
 export const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
+
+/** Vegan and Jain dishes are vegetarian too, so they satisfy the vegetarian filter. */
+const VEGETARIAN_LABELS = new Set(["vegetarian", "vegan", "jain"]);
+
+/** Dietary filters the customer menu offers, in display order. */
+export const DIETARY_FILTERS = ["vegetarian", "vegan", "jain", "gluten-free"] as const;
+export type DietaryFilter = (typeof DIETARY_FILTERS)[number];
+
+export interface MenuFilters {
+  category: string;
+  search: string;
+  dietary: readonly DietaryFilter[];
+  /** Allergens to leave out, lowercased. */
+  withoutAllergens: readonly string[];
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -93,7 +110,8 @@ export function parseMenu(value: unknown): RestaurantMenu | null {
           : "Prepared fresh by the kitchen.",
       priceMinor: entry.priceMinor,
       category: entry.category,
-      vegetarian: entry.dietaryLabels.some((label) => label.toLowerCase() === "vegetarian"),
+      vegetarian: entry.dietaryLabels.some((label) => VEGETARIAN_LABELS.has(label.toLowerCase())),
+      dietaryLabels: [...new Set(entry.dietaryLabels.map((label) => label.toLowerCase()))],
       allergenLabels: entry.allergenLabels,
       // Older API builds only sent available items, so a missing flag means available.
       isAvailable: entry.isAvailable !== false,
@@ -202,4 +220,37 @@ export function reconcileCart(
     else removed.push(line.item.name);
   }
   return { lines: kept, removed };
+}
+
+function matchesDietary(item: MenuItem, filter: DietaryFilter): boolean {
+  return filter === "vegetarian" ? item.vegetarian : item.dietaryLabels.includes(filter);
+}
+
+/**
+ * The customer menu's filters (S4-05): category, a search over name,
+ * description and category where every word must match, dietary labels that
+ * must all apply, and allergens to leave out.
+ */
+export function filterMenuItems(items: readonly MenuItem[], filters: MenuFilters): MenuItem[] {
+  const terms = filters.search.toLowerCase().split(/\s+/).filter(Boolean);
+  const excluded = new Set(filters.withoutAllergens.map((label) => label.toLowerCase()));
+  return items.filter((item) => {
+    if (filters.category !== ALL_DISHES && item.category !== filters.category) return false;
+    const text = `${item.name} ${item.description} ${item.category}`.toLowerCase();
+    if (!terms.every((term) => text.includes(term))) return false;
+    if (!filters.dietary.every((filter) => matchesDietary(item, filter))) return false;
+    return !item.allergenLabels.some((label) => excluded.has(label.toLowerCase()));
+  });
+}
+
+/** Dietary filters worth offering: those at least one dish on this menu satisfies. */
+export function availableDietaryFilters(items: readonly MenuItem[]): DietaryFilter[] {
+  return DIETARY_FILTERS.filter((filter) => items.some((item) => matchesDietary(item, filter)));
+}
+
+/** Every allergen named on the menu, lowercased and sorted, for the "leave out" chips. */
+export function menuAllergens(items: readonly MenuItem[]): string[] {
+  return [
+    ...new Set(items.flatMap((item) => item.allergenLabels.map((label) => label.toLowerCase()))),
+  ].sort();
 }
