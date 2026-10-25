@@ -53,8 +53,10 @@ import { IncidentDetectionService } from "./incidents/incident.service.js";
 import { MongoInventoryRepository } from "./inventory/inventory.repository.js";
 import { createInventoryRouter } from "./inventory/inventory.router.js";
 import { InventoryService } from "./inventory/inventory.service.js";
+import { createMenuAdminRouter } from "./menu/menu.admin.router.js";
 import { MongoMenuRepository } from "./menu/menu.repository.js";
 import { createMenuRouter } from "./menu/menu.router.js";
+import { MenuAdminService } from "./menu/menu.service.js";
 import {
   createIncidentNotifier,
   MongoIncidentAlertRecipients,
@@ -347,6 +349,23 @@ export function createApp(options: AppOptions = {}) {
     }),
   );
 
+  // Mounted before the public catalog so manager routes skip its public caching.
+  app.use(
+    "/api/v1/menu/items",
+    createMenuAdminRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          service: new MenuAdminService(
+            new MongoMenuRepository(db),
+            undefined,
+            new AuditService(new MongoAuditRepository(db)).record,
+          ),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+        };
+      },
+    }),
+  );
   app.use(
     "/api/v1/menu",
     createMenuRouter({
