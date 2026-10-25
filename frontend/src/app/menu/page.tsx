@@ -88,6 +88,14 @@ async function responseError(response: Response): Promise<string> {
   return "We couldn't place the order. Please try again.";
 }
 
+/** Dietary labels are always written out, never shown by colour alone (WCAG 1.4.1). */
+function dietaryLabelText(label: string): string {
+  if (label === "gluten-free") return "Gluten-free";
+  if (label === "non-vegetarian") return "Non-veg";
+  if (label === "contains-egg") return "Contains egg";
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 function currency(valueMinor: number, currencyCode: string): string {
   return formatMinorCurrency(valueMinor, currencyCode);
 }
@@ -639,27 +647,33 @@ export default function MenuPage() {
                         <span className="dish-food" />
                         <i className="dish-garnish" />
                       </div>
-                      {item.vegetarian ? (
-                        <span className="menu-veg-dot" title="Vegetarian" />
-                      ) : null}
+                      {item.vegetarian ? <span className="menu-veg-mark">VEG</span> : null}
                     </div>
                     <div className="menu-item-copy">
                       <div className="menu-item-meta">
                         <span>{item.category.toUpperCase()}</span>
-                        {item.vegetarian ? (
-                          <>
-                            <span>·</span>
-                            <span>VEGETARIAN</span>
-                          </>
-                        ) : null}
                       </div>
+                      {item.dietaryLabels.length ? (
+                        <ul
+                          className="menu-diet-labels"
+                          aria-label={`Dietary labels for ${item.name}`}
+                        >
+                          {item.dietaryLabels.map((label) => (
+                            <li key={label} className={`menu-diet-label menu-diet-${label}`}>
+                              {dietaryLabelText(label)}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                       <div className="menu-item-title-row">
                         <h3>{item.name}</h3>
                         <strong>{currency(item.priceMinor, displayCurrency)}</strong>
                       </div>
                       <p>{item.description}</p>
                       {item.allergenLabels.length ? (
-                        <p className="menu-allergens">Contains: {item.allergenLabels.join(", ")}</p>
+                        <p className="menu-allergens">
+                          <strong>Contains:</strong> {item.allergenLabels.join(", ")}
+                        </p>
                       ) : null}
                       <div className="menu-item-footer">
                         <span>

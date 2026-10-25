@@ -641,26 +641,20 @@
   font-weight: 720;
   letter-spacing: 0.08em;
 }
-.menu-veg-dot {
+/* Veg mark carries its word, so it never relies on the green colour alone (S4-05, 1.4.1). */
+.menu-veg-mark {
   position: absolute;
   z-index: 2;
   right: 10px;
   bottom: 10px;
-  width: 12px;
-  height: 12px;
-  border: 1px solid #668a59;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border: 1px solid #4f7346;
+  border-radius: 4px;
+  color: #2f5a2a;
   background: #fff;
-}
-.menu-veg-dot::after {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #729561;
-  content: "";
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
 }
 .menu-item-copy {
   padding: 12px 13px 11px;
@@ -1757,4 +1751,32 @@
 }
 .menu-in-bag {
   font-weight: 600;
+}
+
+/* S4-05: dietary labels as written words with an outline, readable in greyscale. */
+.menu-diet-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.menu-diet-label {
+  padding: 1px 7px;
+  border: 1px solid #b9c7b0;
+  border-radius: 999px;
+  color: #33502f;
+  background: #f4f8f0;
+  font-size: 10px;
+  font-weight: 650;
+}
+.menu-diet-non-vegetarian,
+.menu-diet-contains-egg {
+  border-color: #e0bba8;
+  color: #7f3b1e;
+  background: #fcf3ee;
+}
+.menu-allergens strong {
+  font-weight: 700;
 }
