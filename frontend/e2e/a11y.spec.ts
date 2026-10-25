@@ -17,6 +17,7 @@ const DASHBOARD_SECTIONS = [
   "Kitchen",
   "Reservations",
   "Inventory",
+  "Menu",
   "Incidents",
   "Insights",
   "Analytics",
@@ -65,6 +66,10 @@ test("public pages have no serious or critical axe violations", async ({ page },
     .click();
   await expect(page.getByRole("dialog", { name: /Your bag/ })).toBeVisible();
   found.push(...(await blockingViolations(page, "/menu (bag open)", testInfo)));
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Choose options for Curry leaf lemon rice" }).click();
+  await expect(page.getByRole("dialog", { name: "Curry leaf lemon rice" })).toBeVisible();
+  found.push(...(await blockingViolations(page, "/menu (options open)", testInfo)));
 
   await page.goto("/register");
   await page.getByRole("textbox", { name: "Your name" }).fill("Axe Check");
@@ -87,6 +92,13 @@ test("every dashboard section has no serious or critical axe violations", async 
     await navigation.getByRole("button", { name: new RegExp(`^${section}`) }).click();
     found.push(...(await blockingViolations(page, `dashboard/${section}`, testInfo)));
   }
+  await navigation.getByRole("button", { name: /^Menu/ }).click();
+  await page.getByRole("button", { name: "Add item" }).click();
+  await page
+    .getByRole("form", { name: "Add a menu item" })
+    .getByRole("button", { name: "Add to menu" })
+    .click();
+  found.push(...(await blockingViolations(page, "dashboard/Menu (form with errors)", testInfo)));
   await page.getByRole("button", { name: /^Notifications/ }).click();
   await expect(page.getByRole("dialog", { name: "Notifications" })).toBeVisible();
   found.push(...(await blockingViolations(page, "dashboard (notifications open)", testInfo)));
