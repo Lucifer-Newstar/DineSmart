@@ -421,3 +421,30 @@ Review follow-up after the repository was published. A review of `main` at `7ac2
 - Docs: removed stale "no remote / nothing pushed" statements, rewrote the status sections, marked Redis and extra API instances as future in the scalability diagram, updated the backlog statuses, and added the [deployment inputs checklist](../Developers%20Guide/Deployment.md).
 - **Local verification via Node `24.21.0`:** backend 328 tests and frontend 50 tests pass; Biome, typecheck, both production builds and `npm audit --audit-level=high` are clean; `actionlint` passes.
 - **Not verified live:** MongoDB Atlas, the email provider, Google sign-in, Gemini and the deployed WebSocket path still need a live check after deployment.
+
+## 2026-10-25
+
+### Sprint 4 Day 1: guard rails, end-to-end tests, accessibility, security and menu management
+
+My part:
+
+- `f259f93` docs(S4-00): add the Sprint 4–7 backlog with owners and acceptance criteria
+- `463bc54` docs(S4-01): add a pull request template with the Definition of Done
+- `ec363e5` docs(S4-01): add bug and feature issue forms
+- `0f6b7fd` docs(S4-01): add CODEOWNERS from the backlog ownership
+- `9d47de1` docs(S4-01): add SECURITY.md with the reporting route and supported branch
+- `6938da7` docs(S4-01): add CONTRIBUTING.md with setup, checks and commit rules
+- `7980d08` docs(S4-03): publish the WCAG 2.2 AA accessibility statement
+- `deca6db` feat(S4-04): send security headers from the API
+- `cf49bd1` test(S4-04): cover the API security headers
+- `a2ea84f` feat(S4-04): add an audit log collection for sensitive actions
+- `a4ae75a` feat(S4-04): record staff, role and threshold changes in the audit log
+- `e5676c2` feat(S4-04): add a manager-only audit log endpoint
+- `1efd529` test(S4-04): cover audit writes, reads and tenant isolation
+- `c5d0373` feat(S4-04): reject cookie-authenticated refresh and logout from foreign origins
+- `aeb9830` test(S4-04): cover the origin check on refresh and logout
+- `1cb346c` docs(S4-04): document the audit log and session controls
+- `46ed633` fix(S4-04): update body-parser to 2.4.0 for the compressed-body DoS advisory
+- `npm audit` flagged a new high advisory in body-parser (compressed request bodies); the lockfile now pins 2.4.0 and both audits are clean.
+- **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
+- **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
