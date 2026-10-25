@@ -48,6 +48,7 @@ function createAppForReset(
     origin?: string;
     provider?: string;
     exposeService?: boolean;
+    rateLimits?: boolean;
   } = {},
 ) {
   const repository = options.repository ?? new FakeResetRepository();
@@ -76,6 +77,7 @@ function createAppForReset(
             },
       webOrigin: options.origin ?? "https://app.example",
       nodeEnvironment: options.environment ?? "development",
+      rateLimits: options.rateLimits,
     }),
   );
   return {
@@ -267,6 +269,26 @@ test("password reset confirmation is limited to ten attempts per IP", async () =
     }
     assert.deepEqual(statuses, [...Array.from({ length: 10 }, () => 401), 429]);
     assert.equal(repository.confirms, 10);
+  });
+});
+
+test("the auth limits are skipped when the router is built without rate limits", async () => {
+  const fixture = createAppForReset({ rateLimits: false });
+  fixture.repository.target = null;
+  await withServer(fixture.app, async (baseUrl) => {
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      const response = await fetch(`${baseUrl}/api/v1/auth/reset-password/request`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: "unknown@example.test" }),
+      });
+      statuses.push(response.status);
+    }
+    assert.deepEqual(
+      statuses,
+      Array.from({ length: 7 }, () => 202),
+    );
   });
 });
 

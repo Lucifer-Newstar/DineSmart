@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
 import type { Db } from "mongodb";
-import { createApp } from "../src/app.js";
+import { areAuthRateLimitsDisabled, createApp } from "../src/app.js";
 
 test("GET /health reports process liveness", async () => {
   const server = createApp({ nodeEnvironment: "test" }).listen(0, "127.0.0.1");
@@ -131,4 +131,13 @@ test("createApp mounts the public menu and protected analytics, billing, order, 
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
+});
+
+test("auth rate limits can only be switched off for the test environment", () => {
+  assert.equal(areAuthRateLimitsDisabled("test", "1"), true);
+  assert.equal(areAuthRateLimitsDisabled("test", " 1 "), true);
+  assert.equal(areAuthRateLimitsDisabled("test", "true"), false);
+  assert.equal(areAuthRateLimitsDisabled("test", undefined), false);
+  assert.equal(areAuthRateLimitsDisabled("development", "1"), false);
+  assert.equal(areAuthRateLimitsDisabled("production", "1"), false);
 });

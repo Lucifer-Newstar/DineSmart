@@ -90,6 +90,20 @@ export interface AppOptions {
   trustProxy?: string;
   /** Overrides the EMAIL_PROVIDER-selected transport (tests). */
   emailTransport?: EmailTransport;
+  /** Overrides E2E_DISABLE_RATE_LIMITS; honoured only when NODE_ENV=test. */
+  disableAuthRateLimits?: string;
+}
+
+/**
+ * The browser suite signs in many times from one address, so it may switch the
+ * per-IP auth limits off. Only the exact value "1" under NODE_ENV=test counts;
+ * development and production always keep the limits.
+ */
+export function areAuthRateLimitsDisabled(
+  nodeEnvironment: string,
+  flag: string | undefined,
+): boolean {
+  return nodeEnvironment === "test" && flag?.trim() === "1";
 }
 
 export function createApp(options: AppOptions = {}) {
@@ -139,6 +153,10 @@ export function createApp(options: AppOptions = {}) {
     configuredWebOrigin ?? (nodeEnvironment === "production" ? "" : "http://localhost:3000");
   const googleClientId = options.getGoogleClientId?.() ?? process.env.GOOGLE_CLIENT_ID;
   const googleVerifier = googleClientId ? new GoogleIdTokenVerifier(googleClientId) : undefined;
+  const authRateLimits = !areAuthRateLimitsDisabled(
+    nodeEnvironment,
+    options.disableAuthRateLimits ?? process.env.E2E_DISABLE_RATE_LIMITS,
+  );
 
   if (configuredWebOrigin) {
     const parsedOrigin = new URL(configuredWebOrigin);
@@ -221,6 +239,7 @@ export function createApp(options: AppOptions = {}) {
     createAuthRouter({
       webOrigin,
       nodeEnvironment,
+      rateLimits: authRateLimits,
       createService: async () => (await createAuthRuntime()).service,
       createEmailOtpService: async () => {
         const { db, secret, service } = await createAuthRuntime();

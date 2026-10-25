@@ -21,6 +21,12 @@ export interface AuthRouterOptions {
   googleSession?: (idToken: string) => Promise<AuthSession>;
   webOrigin: string;
   nodeEnvironment: string;
+  /**
+   * When false the per-IP auth rate limits are skipped. createApp only allows
+   * this for NODE_ENV=test with E2E_DISABLE_RATE_LIMITS=1, because the browser
+   * suite signs every role in many times from one loopback address.
+   */
+  rateLimits?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -101,9 +107,11 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
   const router = Router();
   router.use(cookieParser());
   router.use(requireTrustedOrigin(options));
+  const skip = options.rateLimits === false ? () => true : undefined;
 
   const loginRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
+    skip,
     limit: 10,
     standardHeaders: true,
     legacyHeaders: false,
@@ -113,6 +121,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
   });
   const registrationRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
+    skip,
     limit: 5,
     standardHeaders: true,
     legacyHeaders: false,
@@ -122,6 +131,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
   });
   const otpVerifyRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
+    skip,
     limit: 10,
     standardHeaders: true,
     legacyHeaders: false,
@@ -131,6 +141,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
   });
   const passwordResetRequestRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
+    skip,
     limit: 5,
     standardHeaders: true,
     legacyHeaders: false,
@@ -143,6 +154,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
   });
   const passwordResetConfirmRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
+    skip,
     limit: 10,
     standardHeaders: true,
     legacyHeaders: false,
@@ -155,6 +167,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
   });
   const refreshRateLimit = rateLimit({
     windowMs: LOGIN_RATE_WINDOW_MS,
+    skip,
     limit: 30,
     standardHeaders: true,
     legacyHeaders: false,
