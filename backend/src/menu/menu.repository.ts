@@ -1,8 +1,10 @@
 import type { Db, ObjectId, WithId } from "mongodb";
 import { COLLECTIONS, type MenuItemDocument, type RestaurantDocument } from "../database/schema.js";
 import {
+  arrangeMenu,
   MANAGED_MENU_LIMIT,
   type ManagedMenuItem,
+  type ManagedMenuList,
   type MenuAdminRepository,
   type MenuItemInput,
   type MenuItemPatch,
@@ -15,6 +17,8 @@ export const PUBLIC_MENU_LIMIT = 200;
 
 /** Archived items are hidden everywhere; `null` also matches items created before archiving existed. */
 const NOT_ARCHIVED = { archivedAt: null } as const;
+/** Saved position first; items never arranged fall back to name order. */
+const MENU_SORT = { sortPosition: 1, name: 1, _id: 1 } as const;
 
 function toManagedItem(document: WithId<MenuItemDocument>): ManagedMenuItem {
   return {
@@ -42,13 +46,13 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
   async getAvailableMenu(restaurantId: ObjectId): Promise<PublicMenu | null> {
     const restaurant = await this.restaurants.findOne(
       { _id: restaurantId, status: "active" },
-      { projection: { _id: 1, name: 1, currency: 1 } },
+      { projection: { _id: 1, name: 1, currency: 1, menuCategoryOrder: 1 } },
     );
     if (!restaurant) return null;
 
     const documents = await this.menuItems
       .find({ restaurantId, isAvailable: true, ...NOT_ARCHIVED })
-      .sort({ category: 1, name: 1, _id: 1 })
+      .sort(MENU_SORT)
       .limit(PUBLIC_MENU_LIMIT + 1)
       .toArray();
     const truncated = documents.length > PUBLIC_MENU_LIMIT;
@@ -62,25 +66,29 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       allergenLabels: item.allergenLabels ?? [],
     }));
 
+    const arranged = arrangeMenu(items, restaurant.menuCategoryOrder);
     return {
       restaurant: { id: restaurant._id, name: restaurant.name, currency: restaurant.currency },
-      items,
+      categories: arranged.categories,
+      items: arranged.items,
       truncated,
     };
   }
 
-  async listManagedItems(
-    restaurantId: ObjectId,
-  ): Promise<{ items: ManagedMenuItem[]; truncated: boolean }> {
-    const documents = await this.menuItems
-      .find({ restaurantId, ...NOT_ARCHIVED })
-      .sort({ category: 1, name: 1, _id: 1 })
-      .limit(MANAGED_MENU_LIMIT + 1)
-      .toArray();
-    return {
-      items: documents.slice(0, MANAGED_MENU_LIMIT).map(toManagedItem),
-      truncated: documents.length > MANAGED_MENU_LIMIT,
-    };
+  async listManagedItems(restaurantId: ObjectId): Promise<ManagedMenuList> {
+    const [restaurant, documents] = await Promise.all([
+      this.restaurants.findOne({ _id: restaurantId }, { projection: { menuCategoryOrder: 1 } }),
+      this.menuItems
+        .find({ restaurantId, ...NOT_ARCHIVED })
+        .sort(MENU_SORT)
+        .limit(MANAGED_MENU_LIMIT + 1)
+        .toArray(),
+    ]);
+    const arranged = arrangeMenu(
+      documents.slice(0, MANAGED_MENU_LIMIT).map(toManagedItem),
+      restaurant?.menuCategoryOrder,
+    );
+    return { ...arranged, truncated: documents.length > MANAGED_MENU_LIMIT };
   }
 
   async findManagedItem(restaurantId: ObjectId, itemId: ObjectId): Promise<ManagedMenuItem | null> {
@@ -106,6 +114,13 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       createdAt: now,
       updatedAt: now,
     };
+    // New items go to the end of the menu until a manager moves them.
+    const [last] = await this.menuItems
+      .find({ restaurantId }, { projection: { sortPosition: 1 } })
+      .sort({ sortPosition: -1 })
+      .limit(1)
+      .toArray();
+    document.sortPosition = (last?.sortPosition ?? -1) + 1;
     const result = await this.menuItems.insertOne(document);
     return toManagedItem({ ...document, _id: result.insertedId });
   }
@@ -146,6 +161,29 @@ export class MongoMenuRepository implements MenuReader, MenuAdminRepository {
       { returnDocument: "before" },
     );
     return previous ? toManagedItem(previous) : null;
+  }
+
+  async arrange(
+    restaurantId: ObjectId,
+    categories: string[],
+    itemIds: ObjectId[],
+    now: Date,
+  ): Promise<void> {
+    if (itemIds.length > 0) {
+      await this.menuItems.bulkWrite(
+        itemIds.map((itemId, index) => ({
+          updateOne: {
+            filter: { _id: itemId, restaurantId, ...NOT_ARCHIVED },
+            update: { $set: { sortPosition: index, updatedAt: now } },
+          },
+        })),
+        { ordered: false },
+      );
+    }
+    await this.restaurants.updateOne(
+      { _id: restaurantId },
+      { $set: { menuCategoryOrder: categories, updatedAt: now } },
+    );
   }
 
   async archiveItem(

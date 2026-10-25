@@ -24,6 +24,7 @@ const restaurantId = new ObjectId("507f1f77bcf86cd799439011");
 function buildMenu(itemCount: number): PublicMenu {
   return {
     restaurant: { id: restaurantId, name: "Saffron & Co.", currency: "INR" },
+    categories: ["Tiffin"],
     items: Array.from({ length: itemCount }, (_unused, index) => ({
       id: new ObjectId(),
       name: `Chef's seasonal tasting plate number ${index + 1}`,

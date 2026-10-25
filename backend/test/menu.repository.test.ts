@@ -41,14 +41,16 @@ test("public menu repository returns active available items with restaurant curr
       return {
         async findOne(filter: Record<string, unknown>, options: Record<string, unknown>) {
           queries.push({ collection: name, filter });
-          assert.deepEqual(options, { projection: { _id: 1, name: 1, currency: 1 } });
+          assert.deepEqual(options, {
+            projection: { _id: 1, name: 1, currency: 1, menuCategoryOrder: 1 },
+          });
           return restaurant;
         },
         find(filter: Record<string, unknown>) {
           queries.push({ collection: name, filter });
           return {
             sort(specification: Record<string, 1>) {
-              assert.deepEqual(specification, { category: 1, name: 1, _id: 1 });
+              assert.deepEqual(specification, { sortPosition: 1, name: 1, _id: 1 });
               return this;
             },
             limit(value: number) {
@@ -79,6 +81,7 @@ test("public menu repository returns active available items with restaurant curr
       allergenLabels: ["dairy"],
     },
   ]);
+  assert.deepEqual(result?.categories, ["Tiffin"]);
   assert.equal(result?.truncated, false);
   assert.deepEqual(queries, [
     { collection: COLLECTIONS.restaurants, filter: { _id: restaurantId, status: "active" } },

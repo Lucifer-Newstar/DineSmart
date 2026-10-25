@@ -11,6 +11,7 @@ const itemId = new ObjectId();
 
 const menu: PublicMenu = {
   restaurant: { id: restaurantId, name: "Saffron & Co.", currency: "INR" },
+  categories: ["Tiffin"],
   items: [
     {
       id: itemId,
@@ -70,6 +71,7 @@ test("public menu route returns only the safe catalog response without authentic
   assert.equal(requestedId?.toHexString(), restaurantId.toHexString());
   assert.deepEqual(await response.json(), {
     restaurant: { id: restaurantId.toHexString(), name: "Saffron & Co.", currency: "INR" },
+    categories: ["Tiffin"],
     items: [
       {
         id: itemId.toHexString(),

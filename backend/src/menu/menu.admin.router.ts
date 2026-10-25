@@ -3,10 +3,12 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
-import { requireObjectIdParam } from "../http/object-id-param.js";
+import { isObjectIdString, requireObjectIdParam } from "../http/object-id-param.js";
 import { type MenuAdminService, MenuError } from "./menu.service.js";
 import {
+  MANAGED_MENU_LIMIT,
   type ManagedMenuItem,
+  type ManagedMenuList,
   MENU_ALLERGEN_LABEL_MAX,
   MENU_ALLERGEN_MAX,
   MENU_CATEGORY_MAX,
@@ -19,7 +21,10 @@ import {
 } from "./menu.types.js";
 
 export interface MenuAdminRuntime {
-  service: Pick<MenuAdminService, "list" | "create" | "update" | "setAvailability" | "archive">;
+  service: Pick<
+    MenuAdminService,
+    "list" | "arrange" | "create" | "update" | "setAvailability" | "archive"
+  >;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
 }
 
@@ -175,6 +180,32 @@ export function serializeManagedItem(item: ManagedMenuItem) {
   };
 }
 
+function serializeManagedList(list: ManagedMenuList) {
+  return {
+    categories: list.categories,
+    items: list.items.map(serializeManagedItem),
+    truncated: list.truncated,
+  };
+}
+
+function parseArrangement(value: unknown): { categories: string[]; itemIds: ObjectId[] } | null {
+  if (!isRecord(value) || Object.keys(value).length !== 2) return null;
+  const { categories, itemIds } = value;
+  if (
+    !Array.isArray(categories) ||
+    categories.length > MANAGED_MENU_LIMIT ||
+    !categories.every(
+      (category) => typeof category === "string" && category.length <= MENU_CATEGORY_MAX,
+    ) ||
+    !Array.isArray(itemIds) ||
+    itemIds.length > MANAGED_MENU_LIMIT ||
+    !itemIds.every(isObjectIdString)
+  ) {
+    return null;
+  }
+  return { categories, itemIds: itemIds.map((itemId) => new ObjectId(itemId)) };
+}
+
 function sendUnavailable(response: Response): void {
   response.status(503).json({
     error: { code: "menu_unavailable", message: "Menu management is temporarily unavailable." },
@@ -251,10 +282,7 @@ export function createMenuAdminRouter(options: MenuAdminRouterOptions): Router {
     if (!context) return;
     try {
       const result = await context.runtime.service.list(context.restaurantId);
-      response.status(200).json({
-        items: result.items.map(serializeManagedItem),
-        truncated: result.truncated,
-      });
+      response.status(200).json(serializeManagedList(result));
     } catch (error) {
       sendMenuError(error, response);
     }
@@ -275,6 +303,31 @@ export function createMenuAdminRouter(options: MenuAdminRouterOptions): Router {
         context.actor,
       );
       response.status(201).json({ item: serializeManagedItem(item) });
+    } catch (error) {
+      sendMenuError(error, response);
+    }
+  });
+
+  router.put("/arrangement", async (request: Request, response: Response) => {
+    const context = scope(request, response);
+    if (!context) return;
+    const arrangement = parseArrangement(request.body);
+    if (!arrangement) {
+      response.status(400).json({
+        error: {
+          code: "invalid_menu_arrangement",
+          message: "Send categories and itemIds, each listed once in the new order.",
+        },
+      });
+      return;
+    }
+    try {
+      const result = await context.runtime.service.arrange(
+        context.restaurantId,
+        arrangement.categories,
+        arrangement.itemIds,
+      );
+      response.status(200).json(serializeManagedList(result));
     } catch (error) {
       sendMenuError(error, response);
     }

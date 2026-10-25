@@ -72,14 +72,32 @@ const input: MenuItemInput = {
   allergenLabels: [],
 };
 
+function lastPositionCursor(sortPosition: number | undefined) {
+  return () => ({
+    sort(specification: Record<string, number>) {
+      assert.deepEqual(specification, { sortPosition: -1 });
+      return this;
+    },
+    limit() {
+      return this;
+    },
+    async toArray() {
+      return sortPosition === undefined ? [] : [{ sortPosition }];
+    },
+  });
+}
+
 test("createItem inserts a tenant-scoped live item and returns it with its new id", async () => {
   const insertedId = new ObjectId();
-  const { db, calls } = fakeDb({ insertOne: async () => ({ insertedId }) });
+  const { db, calls } = fakeDb({
+    find: lastPositionCursor(undefined),
+    insertOne: async () => ({ insertedId }),
+  });
 
   const item = await new MongoMenuRepository(db).createItem(restaurantId, input, now);
 
-  assert.equal(calls.length, 1);
-  const document = calls[0]?.args[0] as MenuItemDocument;
+  assert.equal(calls.length, 2);
+  const document = calls[1]?.args[0] as MenuItemDocument;
   assert.deepEqual(document, {
     restaurantId,
     category: "South Indian",
@@ -92,6 +110,7 @@ test("createItem inserts a tenant-scoped live item and returns it with its new i
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
+    sortPosition: 0,
   });
   assert.equal(item.id, insertedId);
   assert.equal(item.name, "Mysore masala dosa");
@@ -99,12 +118,17 @@ test("createItem inserts a tenant-scoped live item and returns it with its new i
 });
 
 test("createItem leaves the description out when none is given", async () => {
-  const { db, calls } = fakeDb({ insertOne: async () => ({ insertedId: new ObjectId() }) });
+  const { db, calls } = fakeDb({
+    find: lastPositionCursor(6),
+    insertOne: async () => ({ insertedId: new ObjectId() }),
+  });
   const { description: _unused, ...withoutDescription } = input;
 
   const item = await new MongoMenuRepository(db).createItem(restaurantId, withoutDescription, now);
 
-  assert.equal(Object.hasOwn(calls[0]?.args[0] as object, "description"), false);
+  const document = calls[1]?.args[0] as MenuItemDocument;
+  assert.equal(Object.hasOwn(document, "description"), false);
+  assert.equal(document.sortPosition, 7, "a new item goes after the last one");
   assert.equal("description" in item, false);
 });
 
@@ -172,6 +196,7 @@ test("listManagedItems includes sold-out items, skips archived ones and is bound
   );
   let limit = 0;
   const { db, calls } = fakeDb({
+    findOne: async () => ({ menuCategoryOrder: [] }),
     find: () => ({
       sort() {
         return this;
@@ -188,7 +213,8 @@ test("listManagedItems includes sold-out items, skips archived ones and is bound
 
   const result = await new MongoMenuRepository(db).listManagedItems(restaurantId);
 
-  assert.deepEqual(calls[0]?.args[0], { restaurantId, archivedAt: null });
+  const find = calls.find((call) => call.method === "find");
+  assert.deepEqual(find?.args[0], { restaurantId, archivedAt: null });
   assert.equal(limit, MANAGED_MENU_LIMIT + 1);
   assert.equal(result.items.length, MANAGED_MENU_LIMIT);
   assert.equal(result.truncated, true);
@@ -201,4 +227,76 @@ test("findManagedItem is tenant scoped and ignores archived items", async () => 
 
   assert.equal(await new MongoMenuRepository(db).findManagedItem(restaurantId, itemId), null);
   assert.deepEqual(calls[0]?.args[0], { _id: itemId, restaurantId, archivedAt: null });
+});
+
+test("listManagedItems follows the saved category order, then position inside a category", async () => {
+  const item = (name: string, category: string) =>
+    storedItem({ _id: new ObjectId(), name, category });
+  // The database returns items by position; categories are then grouped by the saved order.
+  const byPosition = [
+    item("Filter coffee", "Drinks"),
+    item("Ghee podi dosa", "South Indian"),
+    item("Lassi", "Drinks"),
+    item("Lemon rice", "Mains"),
+  ];
+  const { db } = fakeDb({
+    findOne: async () => ({ menuCategoryOrder: ["South Indian", "Drinks", "Retired"] }),
+    find: () => ({
+      sort(specification: Record<string, number>) {
+        assert.deepEqual(specification, { sortPosition: 1, name: 1, _id: 1 });
+        return this;
+      },
+      limit() {
+        return this;
+      },
+      async toArray() {
+        return byPosition;
+      },
+    }),
+  });
+
+  const result = await new MongoMenuRepository(db).listManagedItems(restaurantId);
+
+  assert.deepEqual(result.categories, ["South Indian", "Drinks", "Mains"]);
+  assert.deepEqual(
+    result.items.map((entry) => entry.name),
+    ["Ghee podi dosa", "Filter coffee", "Lassi", "Lemon rice"],
+  );
+});
+
+test("arrange writes positions in list order for live items of the tenant and saves categories", async () => {
+  const first = new ObjectId();
+  const second = new ObjectId();
+  const { db, calls } = fakeDb({
+    bulkWrite: async () => ({}),
+    updateOne: async () => ({}),
+  });
+
+  await new MongoMenuRepository(db).arrange(
+    restaurantId,
+    ["Drinks", "Mains"],
+    [first, second],
+    now,
+  );
+
+  const bulk = calls.find((call) => call.method === "bulkWrite");
+  assert.deepEqual(bulk?.args[0], [
+    {
+      updateOne: {
+        filter: { _id: first, restaurantId, archivedAt: null },
+        update: { $set: { sortPosition: 0, updatedAt: now } },
+      },
+    },
+    {
+      updateOne: {
+        filter: { _id: second, restaurantId, archivedAt: null },
+        update: { $set: { sortPosition: 1, updatedAt: now } },
+      },
+    },
+  ]);
+  const restaurantUpdate = calls.find((call) => call.method === "updateOne");
+  assert.deepEqual(restaurantUpdate?.args, [
+    { _id: restaurantId },
+    { $set: { menuCategoryOrder: ["Drinks", "Mains"], updatedAt: now } },
+  ]);
 });

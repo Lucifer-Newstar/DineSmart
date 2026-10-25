@@ -53,6 +53,7 @@ export function createMenuRouter(options: MenuRouterOptions) {
           name: menu.restaurant.name,
           currency: menu.restaurant.currency,
         },
+        categories: menu.categories,
         items: menu.items.map((item) => ({
           id: item.id.toHexString(),
           name: item.name,

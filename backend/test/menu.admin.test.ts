@@ -8,11 +8,12 @@ import type { AuditChange } from "../src/audit/audit.service.js";
 import type { AuthPrincipal } from "../src/auth/auth.service.js";
 import { createMenuAdminRouter, parseMenuItemBody } from "../src/menu/menu.admin.router.js";
 import { MenuAdminService } from "../src/menu/menu.service.js";
-import type {
-  ManagedMenuItem,
-  MenuAdminRepository,
-  MenuItemInput,
-  MenuItemPatch,
+import {
+  arrangeMenu,
+  type ManagedMenuItem,
+  type MenuAdminRepository,
+  type MenuItemInput,
+  type MenuItemPatch,
 } from "../src/menu/menu.types.js";
 
 const now = new Date("2026-10-25T12:00:00.000Z");
@@ -31,7 +32,11 @@ const PRINCIPALS: Record<string, AuthPrincipal> = {
 
 /** An in-memory repository with the same tenant and archive rules as the Mongo one. */
 class MemoryMenuRepository implements MenuAdminRepository {
-  readonly items = new Map<string, ManagedMenuItem & { restaurantId: string; archived: boolean }>();
+  readonly items = new Map<
+    string,
+    ManagedMenuItem & { restaurantId: string; archived: boolean; sortPosition?: number }
+  >();
+  categoryOrder: string[] = [];
 
   seed(restaurantId: string, name: string): ManagedMenuItem {
     const item = {
@@ -58,10 +63,10 @@ class MemoryMenuRepository implements MenuAdminRepository {
   }
 
   async listManagedItems(restaurantId: ObjectId) {
-    const items = [...this.items.values()].filter(
-      (item) => !item.archived && item.restaurantId === restaurantId.toHexString(),
-    );
-    return { items, truncated: false };
+    const live = [...this.items.values()]
+      .filter((item) => !item.archived && item.restaurantId === restaurantId.toHexString())
+      .sort((left, right) => (left.sortPosition ?? 0) - (right.sortPosition ?? 0));
+    return { ...arrangeMenu(live, this.categoryOrder), truncated: false };
   }
 
   async findManagedItem(restaurantId: ObjectId, itemId: ObjectId) {
@@ -98,6 +103,14 @@ class MemoryMenuRepository implements MenuAdminRepository {
     item.isAvailable = isAvailable;
     item.updatedAt = at;
     return previous;
+  }
+
+  async arrange(restaurantId: ObjectId, categories: string[], itemIds: ObjectId[]) {
+    this.categoryOrder = categories;
+    itemIds.forEach((itemId, index) => {
+      const item = this.live(restaurantId, itemId);
+      if (item) item.sortPosition = index;
+    });
   }
 
   async archiveItem(restaurantId: ObjectId, itemId: ObjectId) {
@@ -335,5 +348,48 @@ test("parseMenuItemBody defaults new items to available with empty label lists",
       allergenLabels: [],
       isAvailable: true,
     },
+  });
+});
+
+test("a manager rearranges the menu; a stale or partial arrangement is refused", async () => {
+  await withApi(async (call, { repository }) => {
+    const dosa = repository.seed(RESTAURANT_A, "Ghee podi dosa");
+    const coffee = repository.seed(RESTAURANT_A, "Filter coffee");
+    coffee.category = "Drinks";
+    const ids = [coffee.id.toHexString(), dosa.id.toHexString()];
+
+    const saved = await call("PUT", "/arrangement", "manager", {
+      categories: ["Drinks", "South Indian"],
+      itemIds: ids,
+    });
+    assert.equal(saved.status, 200);
+    assert.deepEqual(saved.body.categories, ["Drinks", "South Indian"]);
+    assert.deepEqual(
+      saved.body.items.map((item: { name: string }) => item.name),
+      ["Filter coffee", "Ghee podi dosa"],
+    );
+
+    const stale = [
+      { categories: ["Drinks", "South Indian"], itemIds: [ids[0]] },
+      { categories: ["Drinks"], itemIds: ids },
+      { categories: ["Drinks", "South Indian"], itemIds: [ids[0], ids[0]] },
+      { categories: ["Drinks", "South Indian"], itemIds: [ids[0], new ObjectId().toHexString()] },
+    ];
+    for (const body of stale) {
+      const response = await call("PUT", "/arrangement", "manager", body);
+      assert.equal(response.status, 409, JSON.stringify(body));
+      assert.equal(response.body.error.code, "menu_arrangement_stale");
+    }
+    for (const body of [
+      {},
+      { categories: "Drinks", itemIds: ids },
+      { categories: [], itemIds: ["x"] },
+    ]) {
+      assert.equal((await call("PUT", "/arrangement", "manager", body)).status, 400);
+    }
+    assert.equal(
+      (await call("PUT", "/arrangement", "reception", { categories: [], itemIds: [] })).status,
+      403,
+    );
   });
 });

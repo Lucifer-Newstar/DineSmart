@@ -47,7 +47,11 @@ function singleItemRepository(item: ManagedMenuItem): MenuAdminRepository & { ar
   const repository = {
     archived: false,
     async listManagedItems() {
-      return { items: repository.archived ? [] : [{ ...state }], truncated: false };
+      return {
+        categories: repository.archived ? [] : [state.category],
+        items: repository.archived ? [] : [{ ...state }],
+        truncated: false,
+      };
     },
     async findManagedItem() {
       return repository.archived ? null : { ...state };
@@ -65,6 +69,7 @@ function singleItemRepository(item: ManagedMenuItem): MenuAdminRepository & { ar
       state.isAvailable = isAvailable;
       return previous;
     },
+    async arrange() {},
     async archiveItem(tenant: ObjectId, itemId: ObjectId) {
       if (repository.archived || !tenant.equals(restaurantId) || !itemId.equals(state.id))
         return null;

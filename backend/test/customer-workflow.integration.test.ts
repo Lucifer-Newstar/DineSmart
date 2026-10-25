@@ -67,6 +67,7 @@ class CustomerWorkflowRepository implements MenuReader, OrderRepository {
     if (!this.active || !restaurantId.equals(RESTAURANT_ID)) return null;
     return {
       restaurant: { id: RESTAURANT_ID, name: "Saffron & Co.", currency: "INR" },
+      categories: ["Tiffin", "Beverages"],
       items: this.menuItems.filter((item) => item.isAvailable).map(publicMenuItem),
       truncated: false,
     };

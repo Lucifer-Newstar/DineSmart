@@ -106,6 +106,8 @@ export interface RestaurantDocument extends TimestampedDocument {
   currency: string;
   operatingHours?: Record<string, unknown>;
   thresholds?: Record<string, number>;
+  /** Category names in the order the manager arranged them; unlisted ones follow. */
+  menuCategoryOrder?: string[];
   status: string;
 }
 
@@ -134,6 +136,8 @@ export interface MenuItemDocument extends TimestampedDocument {
   isAvailable: boolean;
   dietaryLabels?: string[];
   allergenLabels?: string[];
+  /** Position within the restaurant's menu, lowest first; set on create and by rearranging. */
+  sortPosition?: number;
   /** Set when a manager archives the item; archived items leave every menu but keep order history. */
   archivedAt?: Date | null;
 }
@@ -310,6 +314,10 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
     {
       key: { restaurantId: 1, isAvailable: 1, category: 1, name: 1 },
       name: "menu_items_restaurant_availability_category",
+    },
+    {
+      key: { restaurantId: 1, archivedAt: 1, sortPosition: 1 },
+      name: "menu_items_restaurant_sort",
     },
   ],
   orders: [

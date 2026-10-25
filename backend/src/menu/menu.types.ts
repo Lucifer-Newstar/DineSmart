@@ -18,6 +18,8 @@ export interface PublicMenuItem {
 
 export interface PublicMenu {
   restaurant: PublicMenuRestaurant;
+  /** Category names in display order. */
+  categories: string[];
   items: PublicMenuItem[];
   truncated: boolean;
 }
@@ -60,6 +62,13 @@ export interface ManagedMenuItem {
   updatedAt: Date;
 }
 
+export interface ManagedMenuList {
+  /** Category names in display order. */
+  categories: string[];
+  items: ManagedMenuItem[];
+  truncated: boolean;
+}
+
 export interface MenuItemInput {
   name: string;
   description?: string;
@@ -81,9 +90,7 @@ export interface MenuItemPatch {
 }
 
 export interface MenuAdminRepository {
-  listManagedItems(
-    restaurantId: ObjectId,
-  ): Promise<{ items: ManagedMenuItem[]; truncated: boolean }>;
+  listManagedItems(restaurantId: ObjectId): Promise<ManagedMenuList>;
   findManagedItem(restaurantId: ObjectId, itemId: ObjectId): Promise<ManagedMenuItem | null>;
   createItem(restaurantId: ObjectId, input: MenuItemInput, now: Date): Promise<ManagedMenuItem>;
   /** Returns the updated item, or null when it does not exist, is archived or is another tenant's. */
@@ -100,6 +107,40 @@ export interface MenuAdminRepository {
     isAvailable: boolean,
     now: Date,
   ): Promise<ManagedMenuItem | null>;
+  /** Saves the category order and gives the listed live items positions in list order. */
+  arrange(
+    restaurantId: ObjectId,
+    categories: string[],
+    itemIds: ObjectId[],
+    now: Date,
+  ): Promise<void>;
   /** Archives a live item and returns it as it was, or null when there is nothing to archive. */
   archiveItem(restaurantId: ObjectId, itemId: ObjectId, now: Date): Promise<ManagedMenuItem | null>;
+}
+
+/**
+ * Orders items for display: categories follow the saved order (unknown ones
+ * after it, in the order they first appear), and items keep their incoming
+ * order, which the database already sorted by position, inside each category.
+ */
+export function arrangeMenu<T extends { category: string }>(
+  items: T[],
+  savedCategoryOrder: readonly string[] = [],
+): { categories: string[]; items: T[] } {
+  const present: string[] = [];
+  for (const item of items) if (!present.includes(item.category)) present.push(item.category);
+  const categories = [
+    ...savedCategoryOrder.filter((category) => present.includes(category)),
+    ...present.filter((category) => !savedCategoryOrder.includes(category)),
+  ];
+  const rank = new Map(categories.map((category, index) => [category, index]));
+  const ordered = items
+    .map((item, index) => ({ item, index }))
+    .sort(
+      (left, right) =>
+        (rank.get(left.item.category) ?? 0) - (rank.get(right.item.category) ?? 0) ||
+        left.index - right.index,
+    )
+    .map(({ item }) => item);
+  return { categories, items: ordered };
 }

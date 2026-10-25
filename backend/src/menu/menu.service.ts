@@ -4,6 +4,7 @@ import type { AuditAction, AuditActor } from "../audit/audit.types.js";
 import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import type {
   ManagedMenuItem,
+  ManagedMenuList,
   MenuAdminRepository,
   MenuItemInput,
   MenuItemPatch,
@@ -47,7 +48,41 @@ export class MenuAdminService {
     private readonly publish?: RestaurantRealtimePublisher,
   ) {}
 
-  list(restaurantId: ObjectId): Promise<{ items: ManagedMenuItem[]; truncated: boolean }> {
+  list(restaurantId: ObjectId): Promise<ManagedMenuList> {
+    return this.repository.listManagedItems(restaurantId);
+  }
+
+  /**
+   * Saves a new order for the whole menu. The request must name every live
+   * item and category exactly once, so a manager working from a stale list
+   * (another device added or archived an item) gets a 409 instead of a menu
+   * with half-applied positions.
+   */
+  async arrange(
+    restaurantId: ObjectId,
+    categories: string[],
+    itemIds: ObjectId[],
+  ): Promise<ManagedMenuList> {
+    const current = await this.repository.listManagedItems(restaurantId);
+    const liveIds = new Set(current.items.map((item) => item.id.toHexString()));
+    const requestedIds = new Set(itemIds.map((itemId) => itemId.toHexString()));
+    const sameItems =
+      !current.truncated &&
+      requestedIds.size === itemIds.length &&
+      requestedIds.size === liveIds.size &&
+      [...requestedIds].every((itemId) => liveIds.has(itemId));
+    const sameCategories =
+      new Set(categories).size === categories.length &&
+      categories.length === current.categories.length &&
+      categories.every((category) => current.categories.includes(category));
+    if (!sameItems || !sameCategories) {
+      throw new MenuError(
+        409,
+        "menu_arrangement_stale",
+        "The menu changed while you were arranging it. Reload it and try again.",
+      );
+    }
+    await this.repository.arrange(restaurantId, categories, itemIds, this.clock());
     return this.repository.listManagedItems(restaurantId);
   }
 
