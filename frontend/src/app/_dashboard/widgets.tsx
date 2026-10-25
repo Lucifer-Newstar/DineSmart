@@ -1,11 +1,43 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { type Arrival, type ArrivalNoun, describeArrivals } from "../live-announcements";
 import type { Recommendation } from "../recommendation-data";
 import { displayOrderId } from "./parsers";
 import type { InventoryItem, Order, OrderFeedStatus } from "./types";
 import { Icon, StatusPill } from "./ui";
+
+/**
+ * Announces items that arrive after the first load, once each, through a
+ * polite live region. `ready` is false while a list is loading or showing
+ * sample data, so placeholders are never read out.
+ */
+export function useArrivalAnnouncement(
+  items: readonly Arrival[],
+  noun: ArrivalNoun,
+  ready: boolean,
+): string {
+  const seen = useRef<Set<string> | null>(null);
+  const [message, setMessage] = useState("");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: noun is a constant per caller
+  useEffect(() => {
+    if (!ready) return;
+    const text = describeArrivals(seen.current, items, noun);
+    seen.current = new Set([...(seen.current ?? []), ...items.map((item) => item.id)]);
+    if (text) setMessage(text);
+  }, [items, ready]);
+  return message;
+}
+
+/** A visually hidden polite live region; screen readers read each new message once. */
+export function LiveAnnouncer({ message }: { message: string }) {
+  return (
+    <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+      {message}
+    </div>
+  );
+}
 
 export function OrdersTable({
   orders,

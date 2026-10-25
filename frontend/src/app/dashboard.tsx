@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnalyticsPage } from "./_dashboard/analytics-page";
 import { BillingPanel } from "./_dashboard/billing-panel";
 import { CustomerPortal } from "./_dashboard/customer-portal";
@@ -53,6 +53,7 @@ import type {
   Section,
 } from "./_dashboard/types";
 import { DemoBanner, Icon, PageHeading } from "./_dashboard/ui";
+import { LiveAnnouncer, useArrivalAnnouncement } from "./_dashboard/widgets";
 import { classifyRequestError, DEFAULT_REQUEST_TIMEOUT_MS, fetchWithTimeout } from "./api-client";
 import { useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
@@ -75,6 +76,8 @@ import {
   parseRecommendationsResponse,
 } from "./recommendation-data";
 
+const ORDER_NOUN = { one: "order", many: "orders" };
+
 export function Dashboard() {
   const { user, accessToken, signOut } = useAuth();
   const [section, setSection] = useState<Section>("Overview");
@@ -86,6 +89,15 @@ export function Dashboard() {
   const [slowDataNoticeVisible, setSlowDataNoticeVisible] = useState(false);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [ordersStatus, setOrdersStatus] = useState<OrderFeedStatus>("preview");
+  const orderArrivals = useMemo(
+    () => orders.map((order) => ({ id: order.id, label: displayOrderId(order.id) })),
+    [orders],
+  );
+  const orderAnnouncement = useArrivalAnnouncement(
+    orderArrivals,
+    ORDER_NOUN,
+    ordersStatus === "live",
+  );
   const [ordersTruncated, setOrdersTruncated] = useState(false);
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
   const [kitchenTickets, setKitchenTickets] = useState<KitchenTicket[]>([]);
@@ -1051,6 +1063,7 @@ export function Dashboard() {
                   ? "Live"
                   : "Signed in"}
             </span>
+            <LiveAnnouncer message={orderAnnouncement} />
             <NotificationBell
               feed={user ? notificationFeed : null}
               onViewActivity={() =>

@@ -52,6 +52,10 @@ test("the notification bell updates over the WebSocket without a reload", async 
     .poll(async () => unreadCount(await bell.getAttribute("aria-label")), { timeout: 15_000 })
     .toBeGreaterThan(before);
   expect(reloaded).toBe(false);
+  // Screen-reader users hear the alert once through the polite live region.
+  await expect(
+    page.locator('[aria-live="polite"]').filter({ hasText: /^New notification/ }),
+  ).toHaveCount(1);
 
   await bell.click();
   const panel = page.getByRole("dialog", { name: "Notifications" });

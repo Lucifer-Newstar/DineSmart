@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../_dashboard/ui";
+import { LiveAnnouncer, useArrivalAnnouncement } from "../_dashboard/widgets";
 import { relativeTime } from "./notification-data";
 import type { NotificationFeed } from "./use-notifications";
 
@@ -11,11 +12,18 @@ interface NotificationBellProps {
   onViewActivity: () => void;
 }
 
+const NOTIFICATION_NOUN = { one: "notification", many: "notifications" };
+
 /** Topbar bell backed by the recipient-scoped notification feed (S2-10). */
 export function NotificationBell({ feed, onViewActivity }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const unread = feed?.unreadCount ?? 0;
+  const arrivals = useMemo(
+    () => (feed?.notifications ?? []).map((item) => ({ id: item.id, label: item.title })),
+    [feed?.notifications],
+  );
+  const announcement = useArrivalAnnouncement(arrivals, NOTIFICATION_NOUN, feed?.status === "live");
 
   useEffect(() => {
     if (!open) return;
@@ -41,6 +49,7 @@ export function NotificationBell({ feed, onViewActivity }: NotificationBellProps
 
   return (
     <div className="notification-wrap" ref={wrapRef}>
+      <LiveAnnouncer message={announcement} />
       <button
         className={`icon-button notification-button ${open ? "notification-active" : ""}`}
         type="button"
