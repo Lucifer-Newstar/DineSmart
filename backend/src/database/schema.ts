@@ -134,6 +134,8 @@ export interface MenuItemDocument extends TimestampedDocument {
   isAvailable: boolean;
   dietaryLabels?: string[];
   allergenLabels?: string[];
+  /** Set when a manager archives the item; archived items leave every menu but keep order history. */
+  archivedAt?: Date | null;
 }
 
 export interface TableDocument extends TimestampedDocument {
