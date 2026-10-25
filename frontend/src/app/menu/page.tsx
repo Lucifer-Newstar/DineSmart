@@ -8,6 +8,7 @@ import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { formatMinorCurrency } from "../currency";
 import { useDialogFocus } from "../dialog-focus";
+import { tabId, tabIndexForKey } from "../roving-tabs";
 import {
   ALL_DISHES,
   type CartLine,
@@ -454,14 +455,26 @@ export default function MenuPage() {
           <>
             <div className="menu-toolbar">
               <div className="menu-categories" role="tablist" aria-label="Menu categories">
-                {categories.map((item) => (
+                {categories.map((item, index) => (
                   <button
                     key={item}
+                    id={tabId("menu-tab", item)}
                     className={category === item ? "menu-category-active" : ""}
                     type="button"
                     role="tab"
                     aria-selected={category === item}
+                    aria-controls="menu-dishes"
+                    tabIndex={category === item ? 0 : -1}
                     onClick={() => setCategory(item)}
+                    onKeyDown={(event) => {
+                      const next = tabIndexForKey(event.key, index, categories.length);
+                      if (next === null) return;
+                      event.preventDefault();
+                      const target = categories[next];
+                      if (!target) return;
+                      setCategory(target);
+                      document.getElementById(tabId("menu-tab", target))?.focus();
+                    }}
                   >
                     {item}
                   </button>
@@ -491,7 +504,12 @@ export default function MenuPage() {
               <span>{filteredItems.length} available dishes</span>
             </div>
             {filteredItems.length ? (
-              <div className="menu-grid">
+              <div
+                className="menu-grid"
+                id="menu-dishes"
+                role="tabpanel"
+                aria-labelledby={tabId("menu-tab", category)}
+              >
                 {filteredItems.map((item) => (
                   <article className="menu-item-card" key={item.id}>
                     <div className={`menu-item-art menu-art-${item.art}`} aria-hidden="true">
@@ -561,7 +579,12 @@ export default function MenuPage() {
                 ))}
               </div>
             ) : (
-              <div className="menu-empty">
+              <div
+                className="menu-empty"
+                id="menu-dishes"
+                role="tabpanel"
+                aria-labelledby={tabId("menu-tab", category)}
+              >
                 <span>
                   <MenuIcon name="search" size={22} />
                 </span>

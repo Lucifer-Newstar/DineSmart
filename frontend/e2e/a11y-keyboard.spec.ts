@@ -35,3 +35,21 @@ test("the bag dialog traps focus and Escape returns it to the bag button", async
   await expect(bag).toBeHidden();
   await expect(bagButton).toBeFocused();
 });
+
+test("menu categories follow the tabs pattern: one tab stop, arrows move", async ({ page }) => {
+  await page.goto("/menu");
+  const tabs = page.getByRole("tablist", { name: "Menu categories" }).getByRole("tab");
+  const first = tabs.first();
+  await first.focus();
+  await expect(first).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowRight");
+  const second = tabs.nth(1);
+  await expect(second).toBeFocused();
+  await expect(second).toHaveAttribute("aria-selected", "true");
+  await expect(first).toHaveAttribute("tabindex", "-1");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName(await second.innerText());
+  await page.keyboard.press("End");
+  await expect(tabs.last()).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(first).toBeFocused();
+});
