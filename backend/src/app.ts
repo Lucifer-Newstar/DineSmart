@@ -73,6 +73,8 @@ import { StaffOrderService } from "./orders/order.staff.service.js";
 import { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
 import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
+import { MongoAvailabilityRepository } from "./reservations/availability.repository.js";
+import { ReservationAvailabilityService } from "./reservations/availability.service.js";
 import { MongoReservationRepository } from "./reservations/reservation.repository.js";
 import { createReservationRouter } from "./reservations/reservation.router.js";
 import { ReservationService } from "./reservations/reservation.service.js";
@@ -389,6 +391,7 @@ export function createApp(options: AppOptions = {}) {
             realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
+          availability: new ReservationAvailabilityService(new MongoAvailabilityRepository(db)),
         };
       },
     }),

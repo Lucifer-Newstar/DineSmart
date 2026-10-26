@@ -1,4 +1,5 @@
-import { type BookingRules, turnTimeMinutes } from "./booking-rules.js";
+import type { ObjectId } from "mongodb";
+import { type BookingRules, resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
 
 /**
  * Open booking slots for one day and party size (S5-01).
@@ -208,4 +209,89 @@ export function computeAvailability(input: AvailabilityInput): AvailabilitySlot[
     slots.push(slot);
   }
   return slots;
+}
+
+export interface AvailabilityRestaurant {
+  timeZone: string;
+  operatingHours?: Record<string, unknown>;
+  bookingRules?: unknown;
+}
+
+export interface AvailabilityRepository {
+  getActiveRestaurant(restaurantId: ObjectId): Promise<AvailabilityRestaurant | null>;
+  listTables(restaurantId: ObjectId): Promise<AvailabilityTable[]>;
+  /** Active bookings overlapping [from, to), optionally ignoring one reservation. */
+  listActiveBookings(
+    restaurantId: ObjectId,
+    from: Date,
+    to: Date,
+    excludingReservationId?: ObjectId,
+  ): Promise<AvailabilityBooking[]>;
+}
+
+export interface AvailabilityQuery {
+  restaurantId: ObjectId;
+  date: string;
+  partySize: number;
+}
+
+export interface DayAvailability {
+  date: string;
+  partySize: number;
+  timeZone: string;
+  turnMinutes: number;
+  slots: AvailabilitySlot[];
+}
+
+export interface AvailabilityReader {
+  getDay(query: AvailabilityQuery): Promise<DayAvailability>;
+}
+
+export class AvailabilityNotFoundError extends Error {
+  constructor() {
+    super("The restaurant was not found.");
+    this.name = "AvailabilityNotFoundError";
+  }
+}
+
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+/** Loads one day's tables and bookings and runs the pure slot computation. */
+export class ReservationAvailabilityService implements AvailabilityReader {
+  constructor(
+    private readonly repository: AvailabilityRepository,
+    private readonly clock: () => Date = () => new Date(),
+  ) {}
+
+  async getDay(query: AvailabilityQuery): Promise<DayAvailability> {
+    const restaurant = await this.repository.getActiveRestaurant(query.restaurantId);
+    if (!restaurant) throw new AvailabilityNotFoundError();
+    const rules = resolveBookingRules(restaurant.bookingRules);
+    const dayStart = zonedTimeToUtc(query.date, 0, restaurant.timeZone);
+    // Bookings from the evening before can still hold a table into this day.
+    const [tables, bookings] = await Promise.all([
+      this.repository.listTables(query.restaurantId),
+      this.repository.listActiveBookings(
+        query.restaurantId,
+        new Date(dayStart.getTime() - DAY_MS),
+        new Date(dayStart.getTime() + 2 * DAY_MS),
+      ),
+    ]);
+    return {
+      date: query.date,
+      partySize: query.partySize,
+      timeZone: restaurant.timeZone,
+      turnMinutes: turnTimeMinutes(rules, query.partySize),
+      slots: computeAvailability({
+        date: query.date,
+        partySize: query.partySize,
+        timeZone: restaurant.timeZone,
+        ...(restaurant.operatingHours ? { operatingHours: restaurant.operatingHours } : {}),
+        rules,
+        tables,
+        bookings,
+        now: this.clock(),
+      }),
+    };
+  }
 }

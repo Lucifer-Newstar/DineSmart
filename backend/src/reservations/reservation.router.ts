@@ -10,7 +10,13 @@ import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
 import { isObjectIdString, parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
-import { ReservationError } from "./reservation.service.js";
+import {
+  AvailabilityNotFoundError,
+  type AvailabilityReader,
+  type DayAvailability,
+  parseLocalDate,
+} from "./availability.service.js";
+import { RESERVATION_MAX_PARTY_SIZE, ReservationError } from "./reservation.service.js";
 import type {
   ReservationRecord,
   ReservationServiceReader,
@@ -20,6 +26,8 @@ import type {
 export interface ReservationRuntime {
   service: ReservationServiceReader;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
+  /** Public slot lookup (S5-01); the route answers 503 when it is not wired. */
+  availability?: AvailabilityReader;
 }
 
 export interface ReservationRouterOptions {
@@ -190,6 +198,31 @@ function requireReservationPermission(
   };
 }
 
+function parseAvailabilityQuery(query: Request["query"]) {
+  const restaurantId = objectId(query.restaurantId);
+  const date = typeof query.date === "string" ? query.date : undefined;
+  const partySizeText = typeof query.partySize === "string" ? query.partySize : undefined;
+  if (!restaurantId || !date || !parseLocalDate(date) || !partySizeText) return null;
+  if (!/^\d{1,3}$/.test(partySizeText)) return null;
+  return { restaurantId, date, partySize: Number(partySizeText) };
+}
+
+function availabilityToJson(day: DayAvailability) {
+  return {
+    date: day.date,
+    partySize: day.partySize,
+    timeZone: day.timeZone,
+    turnMinutes: day.turnMinutes,
+    slots: day.slots.map((slot) => ({
+      startAt: slot.startAt.toISOString(),
+      endAt: slot.endAt.toISOString(),
+      localTime: slot.localTime,
+      available: slot.available,
+      ...(slot.reason === undefined ? {} : { reason: slot.reason }),
+    })),
+  };
+}
+
 function toJson(reservation: ReservationRecord) {
   return {
     id: reservation.id.toHexString(),
@@ -211,6 +244,46 @@ function toJson(reservation: ReservationRecord) {
 export function createReservationRouter(options: ReservationRouterOptions): Router {
   const router = Router();
   const runtimes = new WeakMap<Request, ReservationRuntime>();
+
+  // Public: guests pick a slot before they sign in, so this route sits ahead of auth.
+  router.get("/availability", async (request: Request, response: Response) => {
+    const query = parseAvailabilityQuery(request.query);
+    if (!query) {
+      response.status(400).json({
+        error: {
+          code: "invalid_availability_query",
+          message: "Provide a restaurant ID, a YYYY-MM-DD date and a party size.",
+        },
+      });
+      return;
+    }
+    if (query.partySize < 1 || query.partySize > RESERVATION_MAX_PARTY_SIZE) {
+      response.status(400).json({
+        error: {
+          code: "invalid_party_size",
+          message: `Party size must be a whole number between 1 and ${RESERVATION_MAX_PARTY_SIZE}.`,
+        },
+      });
+      return;
+    }
+    try {
+      const runtime = await options.createRuntime();
+      if (!runtime.availability) {
+        sendUnavailable(response);
+        return;
+      }
+      const day = await runtime.availability.getDay(query);
+      response.status(200).json(availabilityToJson(day));
+    } catch (error) {
+      if (error instanceof AvailabilityNotFoundError) {
+        response.status(404).json({
+          error: { code: "restaurant_not_found", message: "The restaurant was not found." },
+        });
+        return;
+      }
+      sendReservationError(error, response);
+    }
+  });
 
   router.use(async (request: Request, response: Response, next: NextFunction) => {
     try {
