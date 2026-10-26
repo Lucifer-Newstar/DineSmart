@@ -1823,3 +1823,13 @@
   font: inherit;
   font-size: 13px;
 }
+
+.menu-offline-note {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #e6cf9a;
+  border-radius: 10px;
+  color: #5c4613;
+  background: #fff7e2;
+  font-size: 14px;
+}

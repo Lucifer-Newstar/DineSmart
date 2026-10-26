@@ -64,6 +64,11 @@ const API_BASE = "/api/v1";
 const RESTAURANT_ID = process.env.NEXT_PUBLIC_DEMO_RESTAURANT_ID ?? "710000000000000000000001";
 const CART_STORAGE_KEY = PENDING_CART_STORAGE_KEY;
 
+/** The service worker marks a menu it served from its saved copy (S5-05). */
+function isOfflineCopy(response: Response): boolean {
+  return response.headers.get("x-dinesmart-offline-copy") === "1";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -183,6 +188,8 @@ export default function MenuPage() {
   const [menuStatus, setMenuStatus] = useState<MenuStatus>("loading");
   const [menuError, setMenuError] = useState("");
   const [reloadMenu, setReloadMenu] = useState(0);
+  /** True when the service worker answered with the last saved menu (S5-05). */
+  const [offlineCopy, setOfflineCopy] = useState(false);
   const [category, setCategory] = useState(ALL_DISHES);
   const [search, setSearch] = useState("");
   const [dietary, setDietary] = useState<DietaryFilter[]>([]);
@@ -290,6 +297,7 @@ export default function MenuPage() {
           throw new Error("The restaurant returned an invalid menu response.");
         }
         setMenu(parsed);
+        setOfflineCopy(isOfflineCopy(response));
         setMenuStatus("ready");
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -316,11 +324,22 @@ export default function MenuPage() {
       });
       if (!response.ok) return;
       const parsed = parseMenu(await response.json());
-      if (parsed && parsed.id.toLowerCase() === RESTAURANT_ID.toLowerCase()) setMenu(parsed);
+      if (parsed && parsed.id.toLowerCase() === RESTAURANT_ID.toLowerCase()) {
+        setMenu(parsed);
+        setOfflineCopy(isOfflineCopy(response));
+      }
     } catch {
       // A failed background check keeps the current menu; the next one retries.
     }
   }, []);
+
+  // Back online after reading the saved menu: fetch the live one again.
+  useEffect(() => {
+    if (!offlineCopy) return;
+    const onOnline = () => setReloadMenu((key) => key + 1);
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [offlineCopy]);
 
   useLiveMenuAvailability({
     accessToken,
@@ -479,7 +498,7 @@ export default function MenuPage() {
   const placeOrder = async () => {
     setCartError("");
     setPlacedOrder(null);
-    if (!menu || menuStatus !== "ready" || cart.length === 0) {
+    if (!menu || menuStatus !== "ready" || offlineCopy || cart.length === 0) {
       setCartError("A live menu and at least one available item are required to place an order.");
       return;
     }
@@ -634,12 +653,20 @@ export default function MenuPage() {
           <span className={`menu-preview-label menu-state-${menuStatus}`}>
             <i />
             {menuStatus === "ready"
-              ? "LIVE MENU"
+              ? offlineCopy
+                ? "SAVED MENU"
+                : "LIVE MENU"
               : menuStatus === "loading"
                 ? "LOADING"
                 : "UNAVAILABLE"}
           </span>
         </div>
+        {menuStatus === "ready" && offlineCopy ? (
+          <p className="menu-offline-note" role="status">
+            You are offline. This is the menu as it was when you last opened it, so prices and
+            availability may have changed. Ordering is off until you are back online.
+          </p>
+        ) : null}
         {menuStatus === "ready" ? (
           <>
             <div className="menu-toolbar">
@@ -1039,17 +1066,23 @@ export default function MenuPage() {
                     className="menu-checkout-button"
                     type="button"
                     disabled={
-                      submitting || menuStatus !== "ready" || authLoading || cartTotalMinor === null
+                      submitting ||
+                      offlineCopy ||
+                      menuStatus !== "ready" ||
+                      authLoading ||
+                      cartTotalMinor === null
                     }
                     onClick={() => void placeOrder()}
                   >
                     {submitting
                       ? "Sending order…"
-                      : authLoading
-                        ? "Checking sign-in…"
-                        : user?.role === "Customer"
-                          ? "Place order request"
-                          : "Sign in to place order"}
+                      : offlineCopy
+                        ? "Ordering is off while offline"
+                        : authLoading
+                          ? "Checking sign-in…"
+                          : user?.role === "Customer"
+                            ? "Place order request"
+                            : "Sign in to place order"}
                     <MenuIcon name="arrow-right" size={15} />
                   </button>
                   <p>
