@@ -96,3 +96,46 @@ export function bookingReminderEmail(details: BookingEmailDetails): EmailMessage
     ],
   });
 }
+
+/** Staff moved the time or changed the party size; a confirmed booking gets an updated calendar file. */
+export function bookingChangedEmail(
+  details: BookingEmailDetails,
+  status: string,
+  now: Date,
+): EmailMessage {
+  const when = formatVisitTime(details.startAt, details.timeZone);
+  const confirmed = status === "Confirmed";
+  return composeEmail({
+    to: details.email,
+    subject: `Your booking at ${details.restaurantName} has changed`,
+    blocks: [
+      `Hi ${details.guestName},`,
+      `${details.restaurantName} has updated your booking. It is now for ${guests(details.partySize)} on ${when}.`,
+      ...(details.tableNumber ? [{ label: "Table", value: details.tableNumber }] : []),
+      ...(details.restaurantAddress
+        ? [{ label: "Address", value: details.restaurantAddress }]
+        : []),
+      confirmed
+        ? "The attached calendar file replaces the earlier one in your calendar."
+        : "The booking is waiting for the restaurant to confirm it.",
+      "If the new time does not suit you, change or cancel it in My bookings.",
+    ],
+    ...(confirmed ? { attachments: [bookingCalendarFile(details, now)] } : {}),
+  });
+}
+
+/** Staff cancelled the booking; the calendar file removes it from the guest's calendar. */
+export function bookingCancelledEmail(details: BookingEmailDetails, now: Date): EmailMessage {
+  const when = formatVisitTime(details.startAt, details.timeZone);
+  return composeEmail({
+    to: details.email,
+    subject: `Your booking at ${details.restaurantName} was cancelled`,
+    blocks: [
+      `Hi ${details.guestName},`,
+      `${details.restaurantName} has cancelled your booking for ${guests(details.partySize)} on ${when}.`,
+      "Please contact the restaurant if you did not expect this. You can book again from DineSmart.",
+      "The attached calendar file removes the booking from your calendar.",
+    ],
+    attachments: [bookingCalendarFile(details, now, "CANCELLED")],
+  });
+}

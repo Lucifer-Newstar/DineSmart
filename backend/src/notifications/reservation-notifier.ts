@@ -8,13 +8,19 @@ import {
   type UserDocument,
 } from "../database/schema.js";
 import type { EmailMessage } from "../email/email-transport.js";
-import { type BookingEmailDetails, bookingConfirmedEmail } from "../email/templates/booking.js";
+import {
+  type BookingEmailDetails,
+  bookingCancelledEmail,
+  bookingChangedEmail,
+  bookingConfirmedEmail,
+} from "../email/templates/booking.js";
 import type { ReservationRecord } from "../reservations/reservation.types.js";
 import type { NewNotification } from "./notification.types.js";
 
 /**
- * Tells guests about staff decisions on their bookings (S5-04): an in-app
- * notification for every change, and an email when they allow booking emails.
+ * Tells guests about staff decisions on their bookings (S5-04, FR-4): a
+ * confirmation, a change of time or party size, or a cancellation. Each one is
+ * an in-app notification and, when the guest allows booking emails, an email.
  */
 
 export type ReservationChangeActor = "staff" | "customer";
@@ -27,13 +33,26 @@ export interface ReservationChange {
 
 export type ReservationChangeNotifier = (change: ReservationChange) => void;
 
-export type ReservationNotice = "confirmed";
+export type ReservationNotice = "confirmed" | "changed" | "cancelled";
+
+const CHANGE_NOTICE_STATUSES = new Set(["Awaiting", "Confirmed"]);
 
 /** Which guest-facing notice a change deserves, if any. Guests are not told about their own edits. */
 export function noticeFor(change: ReservationChange): ReservationNotice | null {
   if (change.actor !== "staff") return null;
   const { previous, updated } = change;
+  if (updated.status === "Cancelled") {
+    return previous && previous.status !== "Cancelled" ? "cancelled" : null;
+  }
   if (updated.status === "Confirmed" && previous?.status !== "Confirmed") return "confirmed";
+  if (
+    previous &&
+    CHANGE_NOTICE_STATUSES.has(updated.status) &&
+    (previous.startAt.getTime() !== updated.startAt.getTime() ||
+      previous.partySize !== updated.partySize)
+  ) {
+    return "changed";
+  }
   return null;
 }
 
@@ -68,21 +87,39 @@ function inAppNotice(
     hour: "numeric",
     minute: "2-digit",
   }).format(reservation.startAt);
+  const party = `${reservation.partySize} ${reservation.partySize === 1 ? "guest" : "guests"}`;
+  if (notice === "cancelled") {
+    return {
+      type: "reservation.cancelled",
+      title: `Your booking at ${contact.restaurantName} was cancelled`,
+      body: `${party} on ${when}. Please contact the restaurant if you did not expect this.`,
+    };
+  }
+  if (notice === "changed") {
+    return {
+      type: "reservation.changed",
+      title: `Your booking at ${contact.restaurantName} has changed`,
+      body: `It is now for ${party} on ${when}.`,
+    };
+  }
   return {
-    type: `reservation.${notice}`,
+    type: "reservation.confirmed",
     title: `Your table at ${contact.restaurantName} is confirmed`,
-    body: `${reservation.partySize} ${reservation.partySize === 1 ? "guest" : "guests"} on ${when}.`,
+    body: `${party} on ${when}.`,
   };
 }
 
 function emailFor(
   notice: ReservationNotice,
   contact: ReservationContact,
+  reservation: ReservationRecord,
   now: Date,
 ): EmailMessage | null {
   if (!contact.email || !contact.bookingEmails) return null;
   const details = { ...contact, email: contact.email };
-  return notice === "confirmed" ? bookingConfirmedEmail(details, now) : null;
+  if (notice === "cancelled") return bookingCancelledEmail(details, now);
+  if (notice === "changed") return bookingChangedEmail(details, reservation.status, now);
+  return bookingConfirmedEmail(details, now);
 }
 
 /** Runs in the background: a failed email or notification never fails the staff action. */
@@ -109,7 +146,7 @@ export function createReservationNotifier(
           }),
         );
       }
-      const email = emailFor(notice, contact, now);
+      const email = emailFor(notice, contact, change.updated, now);
       if (email) tasks.push(deps.sendEmail(email));
       const results = await Promise.allSettled(tasks);
       for (const result of results) if (result.status === "rejected") onError(result.reason);

@@ -105,7 +105,7 @@ export class ReservationService implements ReservationServiceReader {
       event: "reservation.updated",
       data: { reservationId: created.id.toHexString(), status: created.status },
     });
-    this.notifyChange({ previous: null, updated: created, actor: "staff" });
+    this.notifyChange({ previous: null, updated: created, actor: "customer" });
     return created;
   }
 
