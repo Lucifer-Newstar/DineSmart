@@ -38,8 +38,10 @@ import {
   OBJECT_ID_PATTERN,
   type OptionSelection,
   optionSummary,
+  PENDING_CART_STORAGE_KEY,
   parseMenu,
   parsePendingCart,
+  REORDER_NOTICE_STORAGE_KEY,
   type RestaurantMenu,
   reconcileCart,
   unitPriceMinor,
@@ -57,7 +59,7 @@ interface PlacedOrder {
 
 const API_BASE = "/api/v1";
 const RESTAURANT_ID = process.env.NEXT_PUBLIC_DEMO_RESTAURANT_ID ?? "710000000000000000000001";
-const CART_STORAGE_KEY = "dinesmart.pending-order-cart.v1";
+const CART_STORAGE_KEY = PENDING_CART_STORAGE_KEY;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -349,6 +351,11 @@ export default function MenuPage() {
           setCartOpen(true);
         }
         window.sessionStorage.removeItem(CART_STORAGE_KEY);
+      }
+      const notice = window.sessionStorage.getItem(REORDER_NOTICE_STORAGE_KEY);
+      if (notice) {
+        setCartError(notice.slice(0, 300));
+        window.sessionStorage.removeItem(REORDER_NOTICE_STORAGE_KEY);
       }
     } catch {
       // Storage can be disabled; do not restore or submit an unverified cart.

@@ -62,6 +62,10 @@ export function cleanLineNote(value: unknown): string | null | undefined {
 }
 
 export const ALL_DISHES = "All dishes";
+/** A bag waiting in this tab: saved before sign-in, or built by "Order again" (S5-03). */
+export const PENDING_CART_STORAGE_KEY = "dinesmart.pending-order-cart.v1";
+/** Shown in the bag after a reorder left some dishes out. */
+export const REORDER_NOTICE_STORAGE_KEY = "dinesmart.reorder-notice.v1";
 export const MAX_ORDER_LINES = 20;
 export const MAX_ITEM_QUANTITY = 20;
 export const MAX_ORDER_UNITS = 50;

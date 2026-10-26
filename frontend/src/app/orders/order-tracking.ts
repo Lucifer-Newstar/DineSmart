@@ -230,3 +230,13 @@ export function planReorder(
   }
   return { lines, unavailable };
 }
+
+/** "Masala dosa is not available today, so it was left out." */
+export function reorderNotice(unavailable: readonly string[]): string | null {
+  if (unavailable.length === 0) return null;
+  const names =
+    unavailable.length === 1
+      ? unavailable[0]
+      : `${unavailable.slice(0, -1).join(", ")} and ${unavailable[unavailable.length - 1]}`;
+  return `${names} ${unavailable.length === 1 ? "is" : "are"} not available today, so ${unavailable.length === 1 ? "it was" : "they were"} left out.`;
+}

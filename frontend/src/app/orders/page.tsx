@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { formatMinorCurrency } from "../currency";
+import { PENDING_CART_STORAGE_KEY, parseMenu, REORDER_NOTICE_STORAGE_KEY } from "../menu/menu-data";
+import { planReorder, reorderNotice } from "./order-tracking";
 
 const API_BASE = "/api/v1";
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -18,6 +21,9 @@ interface OrderItem {
   quantity: number;
   /** "Large · Roasted papad" for dishes ordered with options. */
   options: string;
+  /** The options as stored, for "Order again" (S5-03). */
+  optionPairs: Array<{ group: string; choice: string }>;
+  notes?: string;
 }
 
 interface CustomerOrder {
@@ -96,6 +102,16 @@ function parseOrder(value: unknown): CustomerOrder | null {
             .filter(Boolean)
             .join(" · ")
         : "",
+      optionPairs: Array.isArray(entry.options)
+        ? entry.options.flatMap((option) =>
+            isRecord(option) &&
+            typeof option.group === "string" &&
+            typeof option.choice === "string"
+              ? [{ group: option.group, choice: option.choice }]
+              : [],
+          )
+        : [],
+      ...(typeof entry.notes === "string" && entry.notes ? { notes: entry.notes } : {}),
     });
   }
 
@@ -157,6 +173,8 @@ export default function OrdersPage() {
   const [cancelError, setCancelError] = useState("");
   const [cancelingOrderId, setCancelingOrderId] = useState("");
   const [reload, setReload] = useState(0);
+  const [reorderingId, setReorderingId] = useState("");
+  const router = useRouter();
 
   const loadHistory = useCallback(
     async (signal: AbortSignal, refreshKey: number) => {
@@ -201,6 +219,46 @@ export default function OrdersPage() {
     void loadHistory(controller.signal, reload);
     return () => controller.abort();
   }, [accessToken, authLoading, loadHistory, reload, user?.role]);
+
+  // One tap reorder (S5-03): rebuild the bag from today's menu and open it.
+  const orderAgain = async (order: CustomerOrder) => {
+    setCancelError("");
+    setReorderingId(order.id);
+    try {
+      const query = new URLSearchParams({ restaurantId: order.restaurantId });
+      const response = await fetchWithTimeout(`${API_BASE}/menu?${query.toString()}`, {
+        cache: "no-store",
+      });
+      const menu = response.ok ? parseMenu(await response.json()) : null;
+      if (!menu) throw new Error("The menu could not be loaded, so nothing was added.");
+      const plan = planReorder(
+        order.items.map((item) => ({
+          id: item.id,
+          menuItemId: item.menuItemId,
+          name: item.name,
+          quantity: item.quantity,
+          ...(item.optionPairs.length ? { options: item.optionPairs } : {}),
+          ...(item.notes ? { notes: item.notes } : {}),
+        })),
+        menu.items,
+      );
+      const notice = reorderNotice(plan.unavailable);
+      if (plan.lines.length === 0) {
+        throw new Error(notice ?? "None of these dishes can be ordered today.");
+      }
+      window.sessionStorage.setItem(
+        PENDING_CART_STORAGE_KEY,
+        JSON.stringify({ restaurantId: menu.id, items: plan.lines }),
+      );
+      if (notice) window.sessionStorage.setItem(REORDER_NOTICE_STORAGE_KEY, notice);
+      router.push("/menu");
+    } catch (reorderError) {
+      setCancelError(
+        reorderError instanceof Error ? reorderError.message : "This order could not be repeated.",
+      );
+      setReorderingId("");
+    }
+  };
 
   const cancelOrder = async (orderId: string) => {
     if (!accessToken || user?.role !== "Customer") return;
@@ -374,6 +432,15 @@ export default function OrdersPage() {
                           ? "This order was cancelled."
                           : `Latest status: ${order.status}.`}
                     </p>
+                    <button
+                      aria-label={`Order again: order ${order.id.slice(-6).toUpperCase()}`}
+                      className="orders-secondary-link"
+                      disabled={reorderingId === order.id}
+                      type="button"
+                      onClick={() => void orderAgain(order)}
+                    >
+                      {reorderingId === order.id ? "Adding…" : "Order again"}
+                    </button>
                     {["Created", "Accepted", "Preparing", "Ready"].includes(order.status) ? (
                       <Link
                         aria-label={`Track order ${order.id.slice(-6).toUpperCase()}`}
