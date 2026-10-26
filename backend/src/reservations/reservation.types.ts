@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { GuestOutcome, GuestProfileSummary } from "../customers/guest-profile.repository.js";
 
 export const RESERVATION_OCCASIONS = [
   "birthday",
@@ -42,6 +43,9 @@ export interface ReservationRecord {
   dietaryNotes?: string | null;
   arrivedAt?: Date | null;
   seatedAt?: Date | null;
+  /** Staff reads only (S5-02): who booked and what this restaurant knows about them. */
+  customerId?: ObjectId;
+  guestProfile?: GuestProfileSummary;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -142,6 +146,13 @@ export interface ReservationRepository {
     now: Date,
     releasingReservationId?: ObjectId,
   ): Promise<boolean>;
+  /** Adds a seated visit or a no-show to the booking guest's profile (S5-02). */
+  recordGuestOutcome?(
+    restaurantId: ObjectId,
+    reservationId: ObjectId,
+    outcome: GuestOutcome,
+    at: Date,
+  ): Promise<void>;
 }
 
 export interface CustomerReservationRequest extends ReservationGuestDetails {

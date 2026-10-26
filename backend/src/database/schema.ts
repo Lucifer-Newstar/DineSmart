@@ -19,6 +19,7 @@ export const COLLECTIONS = {
   notifications: "notifications",
   bills: "bills",
   auditLogs: "audit_logs",
+  guestProfiles: "guest_profiles",
 } as const;
 
 export type CollectionName = keyof typeof COLLECTIONS;
@@ -188,6 +189,17 @@ export interface TableDocument extends TimestampedDocument {
 }
 
 export type WaitlistStatus = "waiting" | "seated" | "cancelled" | "no_show";
+
+/** One restaurant's view of one customer (S5-02); staff-only fields never reach the guest. */
+export interface GuestProfileDocument extends TimestampedDocument {
+  restaurantId: ObjectId;
+  customerId: ObjectId;
+  visitCount: number;
+  noShowCount: number;
+  lastVisitAt?: Date;
+  tags: string[];
+  staffNote?: string;
+}
 
 export interface WaitlistDocument extends TimestampedDocument {
   restaurantId: ObjectId;
@@ -446,6 +458,14 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
       key: { restaurantId: 1, action: 1, createdAt: -1 },
       name: "audit_logs_restaurant_action_created",
     },
+  ],
+  guestProfiles: [
+    {
+      key: { restaurantId: 1, customerId: 1 },
+      name: "guest_profiles_restaurant_customer_unique",
+      unique: true,
+    },
+    { key: { customerId: 1 }, name: "guest_profiles_customer" },
   ],
 };
 

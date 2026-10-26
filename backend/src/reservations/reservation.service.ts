@@ -318,6 +318,7 @@ export class ReservationService implements ReservationServiceReader {
     );
     if (!updated) throw changedReservationError();
     await this.syncTableOccupancy(current, updated, now);
+    await this.recordGuestOutcome(current, updated, now);
     this.notifyHealthScoreRefresh(request.restaurantId);
     this.notifyIncidentDetection(request.restaurantId);
     this.publishRealtime({
@@ -353,6 +354,19 @@ export class ReservationService implements ReservationServiceReader {
       );
       if (changed) this.publishTable(updated.restaurantId, updated.tableId, "available");
     }
+  }
+
+  /** A first seating counts a visit; a no-show counts against the guest (S5-02). */
+  private async recordGuestOutcome(
+    previous: ReservationRecord,
+    updated: ReservationRecord,
+    now: Date,
+  ): Promise<void> {
+    if (!this.repository.recordGuestOutcome || previous.status === updated.status) return;
+    const outcome =
+      updated.status === "Seated" ? "visit" : updated.status === "NoShow" ? "no_show" : null;
+    if (!outcome) return;
+    await this.repository.recordGuestOutcome(updated.restaurantId, updated.id, outcome, now);
   }
 
   private publishTable(restaurantId: ObjectId, tableId: ObjectId, status: string): void {

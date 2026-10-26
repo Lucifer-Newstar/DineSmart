@@ -1,6 +1,11 @@
 import type { Db, ObjectId, WithId } from "mongodb";
 import { MongoCustomerProfileRepository } from "../customers/customer-profile.repository.js";
 import {
+  type GuestOutcome,
+  MongoGuestProfileRepository,
+  toGuestSummary,
+} from "../customers/guest-profile.repository.js";
+import {
   COLLECTIONS,
   type CustomerDocument,
   type ReservationDocument,
@@ -34,6 +39,7 @@ export class MongoReservationRepository implements ReservationRepository {
   private readonly reservations;
   private readonly customers;
   private readonly customerProfiles: MongoCustomerProfileRepository;
+  private readonly guestProfiles: MongoGuestProfileRepository;
   private readonly restaurants;
   private readonly tables;
 
@@ -41,6 +47,7 @@ export class MongoReservationRepository implements ReservationRepository {
     this.reservations = db.collection<ReservationDocument>(COLLECTIONS.reservations);
     this.customers = db.collection<CustomerDocument>(COLLECTIONS.customers);
     this.customerProfiles = new MongoCustomerProfileRepository(db);
+    this.guestProfiles = new MongoGuestProfileRepository(db);
     this.restaurants = db.collection<RestaurantDocument>(COLLECTIONS.restaurants);
     this.tables = db.collection<TableDocument>(COLLECTIONS.tables);
   }
@@ -104,7 +111,7 @@ export class MongoReservationRepository implements ReservationRepository {
   }
 
   listForRestaurant(restaurantId: ObjectId): Promise<ReservationListResult> {
-    return this.list({ restaurantId });
+    return this.list({ restaurantId }, restaurantId);
   }
 
   listForCustomer(customerId: ObjectId): Promise<ReservationListResult> {
@@ -117,7 +124,7 @@ export class MongoReservationRepository implements ReservationRepository {
   ): Promise<ReservationRecord | null> {
     const reservation = await this.reservations.findOne({ _id: reservationId, restaurantId });
     if (!reservation) return null;
-    return (await this.toRecords([reservation]))[0] ?? null;
+    return (await this.toRecords([reservation], restaurantId))[0] ?? null;
   }
 
   async findForCustomer(
@@ -180,7 +187,24 @@ export class MongoReservationRepository implements ReservationRepository {
     return result.modifiedCount > 0;
   }
 
-  private async list(filter: Record<string, unknown>): Promise<ReservationListResult> {
+  async recordGuestOutcome(
+    restaurantId: ObjectId,
+    reservationId: ObjectId,
+    outcome: GuestOutcome,
+    at: Date,
+  ): Promise<void> {
+    const reservation = await this.reservations.findOne(
+      { _id: reservationId, restaurantId },
+      { projection: { customerId: 1 } },
+    );
+    if (!reservation) return;
+    await this.guestProfiles.recordOutcome(restaurantId, reservation.customerId, outcome, at);
+  }
+
+  private async list(
+    filter: Record<string, unknown>,
+    staffRestaurantId?: ObjectId,
+  ): Promise<ReservationListResult> {
     const documents = await this.reservations
       .find(filter)
       .sort({ startAt: 1, _id: 1 })
@@ -188,13 +212,21 @@ export class MongoReservationRepository implements ReservationRepository {
       .toArray();
     const truncated = documents.length > RESERVATION_LIST_LIMIT;
     return {
-      reservations: await this.toRecords(documents.slice(0, RESERVATION_LIST_LIMIT)),
+      reservations: await this.toRecords(
+        documents.slice(0, RESERVATION_LIST_LIMIT),
+        staffRestaurantId,
+      ),
       truncated,
     };
   }
 
+  /**
+   * Shapes stored bookings for the API. Only staff reads pass `staffRestaurantId`;
+   * they also get the customer ID and that restaurant's guest profile.
+   */
   private async toRecords(
     documents: Array<WithId<ReservationDocument>>,
+    staffRestaurantId?: ObjectId,
   ): Promise<ReservationRecord[]> {
     if (documents.length === 0) return [];
 
@@ -211,12 +243,15 @@ export class MongoReservationRepository implements ReservationRepository {
     const tableLookups = documents.flatMap((document) =>
       document.tableId ? [{ _id: document.tableId, restaurantId: document.restaurantId }] : [],
     );
-    const [customers, tables, restaurants] = await Promise.all([
+    const [customers, tables, restaurants, guestProfiles] = await Promise.all([
       this.customers.find({ _id: { $in: customerIds } }).toArray(),
       tableLookups.length > 0
         ? this.tables.find({ $or: tableLookups }).toArray()
         : Promise.resolve([]),
       this.restaurants.find({ _id: { $in: restaurantIds } }).toArray(),
+      staffRestaurantId
+        ? this.guestProfiles.getMany(staffRestaurantId, customerIds)
+        : Promise.resolve(null),
     ]);
     const customerNames = new Map(
       customers.map((customer) => [customer._id.toHexString(), customer.displayName]),
@@ -246,6 +281,13 @@ export class MongoReservationRepository implements ReservationRepository {
       ...(document.dietaryNotes ? { dietaryNotes: document.dietaryNotes } : {}),
       ...(document.arrivedAt ? { arrivedAt: document.arrivedAt } : {}),
       ...(document.seatedAt ? { seatedAt: document.seatedAt } : {}),
+      ...(guestProfiles
+        ? {
+            customerId: document.customerId,
+            guestProfile:
+              guestProfiles.get(document.customerId.toHexString()) ?? toGuestSummary(null),
+          }
+        : {}),
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
     }));
