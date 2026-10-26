@@ -10,6 +10,7 @@ import type {
   OrderRepository,
   OrderRequestLine,
   OrderServiceReader,
+  TableTokenResolver,
 } from "./order.types.js";
 
 export const ORDER_MAX_LINES = 20;
@@ -34,11 +35,13 @@ export class OrderService implements OrderServiceReader {
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
     private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
     private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
+    private readonly resolveTable?: TableTokenResolver,
   ) {}
 
   async createForCustomer(request: NewCustomerOrderRequest): Promise<OrderRecord> {
     const now = this.clock();
     validateOrderLines(request.items);
+    const table = await this.tableFor(request);
 
     const restaurant = await this.repository.getActiveRestaurant(request.restaurantId);
     if (!restaurant) {
@@ -121,6 +124,7 @@ export class OrderService implements OrderServiceReader {
         currency: restaurant.currency,
         status: "Created",
         statusTimestamps: { Created: now },
+        ...(table ? { tableId: table.tableId } : {}),
       },
       snapshots,
       now,
@@ -132,7 +136,37 @@ export class OrderService implements OrderServiceReader {
       event: "order.updated",
       data: { orderId: created.id.toHexString(), status: created.status },
     });
-    return { ...created, restaurantName: restaurant.name };
+    return {
+      ...created,
+      restaurantName: restaurant.name,
+      ...(table ? { tableNumber: table.tableNumber } : {}),
+    };
+  }
+
+  /** A QR order must carry a valid token for a table of the same restaurant. */
+  private async tableFor(request: NewCustomerOrderRequest) {
+    if (request.tableToken === undefined) return null;
+    if (!this.resolveTable) {
+      throw new OrderError(503, "table_ordering_unavailable", "Table ordering is unavailable.");
+    }
+    let table: Awaited<ReturnType<TableTokenResolver>>;
+    try {
+      table = await this.resolveTable(request.tableToken);
+    } catch {
+      throw new OrderError(
+        400,
+        "invalid_table_token",
+        "This table link is not valid. Ask a server for help.",
+      );
+    }
+    if (!table.restaurantId.equals(request.restaurantId)) {
+      throw new OrderError(
+        400,
+        "invalid_table_token",
+        "This table link belongs to another restaurant.",
+      );
+    }
+    return table;
   }
 
   async listForCustomer(userId: ObjectId) {

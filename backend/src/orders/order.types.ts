@@ -19,7 +19,14 @@ export interface NewCustomerOrderRequest {
   userId: ObjectId;
   restaurantId: ObjectId;
   items: OrderRequestLine[];
+  /** The signed link from a table's QR card (S5-03); ties the order to that table. */
+  tableToken?: string;
 }
+
+/** Resolves a QR table token; throws when it is invalid. */
+export type TableTokenResolver = (
+  token: string,
+) => Promise<{ restaurantId: ObjectId; tableId: ObjectId; tableNumber: string }>;
 
 export interface ActiveOrderRestaurant {
   id: ObjectId;
@@ -47,6 +54,7 @@ export interface NewOrder {
   currency: string;
   status: "Created";
   statusTimestamps: { Created: Date };
+  tableId?: ObjectId;
 }
 
 export interface OrderRecord {
@@ -57,6 +65,9 @@ export interface OrderRecord {
   totalMinor: number;
   currency: string;
   items: OrderItemRecord[];
+  /** Dine-in orders placed from a table QR link (S5-03). */
+  tableId?: ObjectId;
+  tableNumber?: string;
   createdAt: Date;
   updatedAt: Date;
 }

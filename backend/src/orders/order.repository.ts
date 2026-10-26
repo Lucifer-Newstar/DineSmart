@@ -354,6 +354,7 @@ function toOrderRecord(
     totalMinor: order.totalMinor,
     currency: order.currency,
     items,
+    ...(order.tableId ? { tableId: order.tableId } : {}),
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };

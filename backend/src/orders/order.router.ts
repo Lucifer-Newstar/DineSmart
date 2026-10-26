@@ -62,10 +62,16 @@ function parseLineOptions(value: unknown): Record<string, string> | null | undef
 
 function parseCreateBody(
   value: unknown,
-): { restaurantId: ObjectId; items: OrderRequestLine[] } | null {
-  if (!isRecord(value) || !hasOnlyKeys(value, ["restaurantId", "items"])) return null;
+): { restaurantId: ObjectId; items: OrderRequestLine[]; tableToken?: string } | null {
+  if (!isRecord(value) || !hasOnlyKeys(value, ["restaurantId", "items", "tableToken"])) return null;
   const restaurantId = objectId(value.restaurantId);
   if (!restaurantId || !Array.isArray(value.items)) return null;
+  if (
+    value.tableToken !== undefined &&
+    (typeof value.tableToken !== "string" || value.tableToken.length > 120)
+  ) {
+    return null;
+  }
 
   const items: OrderRequestLine[] = [];
   for (const line of value.items) {
@@ -81,7 +87,11 @@ function parseCreateBody(
       ...(options === undefined ? {} : { options }),
     });
   }
-  return { restaurantId, items };
+  return {
+    restaurantId,
+    items,
+    ...(typeof value.tableToken === "string" ? { tableToken: value.tableToken } : {}),
+  };
 }
 
 function sendOrderError(error: unknown, response: Response): void {
@@ -136,6 +146,7 @@ export function createOrderRouter(options: OrderRouterOptions): ReturnType<typeo
           userId: userObjectId(principal.userId),
           restaurantId: body.restaurantId,
           items: body.items,
+          ...(body.tableToken === undefined ? {} : { tableToken: body.tableToken }),
         });
         response.status(201).json({ order: toJson(order) });
       } catch (error) {
@@ -233,6 +244,8 @@ function toJson(order: Awaited<ReturnType<OrderServiceReader["createForCustomer"
       quantity: item.quantity,
       ...(item.options ? { options: item.options } : {}),
     })),
+    ...(order.tableId ? { tableId: order.tableId.toHexString() } : {}),
+    ...(order.tableNumber ? { tableNumber: order.tableNumber } : {}),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };

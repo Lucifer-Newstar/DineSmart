@@ -564,7 +564,8 @@ export function createApp(options: AppOptions = {}) {
     "/api/v1/orders",
     createOrderRouter({
       createRuntime: async () => {
-        const { db, service: authService } = await createAuthRuntime();
+        const { db, secret, service: authService } = await createAuthRuntime();
+        const tableQr = new TableQrService(new MongoTableQrRepository(db), tableQrKey(secret));
         return {
           service: new OrderService(
             new MongoOrderRepository(db),
@@ -572,6 +573,7 @@ export function createApp(options: AppOptions = {}) {
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
             realtimeHub.publishRestaurantEvent,
+            (token) => tableQr.resolve(token),
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
