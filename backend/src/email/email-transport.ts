@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { REGISTRATION_OTP_TTL_MS } from "../auth/email-otp.service.js";
 import { PASSWORD_RESET_OTP_TTL_MS } from "../auth/password-reset.constants.js";
+import { composeEmail } from "./templates/layout.js";
 
 /**
  * Email delivery for the OTP and password-reset flows.
@@ -271,26 +272,30 @@ export class AuthEmailSender {
   constructor(private readonly transport: EmailTransport) {}
 
   sendRegistrationCode(email: string, code: string): Promise<void> {
-    return this.transport.send({
-      to: email,
-      subject: "Your DineSmart verification code",
-      text: [
-        `Your DineSmart verification code is ${code}.`,
-        `It expires in ${minutes(REGISTRATION_OTP_TTL_MS)} minutes.`,
-        "If you did not try to create an account, you can ignore this email.",
-      ].join("\n\n"),
-    });
+    return this.transport.send(
+      composeEmail({
+        to: email,
+        subject: "Your DineSmart verification code",
+        blocks: [
+          `Your DineSmart verification code is ${code}.`,
+          `It expires in ${minutes(REGISTRATION_OTP_TTL_MS)} minutes.`,
+          "If you did not try to create an account, you can ignore this email.",
+        ],
+      }),
+    );
   }
 
   sendPasswordResetCode(email: string, code: string): Promise<void> {
-    return this.transport.send({
-      to: email,
-      subject: "Your DineSmart password reset code",
-      text: [
-        `Your DineSmart password reset code is ${code}.`,
-        `It expires in ${minutes(PASSWORD_RESET_OTP_TTL_MS)} minutes.`,
-        "If you did not ask to reset your password, you can ignore this email; your password has not changed.",
-      ].join("\n\n"),
-    });
+    return this.transport.send(
+      composeEmail({
+        to: email,
+        subject: "Your DineSmart password reset code",
+        blocks: [
+          `Your DineSmart password reset code is ${code}.`,
+          `It expires in ${minutes(PASSWORD_RESET_OTP_TTL_MS)} minutes.`,
+          "If you did not ask to reset your password, you can ignore this email; your password has not changed.",
+        ],
+      }),
+    );
   }
 }

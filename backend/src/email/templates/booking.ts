@@ -1,5 +1,6 @@
 import type { EmailMessage } from "../email-transport.js";
 import { buildIcs } from "./calendar.js";
+import { composeEmail } from "./layout.js";
 
 /** Booking emails (S5-04). Times are shown in the restaurant's time zone. */
 
@@ -63,31 +64,35 @@ export function bookingCalendarFile(
 
 export function bookingConfirmedEmail(details: BookingEmailDetails, now: Date): EmailMessage {
   const when = formatVisitTime(details.startAt, details.timeZone);
-  return {
+  return composeEmail({
     to: details.email,
     subject: `Your table at ${details.restaurantName} is confirmed`,
-    text: [
+    blocks: [
       `Hi ${details.guestName},`,
       `Your table for ${guests(details.partySize)} at ${details.restaurantName} is confirmed for ${when}.`,
-      ...(details.tableNumber ? [`Table: ${details.tableNumber}`] : []),
-      ...(details.restaurantAddress ? [`Address: ${details.restaurantAddress}`] : []),
+      ...(details.tableNumber ? [{ label: "Table", value: details.tableNumber }] : []),
+      ...(details.restaurantAddress
+        ? [{ label: "Address", value: details.restaurantAddress }]
+        : []),
       "The attached calendar file adds the booking to your calendar.",
       "To change or cancel, open My bookings in DineSmart.",
-    ].join("\n\n"),
+    ],
     attachments: [bookingCalendarFile(details, now)],
-  };
+  });
 }
 
 export function bookingReminderEmail(details: BookingEmailDetails): EmailMessage {
   const when = formatVisitTime(details.startAt, details.timeZone);
-  return {
+  return composeEmail({
     to: details.email,
     subject: `Reminder: your table at ${details.restaurantName}`,
-    text: [
+    blocks: [
       `Hi ${details.guestName},`,
       `This is a reminder of your table for ${guests(details.partySize)} at ${details.restaurantName} on ${when}.`,
-      ...(details.restaurantAddress ? [`Address: ${details.restaurantAddress}`] : []),
+      ...(details.restaurantAddress
+        ? [{ label: "Address", value: details.restaurantAddress }]
+        : []),
       "If your plans have changed, please change or cancel in My bookings so the table can go to someone else.",
-    ].join("\n\n"),
-  };
+    ],
+  });
 }
