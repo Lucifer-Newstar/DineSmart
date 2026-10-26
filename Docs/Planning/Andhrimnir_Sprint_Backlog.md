@@ -114,13 +114,27 @@ Goal: Protect the repository with automated checks, prove the main journeys in a
 | S4-05 | Menu management and 86-ing | Jegatheesan & Dhanush | High | 8 | Ready to Push | Managers add, edit, archive, reorder and 86 items; customers see sold-out items live and can filter and pick options |
 | S4-90 | Sprint 4 documentation and work logs | Entire Team | Low | 2 | Ready to Push | API, design and test docs describe the new routes; work logs match the commits |
 
-## Sprints 5–7 – Planned
+## Sprint 5 – Guest Experience
+
+Goal: Let guests book real open slots and manage their bookings, keep a profile per guest, order from the table and follow the order live, hear about changes in the app and by email, and use the app installed and offline for reading.
+
+| Task ID | Task | Owner | Priority | Story Points | Status | Acceptance criteria |
+| --- | --- | --- | --- | --- | --- | --- |
+| S5-01 | Reservations 2.0 | Jegatheesan & Dhanush | High | 8 | Ready to Push | Open slots from tables, turn times and hours; pacing, lead time and booking window; customer change and cancel before the cutoff; arrival, seating and no-shows; table suggestion; waitlist wait quotes |
+| S5-02 | Guest profiles and privacy | Jegatheesan & Dhanush & Navin | High | 5 | Ready to Push | Visit and no-show counts, staff tags and notes; account page with password change; data export and account deletion; privacy notice |
+| S5-03 | QR dine-in ordering and live tracking | Jegatheesan & Dhanush & Navin | High | 8 | Ready to Push | Signed table links; dine-in orders carry the table; special requests reach the kitchen; ETA and status shown live to the customer; reorder |
+| S5-04 | Customer notifications | Gokul & Dhanush | High | 5 | Ready to Push | Booking confirmation with a calendar file, staff change and cancel notices, day-before reminders, order-ready notices for customers and waiters, preferences, mark all as read, HTML and text emails |
+| S5-05 | Installable app and offline reading | Dhanush & Gokul | Medium | 3 | Ready to Push | Manifest and icons; offline page; last menu readable offline with ordering off; connection banner; offline e2e spec |
+| S5-90 | Sprint 5 documentation and work logs | Entire Team | Low | 2 | Ready to Push | API spec, lifecycle diagram, SRS traceability, work logs and the 0.3.0 changelog entry |
+
+Email is sent through the configured transport. Only the development mock transport was exercised; no real email provider has been tested.
+
+## Sprints 6–7 – Planned
 
 These epics are planned and not started. Each becomes a task table when its sprint begins.
 
 | Sprint | Epic | Owner | Status |
 | --- | --- | --- | --- |
-| Sprint 5 | Reservations 2.0, guest profiles, QR ordering and live tracking, customer notifications, installable app | Jegatheesan & Dhanush & Gokul | To Do |
 | Sprint 6 | Kitchen display, inventory with recipes and food cost, GST billing, feedback, observability | Jegatheesan & Dhanush & Gokul | To Do |
 | Sprint 7 | Incident lifecycle, AI resilience and daily summary, analytics, performance, API contract, Tamil, release 1.0.0 | Navin & Dhanush | To Do |
 
