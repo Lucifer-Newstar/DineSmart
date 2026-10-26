@@ -231,3 +231,50 @@ My part:
 - Option groups can be set through the API only; the manager page does not edit them yet.
 - **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
 - **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
+
+## 2026-10-26
+
+### Sprint 5 Day 2: reservations 2.0, guest profiles, QR ordering, customer notifications and the installable app
+
+My part:
+
+- `631ce33` feat(S5-01): store turn times by party size in restaurant settings
+- `e0e722c` feat(S5-01): compute open booking slots from tables, turn times and hours
+- `9ce4e12` test(S5-01): cover slot generation across hours, party sizes and overlaps
+- `d648d61` feat(S5-01): add a public availability endpoint for a date and party size
+- `51f21e6` test(S5-01): cover the availability route and its limits
+- `f6d96e8` feat(S5-01): let customers change or cancel their own booking within the policy window
+- `357d46a` test(S5-01): cover customer changes, cancellation and the cutoff
+- `96517e6` feat(S5-01): add occasion and dietary notes to a booking
+- `2c73146` feat(S5-01): mark arrivals, seat guests and record no-shows
+- `eb16cc9` test(S5-01): cover arrival, seating and no-show transitions
+- `4dc0faa` feat(S5-01): suggest the best-fit free table when seating a booking
+- `ecb4a01` test(S5-01): cover the table suggestion rules
+- `3a11d9f` feat(S5-01): quote a waitlist wait time from current turn times
+- `92bed25` test(S5-01): cover waitlist estimates and the public estimate route
+- `37c07c9` feat(S5-01): cap online covers per 15-minute slot (pacing)
+- `fd62ca7` test(S5-01): cover pacing limits with mixed party sizes
+- `a1aeb26` feat(S5-01): enforce a booking window and minimum lead time
+- `3bbcd33` feat(S5-01): add manager routes to read and save booking rules
+- `5388bd2` test(S5-01): cover the booking rules routes and their permissions
+- `1cbd277` feat(S5-01): let customers see open slots for moving their own booking
+- `31ab9f7` feat(S5-02): keep visit count, last visit and no-show count on the guest profile
+- `9239f14` feat(S5-02): add staff tags and notes to guest profiles
+- `e832ba3` test(S5-02): cover guest profile counters, tags and tenant scope
+- `9578c3a` feat(S5-02): let customers read and update their own profile and contact preferences
+- `bc764d7` feat(S5-02): let customers download their own data as JSON
+- `60eb1a7` feat(S5-02): let customers delete their account and erase their personal data
+- `d1db375` test(S5-02): cover data export and account erasure routes
+- `90afa32` feat(S5-03): issue signed table QR tokens for dine-in ordering
+- `7082164` test(S5-03): cover table token signing, expiry and tampering
+- `4b4a37a` feat(S5-03): attach the table to orders placed from a QR link
+- `e890539` feat(S5-03): estimate ready time from item prep minutes and the queue
+- `16ef58b` test(S5-03): cover the order ETA estimate
+- `d45c5db` feat(S5-03): add special requests per order line
+- `f42ba94` fix(S5-03): include the table number when a customer reads a dine-in order
+- `af36d16` docs(S5-01): document availability, booking changes and waitlist estimates
+- Booking rules live on the restaurant (turn times by party size, pacing per 15 minutes, lead time, booking window, change cutoff) with defaults when unset; a booking's end time now comes from its turn time instead of a fixed 90 minutes.
+- Availability and the table suggestion are pure functions with their own tests; the slot check and the booking write are still separate steps, so the table conflict check on write is what stops two guests taking the last table.
+- Data export returns the customer's own records only; restaurant staff notes about the guest are the restaurant's and are left out. Erasure cancels future bookings, removes personal details from past bookings and order lines, and deletes the guest's notifications and guest profiles; the orders themselves are kept.
+- **Local verification via Node `24.21.0`:** backend 524 tests, frontend 137 tests and repository tool 19 tests pass; the Playwright suite passes 44/44 against a local MongoDB, including the axe scans (0 serious or critical) and the new offline spec; Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check (70 routes, 0 unmatched calls) are clean.
+- **Not verified live:** nothing is pushed yet, so GitHub Actions have not run these commits; email went only through the mock transport (no SMTP or Resend send was made); installing the app and the offline mode were checked in headless Chromium only, not on a phone; MongoDB Atlas and the deployed WebSocket path still need a live check.
