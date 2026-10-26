@@ -69,6 +69,10 @@ import { MongoNotificationRepository } from "./notifications/notification.reposi
 import { createNotificationRouter } from "./notifications/notification.router.js";
 import { NotificationService } from "./notifications/notification.service.js";
 import {
+  MongoNotificationPreferenceStore,
+  respectingPreferences,
+} from "./notifications/notification-preferences.js";
+import {
   createOrderReadyNotifier,
   MongoOrderReadyStore,
   MongoWaiterRecipients,
@@ -185,6 +189,15 @@ export function createApp(options: AppOptions = {}) {
     { onError: () => console.error("A background incident-detection evaluation failed.") },
   );
   app.locals.incidentDetectionScheduler = incidentDetectionScheduler;
+  /** Customer and waiter notices skip categories the recipient turned off (S5-04). */
+  const createWantedNotification = (db: Db) =>
+    respectingPreferences(new MongoNotificationPreferenceStore(db), (notification) =>
+      new NotificationService(
+        new MongoNotificationRepository(db),
+        undefined,
+        realtimeHub.publishNotification,
+      ).create(notification),
+    );
   const reminderScheduler = new ReminderScheduler(
     async () => {
       const db = await (options.getDatabase?.() ?? connectToDatabase());
@@ -192,12 +205,7 @@ export function createApp(options: AppOptions = {}) {
         store: new MongoReminderStore(db),
         contacts: new MongoReservationContactLookup(db),
         sendEmail: (message) => getEmailTransport().send(message),
-        createNotification: (notification) =>
-          new NotificationService(
-            new MongoNotificationRepository(db),
-            undefined,
-            realtimeHub.publishNotification,
-          ).create(notification),
+        createNotification: createWantedNotification(db),
         onError: () => console.error("A booking reminder could not be sent."),
       };
     },
@@ -257,12 +265,7 @@ export function createApp(options: AppOptions = {}) {
     await createOrderReadyNotifier({
       store: new MongoOrderReadyStore(db),
       waiters: new MongoWaiterRecipients(db),
-      createNotification: (notification) =>
-        new NotificationService(
-          new MongoNotificationRepository(db),
-          undefined,
-          realtimeHub.publishNotification,
-        ).create(notification),
+      createNotification: createWantedNotification(db),
       onError: () => console.error("An order-ready notification could not be sent."),
     })(restaurantId, orderId);
   };
@@ -435,6 +438,7 @@ export function createApp(options: AppOptions = {}) {
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
           issueSocketTicket: (identity) => socketTicketStore.issue(identity),
+          preferences: new MongoNotificationPreferenceStore(db),
         };
       },
       webOrigin,
@@ -484,12 +488,7 @@ export function createApp(options: AppOptions = {}) {
             createReservationNotifier({
               contacts: new MongoReservationContactLookup(db),
               sendEmail: (message) => getEmailTransport().send(message),
-              createNotification: (notification) =>
-                new NotificationService(
-                  new MongoNotificationRepository(db),
-                  undefined,
-                  realtimeHub.publishNotification,
-                ).create(notification),
+              createNotification: createWantedNotification(db),
               onError: () => console.error("A booking notification could not be sent."),
             }),
           ),

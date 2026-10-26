@@ -71,6 +71,8 @@ interface UserBaseDocument extends TimestampedDocument {
   failedLoginAttempts?: number;
   /** Password sign-in is refused until this moment. */
   loginLockedUntil?: Date;
+  /** In-app notification categories the user turned off (S5-04); unset means on. */
+  notificationPreferences?: Partial<Record<"bookings" | "orders" | "waiterAlerts", boolean>>;
 }
 
 export interface CustomerUserDocument extends UserBaseDocument {

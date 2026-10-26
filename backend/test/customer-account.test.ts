@@ -63,6 +63,7 @@ async function call(
         signInMethod: "email",
         createdAt: now.toISOString(),
         contactPreferences: profile.contactPreferences,
+        notificationPreferences: { bookings: true, orders: true },
       },
       reservations: [],
       orders: [],

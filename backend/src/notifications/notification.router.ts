@@ -27,6 +27,11 @@ import type {
   NotificationRecord,
   NotificationServiceReader,
 } from "./notification.types.js";
+import {
+  effectivePreferences,
+  type NotificationPreferenceStore,
+  parsePreferenceChanges,
+} from "./notification-preferences.js";
 
 type NotificationOperation = "read" | "update";
 
@@ -34,6 +39,9 @@ export interface NotificationRuntime {
   service: NotificationServiceReader;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
   issueSocketTicket: (identity: RealtimeIdentity) => SocketTicket;
+  /** Per-user notification categories (S5-04). */
+  preferences?: NotificationPreferenceStore;
+  clock?: () => Date;
 }
 
 export interface NotificationRouterOptions {
@@ -275,6 +283,70 @@ export function createNotificationRouter(options: NotificationRouterOptions): Ro
         });
       } catch (error) {
         sendNotificationError(error, response);
+      }
+    },
+  );
+
+  router.get(
+    "/preferences",
+    notificationPermission("read"),
+    requireNotificationTenantScope,
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const scope = recipientScope(request.auth);
+      if (!runtime?.preferences) {
+        sendUnavailable(response);
+        return;
+      }
+      if (!scope || !request.auth) {
+        sendInvalidPrincipal(response);
+        return;
+      }
+      try {
+        const stored = await runtime.preferences.get(scope.userId);
+        response.set("Cache-Control", "no-store");
+        response.status(200).json({ preferences: effectivePreferences(request.auth.role, stored) });
+      } catch {
+        sendUnavailable(response);
+      }
+    },
+  );
+
+  router.put(
+    "/preferences",
+    notificationPermission("update"),
+    requireNotificationTenantScope,
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const scope = recipientScope(request.auth);
+      if (!runtime?.preferences) {
+        sendUnavailable(response);
+        return;
+      }
+      if (!scope || !request.auth) {
+        sendInvalidPrincipal(response);
+        return;
+      }
+      const changes = parsePreferenceChanges(request.auth.role, request.body);
+      if (!changes) {
+        response.status(400).json({
+          error: {
+            code: "invalid_notification_preferences",
+            message: "Send true or false for the notification categories available to you.",
+          },
+        });
+        return;
+      }
+      try {
+        const now = runtime.clock?.() ?? new Date();
+        if (!(await runtime.preferences.update(scope.userId, changes, now))) {
+          sendInvalidPrincipal(response);
+          return;
+        }
+        const stored = await runtime.preferences.get(scope.userId);
+        response.status(200).json({ preferences: effectivePreferences(request.auth.role, stored) });
+      } catch {
+        sendUnavailable(response);
       }
     },
   );

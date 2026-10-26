@@ -10,6 +10,7 @@ import {
   type ReservationDocument,
   type RestaurantDocument,
 } from "../database/schema.js";
+import { effectivePreferences } from "../notifications/notification-preferences.js";
 import {
   AccountError,
   contactPreferencesOf,
@@ -34,6 +35,7 @@ export interface AccountExport {
     signInMethod: string;
     createdAt: string;
     contactPreferences: Record<string, boolean>;
+    notificationPreferences: Record<string, boolean>;
   };
   reservations: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;
@@ -110,6 +112,7 @@ export class MongoCustomerPrivacyRepository extends MongoCustomerAccountReposito
         signInMethod: user.authProvider ?? (user.passwordHash ? "email" : "google"),
         createdAt: user.createdAt.toISOString(),
         contactPreferences: contactPreferencesOf(customer.contactPreferences),
+        notificationPreferences: effectivePreferences("Customer", user.notificationPreferences),
       },
       reservations: reservations.map((reservation) => ({
         id: reservation._id.toHexString(),
@@ -214,6 +217,7 @@ export class MongoCustomerPrivacyRepository extends MongoCustomerAccountReposito
           passwordResetAttempts: "",
           failedLoginAttempts: "",
           loginLockedUntil: "",
+          notificationPreferences: "",
         },
       },
     );
