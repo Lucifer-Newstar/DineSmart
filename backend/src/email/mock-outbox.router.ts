@@ -54,6 +54,8 @@ export function createMockOutboxRouter(options: MockOutboxRouterOptions) {
         to: message.to,
         subject: message.subject,
         text: message.text,
+        ...(message.html ? { html: message.html } : {}),
+        ...(message.attachments?.length ? { attachments: message.attachments } : {}),
         sentAt: message.sentAt.toISOString(),
       })),
     });

@@ -18,10 +18,21 @@ export type EmailProviderName = (typeof EMAIL_PROVIDERS)[number];
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const SEND_TIMEOUT_MS = 10_000;
 
+/** A small text attachment such as a calendar file (S5-04). */
+export interface EmailAttachment {
+  filename: string;
+  contentType: string;
+  /** UTF-8 text content. */
+  content: string;
+}
+
 export interface EmailMessage {
   to: string;
   subject: string;
+  /** Every message has a plain-text part. */
   text: string;
+  html?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailTransport {
@@ -130,6 +141,8 @@ type SendMail = (message: {
   to: string;
   subject: string;
   text: string;
+  html?: string;
+  attachments?: Array<{ filename: string; contentType: string; content: string }>;
 }) => Promise<unknown>;
 
 export class SmtpEmailTransport implements EmailTransport {
@@ -189,6 +202,16 @@ export class ResendEmailTransport implements EmailTransport {
           to: [message.to],
           subject: message.subject,
           text: message.text,
+          ...(message.html ? { html: message.html } : {}),
+          ...(message.attachments?.length
+            ? {
+                attachments: message.attachments.map((attachment) => ({
+                  filename: attachment.filename,
+                  content: Buffer.from(attachment.content, "utf8").toString("base64"),
+                  content_type: attachment.contentType,
+                })),
+              }
+            : {}),
         }),
         signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
       });

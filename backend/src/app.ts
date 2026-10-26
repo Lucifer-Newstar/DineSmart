@@ -68,6 +68,10 @@ import {
 import { MongoNotificationRepository } from "./notifications/notification.repository.js";
 import { createNotificationRouter } from "./notifications/notification.router.js";
 import { NotificationService } from "./notifications/notification.service.js";
+import {
+  createReservationNotifier,
+  MongoReservationContactLookup,
+} from "./notifications/reservation-notifier.js";
 import { createKitchenRouter } from "./orders/kitchen.router.js";
 import { MongoOrderRepository } from "./orders/order.repository.js";
 import { createOrderRouter } from "./orders/order.router.js";
@@ -423,6 +427,17 @@ export function createApp(options: AppOptions = {}) {
             incidentDetectionScheduler.notifyOperationalEvent,
             realtimeHub.publishRestaurantEvent,
             createSlotGuard(availabilityRepository),
+            createReservationNotifier({
+              contacts: new MongoReservationContactLookup(db),
+              sendEmail: (message) => getEmailTransport().send(message),
+              createNotification: (notification) =>
+                new NotificationService(
+                  new MongoNotificationRepository(db),
+                  undefined,
+                  realtimeHub.publishNotification,
+                ).create(notification),
+              onError: () => console.error("A booking notification could not be sent."),
+            }),
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
           availability: new ReservationAvailabilityService(availabilityRepository),

@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
+import type { ReservationChangeNotifier } from "../notifications/reservation-notifier.js";
 import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
 import { type BookingRules, resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
 import type {
@@ -57,6 +58,8 @@ export class ReservationService implements ReservationServiceReader {
     private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
     private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
     private readonly isSlotOpen: ReservationSlotGuard = async () => true,
+    /** Tells the guest about staff decisions (S5-04); runs in the background. */
+    private readonly notifyChange: ReservationChangeNotifier = () => undefined,
   ) {}
 
   async listForCustomer(userId: ObjectId) {
@@ -102,6 +105,7 @@ export class ReservationService implements ReservationServiceReader {
       event: "reservation.updated",
       data: { reservationId: created.id.toHexString(), status: created.status },
     });
+    this.notifyChange({ previous: null, updated: created, actor: "staff" });
     return created;
   }
 
@@ -150,6 +154,7 @@ export class ReservationService implements ReservationServiceReader {
       event: "reservation.updated",
       data: { reservationId: created.id.toHexString(), status: created.status },
     });
+    this.notifyChange({ previous: null, updated: created, actor: "staff" });
     return created;
   }
 
@@ -326,6 +331,7 @@ export class ReservationService implements ReservationServiceReader {
       event: "reservation.updated",
       data: { reservationId: updated.id.toHexString(), status: updated.status },
     });
+    this.notifyChange({ previous: current, updated, actor: "staff" });
     return updated;
   }
 
