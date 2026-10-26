@@ -24,11 +24,13 @@ import {
   type CartLine,
   calculateCartTotalMinor,
   cartLineKey,
+  cleanLineNote,
   type DietaryFilter,
   defaultSelection,
   filterMenuItems,
   isCompleteSelection,
   MAX_ITEM_QUANTITY,
+  MAX_LINE_NOTE_LENGTH,
   MAX_ORDER_LINES,
   MAX_ORDER_UNITS,
   type MenuItem,
@@ -439,11 +441,15 @@ export default function MenuPage() {
   const pickerPrice = pickerItem ? unitPriceMinor(pickerItem, pickerSelection) : null;
 
   const orderLines = () =>
-    cart.map((line) => ({
-      menuItemId: line.item.id,
-      quantity: line.quantity,
-      ...(line.options ? { options: line.options } : {}),
-    }));
+    cart.map((line) => {
+      const notes = cleanLineNote(line.notes);
+      return {
+        menuItemId: line.item.id,
+        quantity: line.quantity,
+        ...(line.options ? { options: line.options } : {}),
+        ...(notes ? { notes } : {}),
+      };
+    });
 
   const saveCartAndSignIn = () => {
     if (!menu || cart.length === 0) return;
@@ -953,6 +959,21 @@ export default function MenuPage() {
                             · {line.quantity} item
                             {line.quantity > 1 ? "s" : ""}
                           </span>
+                          <input
+                            aria-label={`Special request for ${label}`}
+                            className="cart-line-note"
+                            maxLength={MAX_LINE_NOTE_LENGTH}
+                            placeholder="Special request (optional)"
+                            value={line.notes ?? ""}
+                            onChange={(event) => {
+                              const notes = event.target.value;
+                              setCart((current) =>
+                                current.map((candidate) =>
+                                  lineKey(candidate) === key ? { ...candidate, notes } : candidate,
+                                ),
+                              );
+                            }}
+                          />
                         </div>
                         <div className="cart-line-actions">
                           <strong>

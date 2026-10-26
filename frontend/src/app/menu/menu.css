@@ -1811,3 +1811,15 @@
   font: inherit;
   cursor: pointer;
 }
+
+/* Special requests per bag line (S5-03). */
+.cart-line-note {
+  width: 100%;
+  min-height: 32px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border: 1px solid #c9c3b3;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}

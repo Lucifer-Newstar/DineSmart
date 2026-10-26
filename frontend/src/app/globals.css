@@ -6166,3 +6166,21 @@ button.notification-item:focus-visible {
 .devices-list .text-button {
   min-height: 24px;
 }
+
+/* Dine-in table and special requests on kitchen tickets (S5-03). */
+.kitchen-order-card > .kitchen-table-tag {
+  margin: 6px 0 10px;
+  color: #1f3a2a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.kitchen-item-note {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #6a3b00;
+  background: #fff1d6;
+  font-size: 12px;
+  font-weight: 650;
+}

@@ -214,6 +214,7 @@ export function parseStaffOrderItem(value: unknown): StaffOrderItem | null {
     name: value.name,
     quantity: value.quantity,
     preparationStatus: value.preparationStatus,
+    ...(typeof value.notes === "string" && value.notes ? { notes: value.notes.slice(0, 140) } : {}),
   };
 }
 
@@ -306,6 +307,9 @@ export function parseKitchenQueueResponse(value: unknown): ParsedKitchenQueueRes
     tickets.push({
       id: candidate.id,
       status: candidate.status,
+      ...(typeof candidate.tableNumber === "string" && candidate.tableNumber
+        ? { tableNumber: candidate.tableNumber }
+        : {}),
       items: items as StaffOrderItem[],
       createdAt: createdAt.toISOString(),
       updatedAt: updatedAt.toISOString(),

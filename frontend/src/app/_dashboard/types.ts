@@ -54,6 +54,8 @@ export interface StaffOrderItem {
   name: string;
   quantity: number;
   preparationStatus: PreparationStatus;
+  /** The guest's special request (S5-03). */
+  notes?: string;
 }
 
 export interface Order {
@@ -73,6 +75,8 @@ export interface KitchenTicket {
   id: string;
   status: "Accepted" | "Preparing" | "Ready";
   items: StaffOrderItem[];
+  /** Dine-in orders from a table QR link (S5-03). */
+  tableNumber?: string;
   createdAt: string;
   updatedAt: string;
   elapsed: number;

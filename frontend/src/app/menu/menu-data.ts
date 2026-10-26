@@ -46,6 +46,19 @@ export interface CartLine {
   quantity: number;
   /** Present only for dishes with options; the same dish with other options is another line. */
   options?: OptionSelection;
+  /** The guest's special request for this line, up to MAX_LINE_NOTE_LENGTH (S5-03). */
+  notes?: string;
+}
+
+export const MAX_LINE_NOTE_LENGTH = 140;
+
+/** Trims a request and drops it when empty; null when it is too long to send. */
+export function cleanLineNote(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") return null;
+  const note = value.replace(/\s+/g, " ").trim();
+  if (note.length > MAX_LINE_NOTE_LENGTH) return null;
+  return note || undefined;
 }
 
 export const ALL_DISHES = "All dishes";
@@ -261,10 +274,12 @@ export function parsePendingCart(value: unknown, menu: RestaurantMenu): CartLine
       !Number.isInteger(entry.quantity) ||
       (entry.quantity as number) < 1 ||
       (entry.quantity as number) > MAX_ITEM_QUANTITY ||
-      (entry.options !== undefined && !isRecord(entry.options))
+      (entry.options !== undefined && !isRecord(entry.options)) ||
+      cleanLineNote(entry.notes) === null
     ) {
       return [];
     }
+    const notes = cleanLineNote(entry.notes);
     const item = menu.items.find((candidate) => candidate.id === entry.menuItemId);
     if (!item?.isAvailable) return [];
     const options = (entry.options ?? {}) as Record<string, unknown>;
@@ -280,6 +295,7 @@ export function parsePendingCart(value: unknown, menu: RestaurantMenu): CartLine
       item,
       quantity: entry.quantity as number,
       ...(Object.keys(selection).length ? { options: selection } : {}),
+      ...(notes ? { notes } : {}),
     });
   }
   return lines;

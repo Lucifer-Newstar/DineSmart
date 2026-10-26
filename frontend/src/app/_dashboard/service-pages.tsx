@@ -267,9 +267,13 @@ export function KitchenPage({
                           <strong>{displayOrderId(ticket.id)}</strong>
                           <span>{ticket.elapsed} min</span>
                         </div>
-                        <p className="kitchen-private-note">
-                          Customer and table details are not included in this kitchen feed.
-                        </p>
+                        {ticket.tableNumber ? (
+                          <p className="kitchen-table-tag">Dine-in · Table {ticket.tableNumber}</p>
+                        ) : (
+                          <p className="kitchen-private-note">
+                            Customer and table details are not included in this kitchen feed.
+                          </p>
+                        )}
                         <ul className="kitchen-item-list">
                           {ticket.items.map((item) => (
                             <li className="kitchen-item-row" key={item.id}>
@@ -278,6 +282,9 @@ export function KitchenPage({
                                   {item.name} × {item.quantity}
                                 </strong>
                                 <span>{item.preparationStatus}</span>
+                                {item.notes ? (
+                                  <span className="kitchen-item-note">Request: {item.notes}</span>
+                                ) : null}
                               </div>
                               {item.preparationStatus !== "Ready" ? (
                                 <button

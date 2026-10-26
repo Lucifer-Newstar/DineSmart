@@ -6,6 +6,7 @@ import {
   availableDietaryFilters,
   calculateCartTotalMinor,
   cartLineKey,
+  cleanLineNote,
   defaultSelection,
   filterMenuItems,
   isCompleteSelection,
@@ -471,4 +472,36 @@ test("a saved bag keeps chosen options and drops an entry whose options no longe
     ],
   };
   assert.deepEqual(parsePendingCart(duplicate, menu), []);
+});
+
+test("special requests are tidied, kept through sign-in and capped", () => {
+  assert.equal(cleanLineNote("  no   onion "), "no onion");
+  assert.equal(cleanLineNote("   "), undefined);
+  assert.equal(cleanLineNote(undefined), undefined);
+  assert.equal(cleanLineNote("x".repeat(141)), null);
+  assert.equal(cleanLineNote(7), null);
+
+  const menu = parseMenu(menuResponse());
+  assert.ok(menu);
+  const firstItem = menu.items[0];
+  assert.deepEqual(
+    parsePendingCart(
+      {
+        restaurantId: menu.id,
+        items: [{ menuItemId: firstItem.id, quantity: 1, notes: " extra crisp " }],
+      },
+      menu,
+    ),
+    [{ item: firstItem, quantity: 1, notes: "extra crisp" }],
+  );
+  assert.deepEqual(
+    parsePendingCart(
+      {
+        restaurantId: menu.id,
+        items: [{ menuItemId: firstItem.id, quantity: 1, notes: "x".repeat(141) }],
+      },
+      menu,
+    ),
+    [],
+  );
 });
