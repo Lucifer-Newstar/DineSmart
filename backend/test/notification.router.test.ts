@@ -180,7 +180,7 @@ test("socket-ticket rejects client parameters and roles without notification per
   assert.deepEqual(kitchen.calls.socketTickets, []);
 });
 
-test("socket-ticket requests are limited to ten per minute and IP", async () => {
+async function ticketStatuses(rateLimits?: boolean) {
   let issuedTickets = 0;
   const app = express();
   app.use(express.json());
@@ -200,6 +200,7 @@ test("socket-ticket requests are limited to ten per minute and IP", async () => 
         },
       }),
       webOrigin: "https://app.example",
+      ...(rateLimits === undefined ? {} : { rateLimits }),
     }),
   );
   const server = app.listen(0, "127.0.0.1");
@@ -223,13 +224,27 @@ test("socket-ticket requests are limited to ten per minute and IP", async () => 
       statuses.push(response.status);
       await response.arrayBuffer();
     }
-    assert.deepEqual(statuses, [...Array.from({ length: 10 }, () => 201), 429]);
-    assert.equal(issuedTickets, 10);
+    return { statuses, issuedTickets };
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
     });
   }
+}
+
+test("socket-ticket requests are limited to ten per minute and IP", async () => {
+  const { statuses, issuedTickets } = await ticketStatuses();
+  assert.deepEqual(statuses, [...Array.from({ length: 10 }, () => 201), 429]);
+  assert.equal(issuedTickets, 10);
+});
+
+test("the socket-ticket limit is skipped only when the app turns rate limits off", async () => {
+  const { statuses, issuedTickets } = await ticketStatuses(false);
+  assert.deepEqual(
+    statuses,
+    Array.from({ length: 11 }, () => 201),
+  );
+  assert.equal(issuedTickets, 11);
 });
 
 test("Customer GET returns own cross-restaurant feed and omits recipient identity", async () => {

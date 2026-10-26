@@ -47,6 +47,12 @@ export interface NotificationRuntime {
 export interface NotificationRouterOptions {
   createRuntime: () => Promise<NotificationRuntime>;
   webOrigin: string;
+  /**
+   * When false the per-IP socket-ticket limit is skipped. createApp only allows
+   * this for NODE_ENV=test with E2E_DISABLE_RATE_LIMITS=1: the browser suite
+   * opens a live connection for every sign-in from one loopback address.
+   */
+  rateLimits?: boolean;
 }
 
 function sendUnavailable(response: Response): void {
@@ -181,7 +187,11 @@ export function createNotificationRouter(options: NotificationRouterOptions): Ro
   });
 
   router.use((request: Request, response: Response, next: NextFunction) => {
-    if (request.method === "POST" && request.path === "/socket-ticket") {
+    if (
+      options.rateLimits !== false &&
+      request.method === "POST" &&
+      request.path === "/socket-ticket"
+    ) {
       socketTicketRateLimit(request, response, next);
       return;
     }

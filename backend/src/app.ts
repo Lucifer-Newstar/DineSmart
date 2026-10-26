@@ -442,6 +442,7 @@ export function createApp(options: AppOptions = {}) {
         };
       },
       webOrigin,
+      rateLimits: authRateLimits,
     }),
   );
 
