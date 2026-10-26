@@ -108,6 +108,17 @@ export class NotificationService implements NotificationServiceReader {
     return { ...page, unreadCount };
   }
 
+  async markAllRead(scope: NotificationRecipientScope): Promise<number> {
+    if (!this.repository.markAllRead) {
+      throw new NotificationError(
+        400,
+        "notification_bulk_unsupported",
+        "Mark all as read is unavailable.",
+      );
+    }
+    return this.repository.markAllRead(scope, this.clock());
+  }
+
   async markRead(
     scope: NotificationRecipientScope,
     notificationId: ObjectId,

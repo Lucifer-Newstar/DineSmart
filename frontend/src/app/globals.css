@@ -545,6 +545,11 @@ a {
   color: #617b5e;
   font-size: 12px;
 }
+.popover-heading .text-button {
+  margin-left: auto;
+  margin-right: 10px;
+  font-size: 12px;
+}
 .notification-item {
   display: flex;
   align-items: flex-start;

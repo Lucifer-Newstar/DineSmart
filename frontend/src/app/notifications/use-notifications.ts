@@ -21,6 +21,8 @@ export interface NotificationFeed {
   status: NotificationFeedStatus;
   realtime: RealtimeStatus;
   markRead: (id: string) => Promise<void>;
+  /** Marks the whole feed as read; resolves false when the server refused. */
+  markAllRead: () => Promise<boolean>;
   refresh: () => void;
 }
 
@@ -145,5 +147,22 @@ export function useNotifications(
     if (wasUnread) setUnreadCount((count) => Math.max(0, count - 1));
   }, []);
 
-  return { notifications, unreadCount, status, realtime, markRead, refresh };
+  const markAllRead = useCallback(async () => {
+    const token = tokenRef.current;
+    if (!token) return false;
+    const response = await fetchWithTimeout(`${API_BASE}/notifications/read-all`, {
+      method: "POST",
+      credentials: "include",
+      headers: { authorization: `Bearer ${token}` },
+    }).catch(() => null);
+    if (!response?.ok) return false;
+    const readAt = new Date().toISOString();
+    setNotifications((current) =>
+      current.map((item) => ({ ...item, readAt: item.readAt ?? readAt })),
+    );
+    setUnreadCount(0);
+    return true;
+  }, []);
+
+  return { notifications, unreadCount, status, realtime, markRead, markAllRead, refresh };
 }

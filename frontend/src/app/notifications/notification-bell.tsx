@@ -18,6 +18,7 @@ const NOTIFICATION_NOUN = { one: "notification", many: "notifications" };
 /** Topbar bell backed by the recipient-scoped notification feed (S2-10). */
 export function NotificationBell({ feed, onViewActivity }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const unread = feed?.unreadCount ?? 0;
   const arrivals = useMemo(
@@ -76,6 +77,19 @@ export function NotificationBell({ feed, onViewActivity }: NotificationBellProps
         >
           <div className="popover-heading">
             <strong>Notifications</strong>
+            {feed && unread > 0 ? (
+              <button
+                type="button"
+                className="text-button"
+                disabled={markingAll}
+                onClick={() => {
+                  setMarkingAll(true);
+                  void feed.markAllRead().finally(() => setMarkingAll(false));
+                }}
+              >
+                Mark all as read
+              </button>
+            ) : null}
             <span>
               {!feed
                 ? "Preview"

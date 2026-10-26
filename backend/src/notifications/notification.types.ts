@@ -57,6 +57,8 @@ export interface NotificationRepository {
     notificationId: ObjectId,
     deliveredAt: Date,
   ): Promise<NotificationRecord | null>;
+  /** Marks every unread notification of the recipient as read; returns how many changed. */
+  markAllRead?(scope: NotificationRecipientScope, readAt: Date): Promise<number>;
 }
 
 export interface NotificationServiceReader {
@@ -66,4 +68,5 @@ export interface NotificationServiceReader {
     scope: NotificationRecipientScope,
     notificationId: ObjectId,
   ): Promise<NotificationRecord>;
+  markAllRead?(scope: NotificationRecipientScope): Promise<number>;
 }

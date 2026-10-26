@@ -83,6 +83,14 @@ export class MongoNotificationRepository implements NotificationRepository {
     return this.notifications.countDocuments({ ...recipientFilter(scope), readAt: null });
   }
 
+  async markAllRead(scope: NotificationRecipientScope, readAt: Date): Promise<number> {
+    const result = await this.notifications.updateMany(
+      { ...recipientFilter(scope), readAt: null },
+      { $set: { readAt, updatedAt: readAt } },
+    );
+    return result.modifiedCount;
+  }
+
   async markRead(
     scope: NotificationRecipientScope,
     notificationId: ObjectId,

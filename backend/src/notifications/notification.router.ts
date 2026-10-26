@@ -351,6 +351,42 @@ export function createNotificationRouter(options: NotificationRouterOptions): Ro
     },
   );
 
+  router.post(
+    "/read-all",
+    notificationPermission("update"),
+    requireNotificationTenantScope,
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const scope = recipientScope(request.auth);
+      if (!runtime?.service.markAllRead) {
+        sendUnavailable(response);
+        return;
+      }
+      if (!scope) {
+        sendInvalidPrincipal(response);
+        return;
+      }
+      if (
+        request.body !== undefined &&
+        (!isRecord(request.body) || Object.keys(request.body).length > 0)
+      ) {
+        response.status(400).json({
+          error: {
+            code: "invalid_notification_request",
+            message: "Marking all notifications as read does not accept a request body.",
+          },
+        });
+        return;
+      }
+      try {
+        const marked = await runtime.service.markAllRead(scope);
+        response.status(200).json({ marked, unreadCount: 0 });
+      } catch (error) {
+        sendNotificationError(error, response);
+      }
+    },
+  );
+
   router.patch(
     "/:id/read",
     notificationPermission("update"),
