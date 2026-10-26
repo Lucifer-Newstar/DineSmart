@@ -229,6 +229,8 @@ export interface ReservationDocument extends TimestampedDocument {
   dietaryNotes?: string;
   arrivedAt?: Date;
   seatedAt?: Date;
+  /** Set when the day-before reminder was claimed, so it is never sent twice (S5-04). */
+  reminderSentAt?: Date;
 }
 
 export interface OrderDocument extends TimestampedDocument {
@@ -395,6 +397,8 @@ export const COLLECTION_INDEXES: Record<CollectionName, IndexDescription[]> = {
       name: "reservations_restaurant_table_start",
     },
     { key: { customerId: 1, startAt: -1 }, name: "reservations_customer_start" },
+    // The reminder pass looks across restaurants for unreminded confirmed bookings (S5-04).
+    { key: { status: 1, startAt: 1 }, name: "reservations_status_start" },
   ],
   waitlist: [
     {

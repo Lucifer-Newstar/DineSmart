@@ -77,3 +77,17 @@ export function bookingConfirmedEmail(details: BookingEmailDetails, now: Date): 
     attachments: [bookingCalendarFile(details, now)],
   };
 }
+
+export function bookingReminderEmail(details: BookingEmailDetails): EmailMessage {
+  const when = formatVisitTime(details.startAt, details.timeZone);
+  return {
+    to: details.email,
+    subject: `Reminder: your table at ${details.restaurantName}`,
+    text: [
+      `Hi ${details.guestName},`,
+      `This is a reminder of your table for ${guests(details.partySize)} at ${details.restaurantName} on ${when}.`,
+      ...(details.restaurantAddress ? [`Address: ${details.restaurantAddress}`] : []),
+      "If your plans have changed, please change or cancel in My bookings so the table can go to someone else.",
+    ].join("\n\n"),
+  };
+}

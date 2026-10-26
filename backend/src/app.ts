@@ -68,6 +68,7 @@ import {
 import { MongoNotificationRepository } from "./notifications/notification.repository.js";
 import { createNotificationRouter } from "./notifications/notification.router.js";
 import { NotificationService } from "./notifications/notification.service.js";
+import { MongoReminderStore, ReminderScheduler } from "./notifications/reminder.scheduler.js";
 import {
   createReservationNotifier,
   MongoReservationContactLookup,
@@ -178,6 +179,26 @@ export function createApp(options: AppOptions = {}) {
     { onError: () => console.error("A background incident-detection evaluation failed.") },
   );
   app.locals.incidentDetectionScheduler = incidentDetectionScheduler;
+  const reminderScheduler = new ReminderScheduler(
+    async () => {
+      const db = await (options.getDatabase?.() ?? connectToDatabase());
+      return {
+        store: new MongoReminderStore(db),
+        contacts: new MongoReservationContactLookup(db),
+        sendEmail: (message) => getEmailTransport().send(message),
+        createNotification: (notification) =>
+          new NotificationService(
+            new MongoNotificationRepository(db),
+            undefined,
+            realtimeHub.publishNotification,
+          ).create(notification),
+        onError: () => console.error("A booking reminder could not be sent."),
+      };
+    },
+    undefined,
+    () => console.error("A booking reminder pass failed."),
+  );
+  app.locals.reminderScheduler = reminderScheduler;
   const nodeEnvironment = options.nodeEnvironment ?? process.env.NODE_ENV ?? "development";
   const configuredWebOrigin = options.webOrigin ?? process.env.WEB_ORIGIN;
   const webOrigin =

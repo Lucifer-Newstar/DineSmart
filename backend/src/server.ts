@@ -6,6 +6,7 @@ import { closeDatabase, connectToDatabase } from "./database.js";
 import { assertEmailConfiguration, EmailConfigurationError } from "./email/email-transport.js";
 import type { HealthScoreRefreshScheduler } from "./healthscore/health-score.scheduler.js";
 import type { IncidentDetectionScheduler } from "./incidents/incident.scheduler.js";
+import type { ReminderScheduler } from "./notifications/reminder.scheduler.js";
 import type { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
 
 const port = Number(process.env.PORT ?? 3001);
@@ -51,6 +52,7 @@ const healthScoreRefreshScheduler = app.locals
   .healthScoreRefreshScheduler as HealthScoreRefreshScheduler;
 const incidentDetectionScheduler = app.locals
   .incidentDetectionScheduler as IncidentDetectionScheduler;
+const reminderScheduler = app.locals.reminderScheduler as ReminderScheduler;
 const notificationRealtimeGateway = app.locals
   .notificationRealtimeGateway as NotificationRealtimeGateway;
 const server = app.listen(port, "0.0.0.0", () => {
@@ -81,6 +83,9 @@ function startBackgroundJobs(): void {
           "The initial incident-detection sweep failed; the hourly retry remains scheduled.",
         );
       });
+      void reminderScheduler.start().catch(() => {
+        console.error("The first booking-reminder pass failed; the next one runs in 15 minutes.");
+      });
     })
     .catch(() => {
       console.error(
@@ -102,6 +107,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     if (databaseRetryTimer) clearTimeout(databaseRetryTimer);
     healthScoreRefreshScheduler.stopHourlyRefresh();
     incidentDetectionScheduler.stopHourlyRefresh();
+    reminderScheduler.stop();
     notificationRealtimeGateway.close();
     server.close((error) => {
       if (error) {
