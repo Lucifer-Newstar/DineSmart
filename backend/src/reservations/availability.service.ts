@@ -279,6 +279,8 @@ export interface AvailabilityQuery {
   restaurantId: ObjectId;
   date: string;
   partySize: number;
+  /** A booking being moved does not block its own new time. */
+  excludingReservationId?: ObjectId;
 }
 
 export interface DayAvailability {
@@ -336,6 +338,7 @@ export class ReservationAvailabilityService implements AvailabilityReader {
         query.restaurantId,
         new Date(dayStart.getTime() - DAY_MS),
         new Date(dayStart.getTime() + 2 * DAY_MS),
+        query.excludingReservationId,
       ),
     ]);
     return {

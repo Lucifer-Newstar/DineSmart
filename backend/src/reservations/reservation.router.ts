@@ -428,6 +428,58 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
     },
   );
 
+  // A customer moving their own booking sees slots as if that booking were not there.
+  router.get(
+    "/:id/availability",
+    requirePermissions("reservations:own:read"),
+    requireObjectIdParam("id", "invalid_reservation_id", "A valid reservation ID is required."),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      const reservationId = objectId(request.params.id);
+      if (!runtime || !principal || !reservationId) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+      if (!runtime.availability) {
+        sendUnavailable(response);
+        return;
+      }
+      try {
+        const own = await runtime.service.listForCustomer(asObjectId(principal.userId));
+        const booking = own.reservations.find((candidate) => candidate.id.equals(reservationId));
+        if (!booking) {
+          response.status(404).json({
+            error: { code: "reservation_not_found", message: "The reservation was not found." },
+          });
+          return;
+        }
+        const query = parseAvailabilityQuery({
+          ...request.query,
+          restaurantId: booking.restaurantId.toHexString(),
+        });
+        if (!query || query.partySize < 1 || query.partySize > RESERVATION_MAX_PARTY_SIZE) {
+          response.status(400).json({
+            error: {
+              code: "invalid_availability_query",
+              message: "Provide a YYYY-MM-DD date and a party size from 1 to 12.",
+            },
+          });
+          return;
+        }
+        const day = await runtime.availability.getDay({
+          ...query,
+          excludingReservationId: reservationId,
+        });
+        response.status(200).json(availabilityToJson(day));
+      } catch (error) {
+        sendReservationError(error, response);
+      }
+    },
+  );
+
   router.get(
     "/:id/table-suggestion",
     requirePermissions("reservations:write"),

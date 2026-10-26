@@ -13,7 +13,10 @@ import {
 } from "../src/reservations/availability.service.js";
 import { DEFAULT_BOOKING_RULES } from "../src/reservations/booking-rules.js";
 import { createReservationRouter } from "../src/reservations/reservation.router.js";
-import type { ReservationServiceReader } from "../src/reservations/reservation.types.js";
+import type {
+  ReservationRecord,
+  ReservationServiceReader,
+} from "../src/reservations/reservation.types.js";
 
 const restaurantId = new ObjectId();
 
@@ -177,4 +180,62 @@ test("the availability service reads a two-day booking window around the local d
   );
   assert.equal(windows[0][0].toISOString(), "2026-10-10T18:30:00.000Z");
   assert.equal(windows[0][1].toISOString(), "2026-10-13T18:30:00.000Z");
+});
+
+test("a customer's own booking is left out of the slots for its move", async () => {
+  const userId = new ObjectId();
+  const reservationId = new ObjectId();
+  const calls: AvailabilityQuery[] = [];
+  const app = express();
+  app.use(
+    "/api/v1/reservations",
+    createReservationRouter({
+      createRuntime: async () => ({
+        service: {
+          listForCustomer: async (id: ObjectId) => ({
+            reservations: id.equals(userId)
+              ? [{ id: reservationId, restaurantId } as unknown as ReservationRecord]
+              : [],
+            truncated: false,
+          }),
+        } as unknown as ReservationServiceReader,
+        verifyAccessToken: async () => ({
+          userId: userId.toHexString(),
+          role: "Customer",
+          restaurantId: null,
+        }),
+        availability: fakeReader(calls),
+      }),
+    }),
+  );
+  const server = app.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    const base = `http://127.0.0.1:${address.port}/api/v1/reservations`;
+    const headers = { authorization: "Bearer customer" };
+    const own = await fetch(
+      `${base}/${reservationId.toHexString()}/availability?date=2026-10-12&partySize=4`,
+      { headers },
+    );
+    assert.equal(own.status, 200);
+    assert.ok(calls[0]?.excludingReservationId?.equals(reservationId));
+    assert.ok(calls[0]?.restaurantId.equals(restaurantId));
+    const other = await fetch(
+      `${base}/${new ObjectId().toHexString()}/availability?date=2026-10-12&partySize=4`,
+      { headers },
+    );
+    assert.equal(other.status, 404);
+    const bad = await fetch(
+      `${base}/${reservationId.toHexString()}/availability?date=nope&partySize=4`,
+      {
+        headers,
+      },
+    );
+    assert.equal(bad.status, 400);
+    assert.equal(calls.length, 1);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
