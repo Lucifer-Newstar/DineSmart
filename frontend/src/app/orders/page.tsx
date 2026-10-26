@@ -374,6 +374,15 @@ export default function OrdersPage() {
                           ? "This order was cancelled."
                           : `Latest status: ${order.status}.`}
                     </p>
+                    {["Created", "Accepted", "Preparing", "Ready"].includes(order.status) ? (
+                      <Link
+                        aria-label={`Track order ${order.id.slice(-6).toUpperCase()}`}
+                        className="orders-secondary-link"
+                        href={`/orders/${order.id}`}
+                      >
+                        Track order
+                      </Link>
+                    ) : null}
                     {order.status === "Created" ? (
                       <button
                         className="orders-cancel-button"

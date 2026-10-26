@@ -18,6 +18,8 @@ export const REALTIME_EVENTS = [
   "healthscore.updated",
   "menu.availability",
   "notification.created",
+  // Sent only to the customer who placed the order (S5-03).
+  "order.status",
 ] as const;
 export type RealtimeEventName = (typeof REALTIME_EVENTS)[number];
 

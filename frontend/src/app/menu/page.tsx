@@ -1153,8 +1153,8 @@ export default function MenuPage() {
         <div className="toast-message menu-toast" role="status">
           <div>{toast}</div>
           {placedOrder ? (
-            <Link href="/orders">
-              View order history <MenuIcon name="arrow-right" size={13} />
+            <Link href={`/orders/${placedOrder.id}`}>
+              Track your order <MenuIcon name="arrow-right" size={13} />
             </Link>
           ) : null}
         </div>

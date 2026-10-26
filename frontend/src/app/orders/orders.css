@@ -375,3 +375,76 @@
     width: 100%;
   }
 }
+
+/* Live order tracking (S5-03). */
+.tracking-card {
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+  padding: 22px;
+  border: 1px solid #e3dfd2;
+  border-radius: 16px;
+  background: #fffdf8;
+}
+.tracking-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.tracking-eta {
+  margin: 6px 0 0;
+  color: #1f3a2a;
+  font-size: 17px;
+  font-weight: 650;
+}
+.tracking-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tracking-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #5d6a61;
+}
+.tracking-dot {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #9aa79e;
+  border-radius: 50%;
+}
+.tracking-step-done {
+  color: #1f3a2a;
+}
+.tracking-step-done .tracking-dot {
+  border-color: #2f6b45;
+  background: #2f6b45;
+}
+.tracking-step-current {
+  color: #1f3a2a;
+  font-weight: 700;
+}
+.tracking-step-current .tracking-dot {
+  border-color: #b5651d;
+  background: #f6d7b5;
+}
+.tracking-items {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid #ebe6d9;
+  list-style: none;
+}
+.tracking-items li {
+  display: grid;
+}
+.tracking-items small {
+  color: #6a3b00;
+}
+.tracking-total {
+  margin: 0;
+  font-weight: 700;
+}
