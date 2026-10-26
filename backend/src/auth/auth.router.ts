@@ -430,6 +430,35 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
 
   // Signed-in devices (S4-04). The refresh cookie only identifies which
   // session is "this device"; every route needs a valid access token.
+  // Change password while signed in (S5-02). Other devices are signed out; this
+  // device receives a new session so it stays signed in.
+  router.post("/password/change", loginRateLimit, async (request: Request, response: Response) => {
+    const body: unknown = request.body;
+    if (!isRecord(body) || !hasOnlyKeys(body, ["currentPassword", "newPassword"])) {
+      response.status(400).json({
+        error: {
+          code: "invalid_request",
+          message: "Send the current password and a new password.",
+        },
+      });
+      return;
+    }
+    try {
+      const service = await options.createService();
+      const principal = await bearerPrincipal(service, request, response);
+      if (!principal) return;
+      const session = await service.changePassword(
+        principal.userId,
+        body.currentPassword,
+        body.newPassword,
+      );
+      await labelDevice(service, session, request);
+      sendSession(response, session, options.nodeEnvironment);
+    } catch (error) {
+      handleAuthError(error, response);
+    }
+  });
+
   router.get("/sessions", async (request: Request, response: Response) => {
     try {
       const service = await options.createService();

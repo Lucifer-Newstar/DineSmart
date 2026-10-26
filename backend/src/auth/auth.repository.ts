@@ -40,6 +40,8 @@ export interface AuthRepository {
   revokeUserSession(userId: ObjectId, sessionId: ObjectId, now: Date): Promise<boolean>;
   /** Revokes every active session of the user except the one holding keepTokenHash. */
   revokeOtherSessions(userId: ObjectId, keepTokenHash: string | null, now: Date): Promise<number>;
+  /** Stores a new password hash and marks older refresh sessions invalid (S5-02). */
+  changePassword?(userId: ObjectId, passwordHash: string, now: Date): Promise<boolean>;
 }
 
 export class MongoAuthRepository implements AuthRepository {
@@ -152,6 +154,17 @@ export class MongoAuthRepository implements AuthRepository {
       { _id: userId },
       { $set: { failedLoginAttempts: 0, updatedAt: now }, $unset: { loginLockedUntil: "" } },
     );
+  }
+
+  async changePassword(userId: ObjectId, passwordHash: string, now: Date): Promise<boolean> {
+    const result = await this.users.updateOne(
+      { _id: userId, status: "active" },
+      {
+        $set: { passwordHash, passwordChangedAt: now, failedLoginAttempts: 0, updatedAt: now },
+        $unset: { loginLockedUntil: "" },
+      },
+    );
+    return result.modifiedCount === 1;
   }
 
   async setSessionDeviceLabel(tokenHash: string, deviceLabel: string): Promise<void> {

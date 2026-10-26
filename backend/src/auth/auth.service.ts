@@ -12,6 +12,7 @@ export const ACCESS_TOKEN_ISSUER = "andhrimnir-api";
 export const ACCESS_TOKEN_AUDIENCE = "andhrimnir-client";
 
 const MAX_PASSWORD_BYTES = 1_024;
+export const CHANGE_PASSWORD_MIN_LENGTH = 12;
 const REFRESH_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const ARGON2_OPTIONS: Argon2HashOptions = {
   type: argon2.argon2id,
@@ -309,6 +310,63 @@ export class AuthService {
       ? hashRefreshToken(currentRefreshToken)
       : null;
     return this.repository.revokeOtherSessions(parseUserId(userId), keep, this.clock());
+  }
+
+  /**
+   * Changes a signed-in user's password (S5-02). Every existing session, this one
+   * included, is revoked; the caller gets a fresh session for this device.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: unknown,
+    newPassword: unknown,
+  ): Promise<AuthSession> {
+    if (
+      typeof newPassword !== "string" ||
+      newPassword.length < CHANGE_PASSWORD_MIN_LENGTH ||
+      Buffer.byteLength(newPassword, "utf8") > MAX_PASSWORD_BYTES
+    ) {
+      throw new AuthError(
+        400,
+        "invalid_new_password",
+        `Choose a new password of at least ${CHANGE_PASSWORD_MIN_LENGTH} characters.`,
+      );
+    }
+    if (!this.repository.changePassword) {
+      throw new AuthConfigurationError("Password changes are not configured.");
+    }
+    const id = parseUserId(userId);
+    const user = await this.repository.findActiveUserById(id);
+    if (!user?._id) {
+      throw new AuthError(401, "invalid_access_token", "A valid access token is required.");
+    }
+    if (typeof user.passwordHash !== "string") {
+      throw new AuthError(
+        400,
+        "password_not_set",
+        "This account signs in with Google. Use password reset to add a password.",
+      );
+    }
+    if (
+      typeof currentPassword !== "string" ||
+      !(await verifyPassword(currentPassword, user.passwordHash))
+    ) {
+      throw new AuthError(400, "invalid_current_password", "The current password is incorrect.");
+    }
+    if (currentPassword === newPassword) {
+      throw new AuthError(
+        400,
+        "invalid_new_password",
+        "The new password must be different from the current one.",
+      );
+    }
+    const now = this.clock();
+    const changed = await this.repository.changePassword(id, await hashPassword(newPassword), now);
+    if (!changed) {
+      throw new AuthError(401, "invalid_access_token", "A valid access token is required.");
+    }
+    await this.repository.revokeOtherSessions(id, null, now);
+    return this.createSession(user);
   }
 
   async logout(refreshToken: string | undefined): Promise<void> {
