@@ -25,7 +25,7 @@ export const DEFAULT_INCIDENT_THRESHOLDS = {
 
 const ACTIVE_KITCHEN_STATUSES = new Set(["Accepted", "Preparing", "Ready"]);
 const ORDER_DELAY_STATUSES = new Set(["Accepted", "Preparing"]);
-const ACTIVE_RESERVATION_STATUSES = new Set(["Confirmed", "Seated"]);
+const ACTIVE_RESERVATION_STATUSES = new Set(["Confirmed", "Arrived", "Seated"]);
 const DISABLED_TABLE_STATUSES = new Set(["disabled", "out_of_service"]);
 const SEVERITY_RANK: Record<IncidentSeverity, number> = { info: 0, warning: 1, critical: 2 };
 const MINUTE_MS = 60_000;

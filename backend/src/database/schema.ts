@@ -211,6 +211,8 @@ export interface ReservationDocument extends TimestampedDocument {
   occasion?: string;
   /** Allergies or diet the kitchen should know about; shown to staff on the booking. */
   dietaryNotes?: string;
+  arrivedAt?: Date;
+  seatedAt?: Date;
 }
 
 export interface OrderDocument extends TimestampedDocument {

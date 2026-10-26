@@ -27,9 +27,11 @@ export const RESERVATION_NO_SHOW_GRACE_MS = 15 * 60_000;
 export const RESERVATION_DIETARY_NOTES_MAX_LENGTH = 200;
 
 const DISABLED_TABLE_STATUSES = new Set(["disabled", "out_of_service", "out-of-service"]);
+/** Booked (Awaiting/Confirmed) → Arrived → Seated → Completed, or NoShow/Cancelled (S5-01). */
 const ALLOWED_STATUS_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
-  Awaiting: ["Confirmed", "Cancelled"],
-  Confirmed: ["Seated", "Cancelled", "NoShow"],
+  Awaiting: ["Confirmed", "Arrived", "Cancelled"],
+  Confirmed: ["Arrived", "Seated", "Cancelled", "NoShow"],
+  Arrived: ["Seated", "Cancelled"],
   Seated: ["Completed"],
   Completed: [],
   Cancelled: [],
@@ -274,11 +276,22 @@ export class ReservationService implements ReservationServiceReader {
 
     if (changes.status !== undefined) {
       validateStatusTransition(current.status, changes.status, nextStartAt, now);
+      if (changes.status !== current.status) {
+        if (changes.status === "Arrived") changes.arrivedAt = now;
+        if (changes.status === "Seated") changes.seatedAt = now;
+      }
     }
     if (changes.notes !== undefined) changes.notes = validateNotes(changes.notes);
     Object.assign(changes, validateGuestDetails(changes));
 
     const nextTableId = Object.hasOwn(changes, "tableId") ? changes.tableId : current.tableId;
+    if (changes.status === "Seated" && current.status !== "Seated" && !nextTableId) {
+      throw new ReservationError(
+        409,
+        "reservation_table_required",
+        "Choose a table before seating the party.",
+      );
+    }
     if (nextTableId) {
       const assignmentChanged =
         !current.tableId || !nextTableId.equals(current.tableId) || startOrPartyChanged;
@@ -302,6 +315,7 @@ export class ReservationService implements ReservationServiceReader {
       now,
     );
     if (!updated) throw changedReservationError();
+    await this.syncTableOccupancy(current, updated, now);
     this.notifyHealthScoreRefresh(request.restaurantId);
     this.notifyIncidentDetection(request.restaurantId);
     this.publishRealtime({
@@ -310,6 +324,41 @@ export class ReservationService implements ReservationServiceReader {
       data: { reservationId: updated.id.toHexString(), status: updated.status },
     });
     return updated;
+  }
+
+  /** Seating occupies the table; completing the visit frees it again. */
+  private async syncTableOccupancy(
+    previous: ReservationRecord,
+    updated: ReservationRecord,
+    now: Date,
+  ): Promise<void> {
+    if (!this.repository.setTableOccupancy || previous.status === updated.status) return;
+    if (updated.status === "Seated" && updated.tableId) {
+      const changed = await this.repository.setTableOccupancy(
+        updated.restaurantId,
+        updated.tableId,
+        updated.id,
+        now,
+      );
+      if (changed) this.publishTable(updated.restaurantId, updated.tableId, "occupied");
+    } else if (updated.status === "Completed" && updated.tableId) {
+      const changed = await this.repository.setTableOccupancy(
+        updated.restaurantId,
+        updated.tableId,
+        null,
+        now,
+        updated.id,
+      );
+      if (changed) this.publishTable(updated.restaurantId, updated.tableId, "available");
+    }
+  }
+
+  private publishTable(restaurantId: ObjectId, tableId: ObjectId, status: string): void {
+    this.publishRealtime({
+      restaurantId,
+      event: "table.updated",
+      data: { tableId: tableId.toHexString(), status },
+    });
   }
 
   private async customerIdForUser(userId: ObjectId, now = this.clock()): Promise<ObjectId> {

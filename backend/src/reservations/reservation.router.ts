@@ -40,6 +40,7 @@ const ISO_DATE_TIME_PATTERN =
 const VALID_RESERVATION_STATUSES = new Set<ReservationStatus>([
   "Awaiting",
   "Confirmed",
+  "Arrived",
   "Seated",
   "Completed",
   "Cancelled",
@@ -285,6 +286,8 @@ function toJson(reservation: ReservationRecord) {
     ...(reservation.notes === undefined ? {} : { notes: reservation.notes }),
     ...(reservation.occasion ? { occasion: reservation.occasion } : {}),
     ...(reservation.dietaryNotes ? { dietaryNotes: reservation.dietaryNotes } : {}),
+    ...(reservation.arrivedAt ? { arrivedAt: reservation.arrivedAt.toISOString() } : {}),
+    ...(reservation.seatedAt ? { seatedAt: reservation.seatedAt.toISOString() } : {}),
     createdAt: reservation.createdAt.toISOString(),
     updatedAt: reservation.updatedAt.toISOString(),
   };

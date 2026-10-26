@@ -124,7 +124,7 @@ export class MongoIncidentDetectionRepository implements IncidentDetectionReposi
         .find(
           {
             restaurantId,
-            status: { $in: ["Confirmed", "Seated"] },
+            status: { $in: ["Confirmed", "Arrived", "Seated"] },
             endAt: { $gt: now },
           },
           { projection: { partySize: 1, startAt: 1, endAt: 1, tableId: 1, status: 1 } },

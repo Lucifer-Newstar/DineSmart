@@ -159,6 +159,27 @@ export class MongoReservationRepository implements ReservationRepository {
     return this.findForCustomer(reservationId, customerId);
   }
 
+  async setTableOccupancy(
+    restaurantId: ObjectId,
+    tableId: ObjectId,
+    reservationId: ObjectId | null,
+    now: Date,
+    releasingReservationId?: ObjectId,
+  ): Promise<boolean> {
+    if (reservationId) {
+      const result = await this.tables.updateOne(
+        { _id: tableId, restaurantId, status: { $in: ["available", "reserved", "occupied"] } },
+        { $set: { status: "occupied", currentReservationId: reservationId, updatedAt: now } },
+      );
+      return result.modifiedCount > 0;
+    }
+    const result = await this.tables.updateOne(
+      { _id: tableId, restaurantId, currentReservationId: releasingReservationId ?? null },
+      { $set: { status: "available", currentReservationId: null, updatedAt: now } },
+    );
+    return result.modifiedCount > 0;
+  }
+
   private async list(filter: Record<string, unknown>): Promise<ReservationListResult> {
     const documents = await this.reservations
       .find(filter)
@@ -223,6 +244,8 @@ export class MongoReservationRepository implements ReservationRepository {
       ...(document.notes === undefined ? {} : { notes: document.notes }),
       ...(isOccasion(document.occasion) ? { occasion: document.occasion } : {}),
       ...(document.dietaryNotes ? { dietaryNotes: document.dietaryNotes } : {}),
+      ...(document.arrivedAt ? { arrivedAt: document.arrivedAt } : {}),
+      ...(document.seatedAt ? { seatedAt: document.seatedAt } : {}),
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
     }));

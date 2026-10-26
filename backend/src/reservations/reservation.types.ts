@@ -20,6 +20,7 @@ export interface ReservationGuestDetails {
 export type ReservationStatus =
   | "Awaiting"
   | "Confirmed"
+  | "Arrived"
   | "Seated"
   | "Completed"
   | "Cancelled"
@@ -39,6 +40,8 @@ export interface ReservationRecord {
   notes?: string;
   occasion?: ReservationOccasion | null;
   dietaryNotes?: string | null;
+  arrivedAt?: Date | null;
+  seatedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +89,8 @@ export interface ReservationChanges {
   notes?: string;
   occasion?: ReservationOccasion | null;
   dietaryNotes?: string | null;
+  arrivedAt?: Date;
+  seatedAt?: Date;
 }
 
 export interface ReservationRepository {
@@ -125,6 +130,18 @@ export interface ReservationRepository {
     changes: ReservationChanges,
     now: Date,
   ): Promise<ReservationRecord | null>;
+  /**
+   * Occupies a table for a seated booking, or frees it (reservationId null) when the
+   * visit completes. Freeing only applies while `releasingReservationId` still holds it.
+   * Returns whether the table changed. Optional so read-only fakes need not implement it.
+   */
+  setTableOccupancy?(
+    restaurantId: ObjectId,
+    tableId: ObjectId,
+    reservationId: ObjectId | null,
+    now: Date,
+    releasingReservationId?: ObjectId,
+  ): Promise<boolean>;
 }
 
 export interface CustomerReservationRequest extends ReservationGuestDetails {
