@@ -87,6 +87,7 @@ import { StaffService } from "./staff/staff.service.js";
 import { MongoTableStatusRepository } from "./tables/table-status.repository.js";
 import { createTableStatusRouter } from "./tables/table-status.router.js";
 import { TableStatusService } from "./tables/table-status.service.js";
+import { MongoWaitQuoteRepository, WaitQuoteService } from "./waitlist/wait-estimate.js";
 import { MongoWaitlistRepository } from "./waitlist/waitlist.repository.js";
 import { createWaitlistRouter } from "./waitlist/waitlist.router.js";
 import { WaitlistService } from "./waitlist/waitlist.service.js";
@@ -459,6 +460,7 @@ export function createApp(options: AppOptions = {}) {
             realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
+          quoter: new WaitQuoteService(new MongoWaitQuoteRepository(db)),
         };
       },
     }),

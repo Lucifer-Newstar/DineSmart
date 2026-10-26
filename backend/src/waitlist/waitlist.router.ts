@@ -4,12 +4,16 @@ import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
 import { isObjectIdString, requireObjectIdParam } from "../http/object-id-param.js";
+import type { WaitQuoter } from "./wait-estimate.js";
 import { WaitlistServiceError } from "./waitlist.service.js";
 import type { WaitlistCreateInput, WaitlistServiceReader } from "./waitlist.types.js";
+import { WAITLIST_MAX_PARTY_SIZE } from "./waitlist.types.js";
 
 export interface WaitlistRuntime {
   service: WaitlistServiceReader;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
+  /** Walk-in wait quotes (S5-01); entries carry no quote when it is not wired. */
+  quoter?: WaitQuoter;
 }
 
 export interface WaitlistRouterOptions {
@@ -84,7 +88,10 @@ function sendWaitlistError(error: unknown, response: Response): void {
   sendUnavailable(response);
 }
 
-function toResponse(entry: Awaited<ReturnType<WaitlistServiceReader["list"]>>["entries"][number]) {
+function toResponse(
+  entry: Awaited<ReturnType<WaitlistServiceReader["list"]>>["entries"][number],
+  quotedWaitMinutes?: number,
+) {
   return {
     id: entry.id.toHexString(),
     guestName: entry.guestName,
@@ -94,14 +101,69 @@ function toResponse(entry: Awaited<ReturnType<WaitlistServiceReader["list"]>>["e
     status: entry.status,
     ...(entry.tableId === undefined ? {} : { tableId: entry.tableId.toHexString() }),
     ...(entry.seatedAt === undefined ? {} : { seatedAt: entry.seatedAt.toISOString() }),
+    ...(quotedWaitMinutes === undefined ? {} : { quotedWaitMinutes }),
     createdAt: entry.createdAt.toISOString(),
     updatedAt: entry.updatedAt.toISOString(),
   };
 }
 
+/** Quotes are a convenience: a missing or failed quote never fails the waitlist request. */
+async function queueQuotes(
+  quoter: WaitQuoter | undefined,
+  restaurantId: ObjectId,
+): Promise<Map<string, number> | undefined> {
+  if (!quoter) return undefined;
+  try {
+    return await quoter.quoteQueue(restaurantId);
+  } catch {
+    return undefined;
+  }
+}
+
 export function createWaitlistRouter(options: WaitlistRouterOptions): Router {
   const router = Router();
   const runtimes = new WeakMap<Request, WaitlistRuntime>();
+
+  // Public: guests see the current walk-in wait before they arrive or join.
+  router.get("/estimate", async (request: Request, response: Response) => {
+    const restaurantId =
+      typeof request.query.restaurantId === "string" && ObjectId.isValid(request.query.restaurantId)
+        ? new ObjectId(request.query.restaurantId)
+        : null;
+    const sizeText = typeof request.query.partySize === "string" ? request.query.partySize : "";
+    const partySize = /^\d{1,2}$/.test(sizeText) ? Number(sizeText) : Number.NaN;
+    if (
+      !restaurantId ||
+      !Number.isInteger(partySize) ||
+      partySize < 1 ||
+      partySize > WAITLIST_MAX_PARTY_SIZE
+    ) {
+      response.status(400).json({
+        error: {
+          code: "invalid_wait_estimate_query",
+          message: `Provide a restaurant ID and a party size from 1 to ${WAITLIST_MAX_PARTY_SIZE}.`,
+        },
+      });
+      return;
+    }
+    try {
+      const runtime = await options.createRuntime();
+      if (!runtime.quoter) {
+        sendUnavailable(response);
+        return;
+      }
+      const minutes = await runtime.quoter.quoteNewParty(restaurantId, partySize);
+      if (minutes === null) {
+        response.status(404).json({
+          error: { code: "restaurant_not_found", message: "The restaurant was not found." },
+        });
+        return;
+      }
+      response.status(200).json({ partySize, quotedWaitMinutes: minutes });
+    } catch {
+      sendUnavailable(response);
+    }
+  });
 
   router.use(async (request: Request, response: Response, next: NextFunction) => {
     try {
@@ -135,10 +197,14 @@ export function createWaitlistRouter(options: WaitlistRouterOptions): Router {
 
       try {
         const result = await runtime.service.list(new ObjectId(restaurantId));
+        const quotes = await queueQuotes(runtime.quoter, new ObjectId(restaurantId));
         response.set("Cache-Control", "no-store");
-        response
-          .status(200)
-          .json({ entries: result.entries.map(toResponse), truncated: result.truncated });
+        response.status(200).json({
+          entries: result.entries.map((entry) =>
+            toResponse(entry, quotes?.get(entry.id.toHexString())),
+          ),
+          truncated: result.truncated,
+        });
       } catch (error) {
         sendWaitlistError(error, response);
       }
@@ -177,8 +243,11 @@ export function createWaitlistRouter(options: WaitlistRouterOptions): Router {
 
       try {
         const entry = await runtime.service.add(new ObjectId(restaurantId), input);
+        const quotes = await queueQuotes(runtime.quoter, new ObjectId(restaurantId));
         response.set("Cache-Control", "no-store");
-        response.status(201).json({ entry: toResponse(entry) });
+        response
+          .status(201)
+          .json({ entry: toResponse(entry, quotes?.get(entry.id.toHexString())) });
       } catch (error) {
         sendWaitlistError(error, response);
       }
