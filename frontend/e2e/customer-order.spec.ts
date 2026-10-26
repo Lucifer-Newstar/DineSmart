@@ -39,9 +39,9 @@ test("a customer browses the menu, places an order and finds it in their history
   await expect(bag.getByText("₹475")).toBeVisible();
   await bag.getByRole("button", { name: "Place order request" }).click();
 
-  // The confirmation toast links to the history but fades out on its own, so
+  // The confirmation toast links to live tracking but fades out on its own, so
   // the spec waits for it and then uses the header link that always stays.
-  await expect(page.getByRole("link", { name: "View order history" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Track your order" })).toBeVisible();
   await expect(bag).toBeHidden();
   await page.getByRole("link", { name: "Your orders" }).click();
   await expect(page.getByRole("heading", { name: "Your orders, in one place." })).toBeVisible();
