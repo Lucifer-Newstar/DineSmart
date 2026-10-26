@@ -93,6 +93,14 @@ export function createOrderReadyNotifier(deps: OrderReadyDependencies) {
       const notices: NewNotification[] = [];
       if (order.customerUserId)
         notices.push(customerReadyNotification(order, order.customerUserId));
+      if (order.tableNumber && deps.waiters) {
+        try {
+          for (const waiterId of await deps.waiters.listWaiters(order.restaurantId))
+            notices.push(waiterReadyNotification(order, waiterId));
+        } catch (error) {
+          onError(error);
+        }
+      }
       const results = await Promise.allSettled(
         notices.map((notice) => deps.createNotification(notice)),
       );
