@@ -1780,3 +1780,34 @@
 .menu-allergens strong {
   font-weight: 700;
 }
+
+/* Dine-in mode from a table QR card (S5-03). */
+.menu-dine-in-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 12px;
+  padding: 10px 16px;
+  max-width: 1180px;
+  border: 1px solid #b7d3c1;
+  border-radius: 12px;
+  color: #1f3a2a;
+  background: #eaf5ee;
+}
+.menu-dine-in-error {
+  border-color: #e7b9b2;
+  color: #7d1d12;
+  background: #fbe3df;
+}
+.menu-dine-in-leave {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid #1f3a2a;
+  border-radius: 999px;
+  color: #1f3a2a;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}

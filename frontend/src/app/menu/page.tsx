@@ -10,6 +10,14 @@ import { formatMinorCurrency } from "../currency";
 import { useDialogFocus } from "../dialog-focus";
 import { tabId, tabIndexForKey } from "../roving-tabs";
 import {
+  DINE_IN_STORAGE_KEY,
+  type DineInTable,
+  isTableToken,
+  orderBody,
+  parseResolvedTable,
+  tableTokenFromSearch,
+} from "./dine-in";
+import {
   ALL_DISHES,
   applyAvailability,
   availableDietaryFilters,
@@ -181,6 +189,64 @@ export default function MenuPage() {
   const [cartError, setCartError] = useState("");
   const [toast, setToast] = useState("");
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+  const [dineIn, setDineIn] = useState<DineInTable | null>(null);
+  const [dineInError, setDineInError] = useState("");
+
+  // A table QR card opens /menu?table=<token>. The token is kept for this tab so
+  // it survives a sign-in redirect, and the API says which table it names.
+  useEffect(() => {
+    let token = tableTokenFromSearch(window.location.search);
+    try {
+      if (token) window.sessionStorage.setItem(DINE_IN_STORAGE_KEY, token);
+      else {
+        const stored = window.sessionStorage.getItem(DINE_IN_STORAGE_KEY);
+        token = isTableToken(stored) ? stored : null;
+      }
+    } catch {
+      // Private browsing can refuse storage; the link in the address bar still works.
+    }
+    if (!token && new URLSearchParams(window.location.search).has("table")) {
+      setDineInError(
+        "This table link is not valid. You can still order for pickup, or ask a server.",
+      );
+      return;
+    }
+    if (!token) return;
+    const controller = new AbortController();
+    const tableToken = token;
+    fetchWithTimeout(`${API_BASE}/tables/qr/resolve?token=${encodeURIComponent(tableToken)}`, {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const table = response.ok ? parseResolvedTable(await response.json(), tableToken) : null;
+        if (!table || table.restaurantId.toLowerCase() !== RESTAURANT_ID.toLowerCase()) {
+          throw new Error("invalid");
+        }
+        setDineIn(table);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        try {
+          window.sessionStorage.removeItem(DINE_IN_STORAGE_KEY);
+        } catch {
+          // Nothing stored to clear.
+        }
+        setDineInError(
+          "This table link is not valid any more. You can still order for pickup, or ask a server.",
+        );
+      });
+    return () => controller.abort();
+  }, []);
+
+  const leaveDineIn = () => {
+    setDineIn(null);
+    try {
+      window.sessionStorage.removeItem(DINE_IN_STORAGE_KEY);
+    } catch {
+      // Nothing stored to clear.
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -427,7 +493,7 @@ export default function MenuPage() {
           authorization: `Bearer ${accessToken}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ restaurantId: menu.id, items: orderLines() }),
+        body: JSON.stringify(orderBody(menu.id, orderLines(), dineIn)),
       });
       if (!response.ok) throw new Error(await responseError(response));
       const saved = parsePlacedOrder(await response.json());
@@ -435,7 +501,11 @@ export default function MenuPage() {
       setPlacedOrder(saved);
       setCart([]);
       setCartOpen(false);
-      setToast(`Order placed with status ${saved.status}.`);
+      setToast(
+        dineIn
+          ? `Order placed for table ${dineIn.tableNumber}. We'll bring it over.`
+          : `Order placed with status ${saved.status}.`,
+      );
       window.setTimeout(() => setToast(""), 5000);
     } catch (error) {
       setCartError(
@@ -484,6 +554,23 @@ export default function MenuPage() {
           </button>
         </div>
       </header>
+
+      {dineIn ? (
+        <div className="menu-dine-in-banner" role="status">
+          <MenuIcon name="clock" size={15} />
+          <span>
+            <strong>Dine-in · Table {dineIn.tableNumber}</strong> Your order goes straight to the
+            kitchen and is brought to your table.
+          </span>
+          <button className="menu-dine-in-leave" type="button" onClick={leaveDineIn}>
+            Order for pickup instead
+          </button>
+        </div>
+      ) : dineInError ? (
+        <div className="menu-dine-in-banner menu-dine-in-error" role="alert">
+          <span>{dineInError}</span>
+        </div>
+      ) : null}
 
       <section className="menu-hero">
         <div className="menu-hero-copy">
