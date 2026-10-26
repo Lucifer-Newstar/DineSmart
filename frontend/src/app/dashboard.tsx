@@ -33,6 +33,10 @@ import {
   parseStaffOrderListResponse,
   parseStaffOrderResponse,
 } from "./_dashboard/parsers";
+import {
+  parseTableSuggestion,
+  type ReservationActionStatus,
+} from "./_dashboard/reservation-actions";
 import { ReservationsPage } from "./_dashboard/reservations-page";
 import { useServiceClock } from "./_dashboard/service-clock";
 import { KitchenPage, OrdersPage } from "./_dashboard/service-pages";
@@ -49,7 +53,6 @@ import type {
   OrderFeedStatus,
   OrderStatus,
   RecommendationViewStatus,
-  ReservationStatus,
   ReservationViewStatus,
   Section,
 } from "./_dashboard/types";
@@ -721,22 +724,45 @@ export function Dashboard() {
     return true;
   };
 
-  const updateReservation = async (id: string) => {
+  /** Finds a table for a booking that has none, using the API's best-fit suggestion. */
+  const tableForSeating = async (id: string): Promise<string | null> => {
+    const response = await fetchWithTimeout(`${API_BASE}/reservations/${id}/table-suggestion`, {
+      credentials: "include",
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      notify("No table suggestion is available; assign a table first.");
+      return null;
+    }
+    const suggestion = parseTableSuggestion(await response.json());
+    if (!suggestion) {
+      notify("No free table fits this party right now.");
+      return null;
+    }
+    if (suggestion.kind === "combined") {
+      notify(
+        `No single table fits; join tables ${suggestion.tables
+          .map((table) => table.tableNumber)
+          .join(" and ")} and seat the party at the first.`,
+      );
+      return null;
+    }
+    return suggestion.tables[0].id;
+  };
+
+  const updateReservation = async (id: string, next: ReservationActionStatus) => {
     const current = reservations.find((reservation) => reservation.id === id);
     if (!current) return;
-    const next: ReservationStatus | null =
-      current.status === "Awaiting"
-        ? "Confirmed"
-        : current.status === "Confirmed"
-          ? "Seated"
-          : current.status === "Seated"
-            ? "Completed"
-            : null;
-    if (!next) return;
 
     if (reservationsStatus === "live" && accessToken) {
       setSavingReservationId(id);
       try {
+        const body: Record<string, string> = { status: next };
+        if (next === "Seated" && current.table === "Unassigned") {
+          const tableId = await tableForSeating(id);
+          if (!tableId) return;
+          body.tableId = tableId;
+        }
         const response = await fetchWithTimeout(`${API_BASE}/reservations/${id}`, {
           method: "PUT",
           credentials: "include",
@@ -744,10 +770,17 @@ export function Dashboard() {
             authorization: `Bearer ${accessToken}`,
             "content-type": "application/json",
           },
-          body: JSON.stringify({ status: next }),
+          body: JSON.stringify(body),
         });
         if (!response.ok) {
-          notify("The reservation was not updated. Refresh and check your permissions.");
+          let message = "The reservation was not updated. Refresh and check your permissions.";
+          try {
+            const payload = (await response.json()) as { error?: { message?: unknown } };
+            if (typeof payload.error?.message === "string") message = payload.error.message;
+          } catch {
+            // Keep the generic message when the error body is not JSON.
+          }
+          notify(message);
           return;
         }
         const updated = parseReservationResponse(await response.json());
@@ -758,7 +791,11 @@ export function Dashboard() {
         setReservations((currentReservations) =>
           currentReservations.map((item) => (item.id === id ? updated : item)),
         );
-        notify(`Reservation marked ${next.toLowerCase()}.`);
+        notify(
+          next === "Seated"
+            ? `${updated.guest} seated at ${updated.table}.`
+            : `Reservation marked ${next === "NoShow" ? "no-show" : next.toLowerCase()}.`,
+        );
       } catch {
         notify("Reservations are unavailable; the status was not changed.");
       } finally {

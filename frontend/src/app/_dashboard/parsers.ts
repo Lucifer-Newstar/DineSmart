@@ -127,6 +127,7 @@ export function parseReservationRecord(value: unknown): Reservation | null {
   const statuses: ReservationStatus[] = [
     "Awaiting",
     "Confirmed",
+    "Arrived",
     "Seated",
     "Completed",
     "Cancelled",

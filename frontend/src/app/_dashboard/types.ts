@@ -90,6 +90,7 @@ export interface InventoryItem {
 export type ReservationStatus =
   | "Awaiting"
   | "Confirmed"
+  | "Arrived"
   | "Seated"
   | "Completed"
   | "Cancelled"

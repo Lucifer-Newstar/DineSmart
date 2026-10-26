@@ -1,5 +1,6 @@
 "use client";
 
+import { type ReservationActionStatus, reservationActions } from "./reservation-actions";
 import { ReservationsTimeline } from "./reservations-timeline";
 import type { Reservation, ReservationViewStatus } from "./types";
 import { Icon, ScrollRegion, StatusPill } from "./ui";
@@ -17,7 +18,7 @@ export function ReservationsPage({
   status: ReservationViewStatus;
   truncated: boolean;
   savingId: string;
-  onUpdate: (id: string) => void | Promise<void>;
+  onUpdate: (id: string, next: ReservationActionStatus) => void | Promise<void>;
   onRefresh: () => void;
   onToast: (message: string) => void;
 }) {
@@ -109,14 +110,7 @@ export function ReservationsPage({
             <tbody>
               {reservations.length ? (
                 reservations.map((reservation) => {
-                  const action =
-                    reservation.status === "Awaiting"
-                      ? "Confirm"
-                      : reservation.status === "Confirmed"
-                        ? "Seat guest"
-                        : reservation.status === "Seated"
-                          ? "Complete"
-                          : null;
+                  const actions = reservationActions(reservation, new Date());
                   const statusLabel =
                     reservation.status === "NoShow" ? "No show" : reservation.status;
                   return (
@@ -146,19 +140,26 @@ export function ReservationsPage({
                         <StatusPill>{statusLabel}</StatusPill>
                       </td>
                       <td className="table-action-cell">
-                        <button
-                          aria-label={
-                            action
-                              ? `${action} ${reservation.guest}`
-                              : `No action for ${reservation.guest}`
-                          }
-                          className="table-action"
-                          disabled={!action || savingId === reservation.id || status === "loading"}
-                          type="button"
-                          onClick={() => void onUpdate(reservation.id)}
-                        >
-                          {savingId === reservation.id ? "Saving…" : (action ?? "—")}
-                        </button>
+                        <div className="reservation-actions">
+                          {actions.length === 0 ? (
+                            <span>
+                              —<span className="sr-only">No action for {reservation.guest}</span>
+                            </span>
+                          ) : (
+                            actions.map((action) => (
+                              <button
+                                aria-label={`${action.label} ${reservation.guest}`}
+                                className="table-action"
+                                disabled={savingId === reservation.id || status === "loading"}
+                                key={action.next}
+                                type="button"
+                                onClick={() => void onUpdate(reservation.id, action.next)}
+                              >
+                                {savingId === reservation.id ? "Saving…" : action.label}
+                              </button>
+                            ))
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
