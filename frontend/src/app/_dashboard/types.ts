@@ -1,3 +1,4 @@
+import type { GuestProfileView } from "./guest-profile-data";
 export type Section =
   | "Overview"
   | "Orders"
@@ -107,6 +108,12 @@ export interface Reservation {
   startAt?: string;
   endAt?: string;
   restaurantName?: string;
+  notes?: string;
+  occasion?: string;
+  dietaryNotes?: string;
+  /** Staff reads only (S5-02). */
+  customerId?: string;
+  guestProfile?: GuestProfileView;
 }
 
 export type RecommendationViewStatus =

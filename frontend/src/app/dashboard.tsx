@@ -1306,6 +1306,7 @@ export function Dashboard() {
           ) : currentSection === "Reservations" ? (
             <>
               <ReservationsPage
+                accessToken={accessToken}
                 reservations={reservations}
                 status={reservationsStatus}
                 truncated={reservationsTruncated}

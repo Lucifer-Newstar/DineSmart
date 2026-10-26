@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { GuestProfileCell } from "./guest-profile-cell";
 import { type ReservationActionStatus, reservationActions } from "./reservation-actions";
 import { ReservationsTimeline } from "./reservations-timeline";
 import type { Reservation, ReservationViewStatus } from "./types";
 import { Icon, ScrollRegion, StatusPill } from "./ui";
 
 export function ReservationsPage({
+  accessToken,
   reservations,
   status,
   truncated,
@@ -15,6 +17,7 @@ export function ReservationsPage({
   onRefresh,
   onToast,
 }: {
+  accessToken: string | null;
   reservations: Reservation[];
   status: ReservationViewStatus;
   truncated: boolean;
@@ -141,6 +144,17 @@ export function ReservationsPage({
                         <span className="cell-subline">
                           Reservation · {reservation.restaurantName ?? "Saffron & Co."}
                         </span>
+                        <GuestProfileCell
+                          accessToken={accessToken}
+                          customerId={reservation.customerId}
+                          dietaryNotes={reservation.dietaryNotes}
+                          guest={reservation.guest}
+                          notes={reservation.notes}
+                          occasion={reservation.occasion}
+                          profile={reservation.guestProfile}
+                          onSaved={onRefresh}
+                          onToast={onToast}
+                        />
                       </td>
                       <td>{reservation.party} guests</td>
                       <td>{reservation.table}</td>

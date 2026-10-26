@@ -1,3 +1,4 @@
+import { type GuestProfileView, parseGuestProfile } from "./guest-profile-data";
 import type {
   HealthScoreData,
   InventoryItem,
@@ -168,6 +169,15 @@ export function parseReservationRecord(value: unknown): Reservation | null {
       ? { endAt: record.endAt }
       : {}),
     restaurantName: record.restaurantName,
+    ...(typeof record.notes === "string" && record.notes ? { notes: record.notes } : {}),
+    ...(typeof record.occasion === "string" ? { occasion: record.occasion } : {}),
+    ...(typeof record.dietaryNotes === "string" ? { dietaryNotes: record.dietaryNotes } : {}),
+    ...(typeof record.customerId === "string" && /^[a-f\d]{24}$/i.test(record.customerId)
+      ? { customerId: record.customerId }
+      : {}),
+    ...(parseGuestProfile(record.guestProfile)
+      ? { guestProfile: parseGuestProfile(record.guestProfile) as GuestProfileView }
+      : {}),
   };
 }
 
