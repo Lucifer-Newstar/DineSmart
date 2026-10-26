@@ -15,6 +15,7 @@ import type {
   ReservationRepository,
   ReservationSchedule,
 } from "./reservation.types.js";
+import { RESERVATION_OCCASIONS, type ReservationOccasion } from "./reservation.types.js";
 
 export const RESERVATION_LIST_LIMIT = 500;
 
@@ -135,10 +136,9 @@ export class MongoReservationRepository implements ReservationRepository {
     changes: ReservationChanges,
     now: Date,
   ): Promise<ReservationRecord | null> {
-    const fields: Partial<ReservationDocument> = { ...changes, updatedAt: now };
     const result = await this.reservations.updateOne(
       { _id: reservationId, restaurantId, updatedAt: expectedUpdatedAt },
-      { $set: fields },
+      toUpdate(changes, now),
     );
     if (result.matchedCount === 0) return null;
     return this.findForRestaurant(reservationId, restaurantId);
@@ -151,10 +151,9 @@ export class MongoReservationRepository implements ReservationRepository {
     changes: ReservationChanges,
     now: Date,
   ): Promise<ReservationRecord | null> {
-    const fields: Partial<ReservationDocument> = { ...changes, updatedAt: now };
     const result = await this.reservations.updateOne(
       { _id: reservationId, customerId, updatedAt: expectedUpdatedAt },
-      { $set: fields },
+      toUpdate(changes, now),
     );
     if (result.matchedCount === 0) return null;
     return this.findForCustomer(reservationId, customerId);
@@ -222,8 +221,28 @@ export class MongoReservationRepository implements ReservationRepository {
         : null,
       status: document.status,
       ...(document.notes === undefined ? {} : { notes: document.notes }),
+      ...(isOccasion(document.occasion) ? { occasion: document.occasion } : {}),
+      ...(document.dietaryNotes ? { dietaryNotes: document.dietaryNotes } : {}),
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
     }));
   }
+}
+
+const OCCASIONS = new Set<string>(RESERVATION_OCCASIONS);
+
+function isOccasion(value: unknown): value is ReservationOccasion {
+  return typeof value === "string" && OCCASIONS.has(value);
+}
+
+/** Null occasion or dietary notes clear the stored field; a null table stays an explicit null. */
+function toUpdate(changes: ReservationChanges, now: Date) {
+  const { occasion, dietaryNotes, ...rest } = changes;
+  const set: Record<string, unknown> = { ...rest, updatedAt: now };
+  const unset: Record<string, ""> = {};
+  if (occasion === null) unset.occasion = "";
+  else if (occasion !== undefined) set.occasion = occasion;
+  if (dietaryNotes === null) unset.dietaryNotes = "";
+  else if (dietaryNotes !== undefined) set.dietaryNotes = dietaryNotes;
+  return Object.keys(unset).length > 0 ? { $set: set, $unset: unset } : { $set: set };
 }

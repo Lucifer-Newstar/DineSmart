@@ -18,6 +18,7 @@ import {
 } from "./availability.service.js";
 import { RESERVATION_MAX_PARTY_SIZE, ReservationError } from "./reservation.service.js";
 import type {
+  ReservationOccasion,
   ReservationRecord,
   ReservationServiceReader,
   ReservationStatus,
@@ -73,6 +74,22 @@ function dateWithTimeZone(value: unknown): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/** Reads occasion and dietary notes; null clears them on update. Types only, rules in the service. */
+function parseGuestDetails(
+  value: Record<string, unknown>,
+  target: { occasion?: ReservationOccasion | null; dietaryNotes?: string | null },
+  allowNull: boolean,
+): boolean {
+  for (const key of ["occasion", "dietaryNotes"] as const) {
+    const field = value[key];
+    if (field === undefined) continue;
+    if (field === null && allowNull) target[key] = null;
+    else if (typeof field === "string") target[key] = field as never;
+    else return false;
+  }
+  return true;
+}
+
 interface ParsedCreateBody {
   restaurantId?: ObjectId;
   customerId?: ObjectId;
@@ -80,14 +97,25 @@ interface ParsedCreateBody {
   partySize: number;
   startAt: Date;
   notes?: string;
+  occasion?: ReservationOccasion | null;
+  dietaryNotes?: string | null;
 }
 
 function parseCreateBody(value: unknown, role: AuthPrincipal["role"]): ParsedCreateBody | null {
   if (!isRecord(value)) return null;
   const isCustomer = role === "Customer";
   const allowedKeys = isCustomer
-    ? ["restaurantId", "partySize", "startAt", "notes"]
-    : ["restaurantId", "customerId", "tableId", "partySize", "startAt", "notes"];
+    ? ["restaurantId", "partySize", "startAt", "notes", "occasion", "dietaryNotes"]
+    : [
+        "restaurantId",
+        "customerId",
+        "tableId",
+        "partySize",
+        "startAt",
+        "notes",
+        "occasion",
+        "dietaryNotes",
+      ];
   if (!hasOnlyKeys(value, allowedKeys)) return null;
 
   if (typeof value.partySize !== "number" || !Number.isFinite(value.partySize)) return null;
@@ -117,6 +145,7 @@ function parseCreateBody(value: unknown, role: AuthPrincipal["role"]): ParsedCre
     if (typeof value.notes !== "string") return null;
     parsed.notes = value.notes;
   }
+  if (!parseGuestDetails(value, parsed, false)) return null;
   return parsed;
 }
 
@@ -126,11 +155,25 @@ interface ParsedUpdateBody {
   partySize?: number;
   startAt?: Date;
   notes?: string;
+  occasion?: ReservationOccasion | null;
+  dietaryNotes?: string | null;
 }
 
 function parseUpdateBody(value: unknown, role: AuthPrincipal["role"]): ParsedUpdateBody | null {
   if (!isRecord(value) || Object.keys(value).length === 0) return null;
-  if (!hasOnlyKeys(value, ["status", "tableId", "partySize", "startAt", "notes"])) return null;
+  if (
+    !hasOnlyKeys(value, [
+      "status",
+      "tableId",
+      "partySize",
+      "startAt",
+      "notes",
+      "occasion",
+      "dietaryNotes",
+    ])
+  ) {
+    return null;
+  }
   // Customers may cancel, or move their own booking's time, party size or notes (S5-01).
   if (role === "Customer" && Object.hasOwn(value, "tableId")) return null;
   if (role === "Customer" && value.status !== undefined && Object.keys(value).length > 1) {
@@ -169,6 +212,7 @@ function parseUpdateBody(value: unknown, role: AuthPrincipal["role"]): ParsedUpd
     if (typeof value.notes !== "string") return null;
     parsed.notes = value.notes;
   }
+  if (!parseGuestDetails(value, parsed, true)) return null;
   if (Object.keys(parsed).length === 0) return null;
   return parsed;
 }
@@ -239,6 +283,8 @@ function toJson(reservation: ReservationRecord) {
     tableNumber: reservation.tableNumber,
     status: reservation.status,
     ...(reservation.notes === undefined ? {} : { notes: reservation.notes }),
+    ...(reservation.occasion ? { occasion: reservation.occasion } : {}),
+    ...(reservation.dietaryNotes ? { dietaryNotes: reservation.dietaryNotes } : {}),
     createdAt: reservation.createdAt.toISOString(),
     updatedAt: reservation.updatedAt.toISOString(),
   };
@@ -360,6 +406,7 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
                 partySize: body.partySize,
                 startAt: body.startAt,
                 ...(body.notes === undefined ? {} : { notes: body.notes }),
+                ...guestDetailsOf(body),
               })
             : await runtime.service.createForStaff({
                 restaurantId: asObjectId(principal.restaurantId),
@@ -368,6 +415,7 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
                 startAt: body.startAt,
                 ...(body.tableId === undefined ? {} : { tableId: body.tableId }),
                 ...(body.notes === undefined ? {} : { notes: body.notes }),
+                ...guestDetailsOf(body),
               });
         response.status(201).json({ reservation: toJson(reservation) });
       } catch (error) {
@@ -417,6 +465,7 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
                 ...(changes.startAt === undefined ? {} : { startAt: changes.startAt }),
                 ...(changes.partySize === undefined ? {} : { partySize: changes.partySize }),
                 ...(changes.notes === undefined ? {} : { notes: changes.notes }),
+                ...guestDetailsOf(changes),
               })
             : await runtime.service.updateForStaff({
                 restaurantId: asObjectId(principal.restaurantId),
@@ -431,6 +480,16 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
   );
 
   return router;
+}
+
+function guestDetailsOf(source: {
+  occasion?: ReservationOccasion | null;
+  dietaryNotes?: string | null;
+}) {
+  return {
+    ...(source.occasion === undefined ? {} : { occasion: source.occasion }),
+    ...(source.dietaryNotes === undefined ? {} : { dietaryNotes: source.dietaryNotes }),
+  };
 }
 
 function asObjectId(value: string | null): ObjectId {

@@ -8,6 +8,7 @@ import type {
   CustomerReservationUpdate,
   NewReservation,
   ReservationChanges,
+  ReservationGuestDetails,
   ReservationRecord,
   ReservationRepository,
   ReservationSchedule,
@@ -16,12 +17,14 @@ import type {
   StaffReservationRequest,
   StaffReservationUpdate,
 } from "./reservation.types.js";
+import { RESERVATION_OCCASIONS } from "./reservation.types.js";
 
 export const RESERVATION_DURATION_MS = 90 * 60_000;
 export const RESERVATION_SLOT_MINUTES = 30;
 export const RESERVATION_MAX_PARTY_SIZE = 12;
 export const RESERVATION_NOTES_MAX_LENGTH = 500;
 export const RESERVATION_NO_SHOW_GRACE_MS = 15 * 60_000;
+export const RESERVATION_DIETARY_NOTES_MAX_LENGTH = 200;
 
 const DISABLED_TABLE_STATUSES = new Set(["disabled", "out_of_service", "out-of-service"]);
 const ALLOWED_STATUS_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
@@ -74,6 +77,7 @@ export class ReservationService implements ReservationServiceReader {
       request.partySize,
     );
     const notes = validateNotes(request.notes);
+    const details = withoutNulls(validateGuestDetails(request));
     await this.requireOpenSlot(request.restaurantId, request.partySize, request.startAt, endAt);
 
     const reservation: NewReservation = {
@@ -85,6 +89,7 @@ export class ReservationService implements ReservationServiceReader {
       tableId: null,
       status: "Awaiting",
       ...(notes === undefined ? {} : { notes }),
+      ...details,
     };
     const created = await this.repository.createReservation(reservation, now);
     this.notifyHealthScoreRefresh(request.restaurantId);
@@ -107,6 +112,7 @@ export class ReservationService implements ReservationServiceReader {
       request.partySize,
     );
     const notes = validateNotes(request.notes);
+    const details = withoutNulls(validateGuestDetails(request));
 
     if (!(await this.repository.customerExists(request.customerId))) {
       throw new ReservationError(404, "customer_not_found", "The customer was not found.");
@@ -131,6 +137,7 @@ export class ReservationService implements ReservationServiceReader {
       tableId: request.tableId ?? null,
       status: request.tableId ? "Confirmed" : "Awaiting",
       ...(notes === undefined ? {} : { notes }),
+      ...details,
     };
     const created = await this.repository.createReservation(reservation, now);
     this.notifyHealthScoreRefresh(request.restaurantId);
@@ -213,6 +220,7 @@ export class ReservationService implements ReservationServiceReader {
         }
       }
       if (request.notes !== undefined) changes.notes = validateNotes(request.notes);
+      Object.assign(changes, validateGuestDetails(request));
       if (Object.keys(changes).length === 0) return current;
     }
 
@@ -268,6 +276,7 @@ export class ReservationService implements ReservationServiceReader {
       validateStatusTransition(current.status, changes.status, nextStartAt, now);
     }
     if (changes.notes !== undefined) changes.notes = validateNotes(changes.notes);
+    Object.assign(changes, validateGuestDetails(changes));
 
     const nextTableId = Object.hasOwn(changes, "tableId") ? changes.tableId : current.tableId;
     if (nextTableId) {
@@ -452,6 +461,46 @@ function validateNotes(notes: string | undefined): string | undefined {
     );
   }
   return normalized;
+}
+
+const OCCASIONS = new Set<string>(RESERVATION_OCCASIONS);
+
+/** Validates occasion and dietary notes; only fields that were sent are returned. */
+function validateGuestDetails(details: ReservationGuestDetails): ReservationGuestDetails {
+  const result: ReservationGuestDetails = {};
+  if (details.occasion !== undefined) {
+    if (details.occasion !== null && !OCCASIONS.has(details.occasion)) {
+      throw new ReservationError(
+        400,
+        "invalid_reservation_occasion",
+        `Occasion must be one of: ${RESERVATION_OCCASIONS.join(", ")}.`,
+      );
+    }
+    result.occasion = details.occasion;
+  }
+  if (details.dietaryNotes !== undefined) {
+    if (details.dietaryNotes === null) {
+      result.dietaryNotes = null;
+    } else {
+      const trimmed = details.dietaryNotes.trim();
+      if (trimmed.length > RESERVATION_DIETARY_NOTES_MAX_LENGTH) {
+        throw new ReservationError(
+          400,
+          "reservation_dietary_notes_too_long",
+          `Dietary notes must be ${RESERVATION_DIETARY_NOTES_MAX_LENGTH} characters or fewer.`,
+        );
+      }
+      result.dietaryNotes = trimmed || null;
+    }
+  }
+  return result;
+}
+
+function withoutNulls(details: ReservationGuestDetails) {
+  return {
+    ...(details.occasion ? { occasion: details.occasion } : {}),
+    ...(details.dietaryNotes ? { dietaryNotes: details.dietaryNotes } : {}),
+  };
 }
 
 function validateStatusTransition(

@@ -207,6 +207,10 @@ export interface ReservationDocument extends TimestampedDocument {
   tableId?: ObjectId | null;
   status: string;
   notes?: string;
+  /** Why the guest is coming, from RESERVATION_OCCASIONS (S5-01). */
+  occasion?: string;
+  /** Allergies or diet the kitchen should know about; shown to staff on the booking. */
+  dietaryNotes?: string;
 }
 
 export interface OrderDocument extends TimestampedDocument {

@@ -1,5 +1,22 @@
 import type { ObjectId } from "mongodb";
 
+export const RESERVATION_OCCASIONS = [
+  "birthday",
+  "anniversary",
+  "date",
+  "business",
+  "celebration",
+  "other",
+] as const;
+
+export type ReservationOccasion = (typeof RESERVATION_OCCASIONS)[number];
+
+/** Optional guest context on a booking (S5-01). Null clears a field on update. */
+export interface ReservationGuestDetails {
+  occasion?: ReservationOccasion | null;
+  dietaryNotes?: string | null;
+}
+
 export type ReservationStatus =
   | "Awaiting"
   | "Confirmed"
@@ -20,6 +37,8 @@ export interface ReservationRecord {
   tableNumber: string | null;
   status: string;
   notes?: string;
+  occasion?: ReservationOccasion | null;
+  dietaryNotes?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +73,8 @@ export interface NewReservation {
   tableId: ObjectId | null;
   status: ReservationStatus;
   notes?: string;
+  occasion?: ReservationOccasion;
+  dietaryNotes?: string;
 }
 
 export interface ReservationChanges {
@@ -63,6 +84,8 @@ export interface ReservationChanges {
   startAt?: Date;
   endAt?: Date;
   notes?: string;
+  occasion?: ReservationOccasion | null;
+  dietaryNotes?: string | null;
 }
 
 export interface ReservationRepository {
@@ -104,7 +127,7 @@ export interface ReservationRepository {
   ): Promise<ReservationRecord | null>;
 }
 
-export interface CustomerReservationRequest {
+export interface CustomerReservationRequest extends ReservationGuestDetails {
   userId: ObjectId;
   restaurantId: ObjectId;
   partySize: number;
@@ -112,7 +135,7 @@ export interface CustomerReservationRequest {
   notes?: string;
 }
 
-export interface StaffReservationRequest {
+export interface StaffReservationRequest extends ReservationGuestDetails {
   restaurantId: ObjectId;
   customerId: ObjectId;
   partySize: number;
@@ -121,7 +144,7 @@ export interface StaffReservationRequest {
   notes?: string;
 }
 
-export interface CustomerReservationUpdate {
+export interface CustomerReservationUpdate extends ReservationGuestDetails {
   userId: ObjectId;
   reservationId: ObjectId;
   /** Cancel; cannot be combined with other changes. */
