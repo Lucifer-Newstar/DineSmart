@@ -28,6 +28,8 @@ import { MongoRegistrationOtpRepository } from "./auth/registration.repository.j
 import { MongoBillRepository } from "./bills/bill.repository.js";
 import { createBillRouter } from "./bills/bill.router.js";
 import { BillService } from "./bills/bill.service.js";
+import { createGuestRouter } from "./customers/customer.router.js";
+import { MongoGuestProfileStore } from "./customers/guest-profile.repository.js";
 import { connectToDatabase } from "./database.js";
 import {
   AuthEmailSender,
@@ -416,6 +418,19 @@ export function createApp(options: AppOptions = {}) {
           repository: new MongoBookingRulesRepository(db),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
           audit: new AuditService(new MongoAuditRepository(db)).record,
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/guests",
+    createGuestRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          store: new MongoGuestProfileStore(db),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
     }),

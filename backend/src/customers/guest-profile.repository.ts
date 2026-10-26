@@ -94,3 +94,106 @@ export class MongoGuestProfileRepository {
     );
   }
 }
+
+export interface GuestProfileChanges {
+  tags?: GuestTag[];
+  staffNote?: string | null;
+}
+
+export interface GuestProfileStore {
+  /** True when the customer has a booking or an order at this restaurant. */
+  isGuestOf(restaurantId: ObjectId, customerId: ObjectId): Promise<boolean>;
+  get(restaurantId: ObjectId, customerId: ObjectId): Promise<GuestProfileSummary>;
+  update(
+    restaurantId: ObjectId,
+    customerId: ObjectId,
+    changes: GuestProfileChanges,
+    now: Date,
+  ): Promise<GuestProfileSummary>;
+}
+
+export class MongoGuestProfileStore implements GuestProfileStore {
+  private readonly profiles;
+  private readonly reservations;
+  private readonly orders;
+
+  constructor(db: Db) {
+    this.profiles = db.collection<GuestProfileDocument>(COLLECTIONS.guestProfiles);
+    this.reservations = db.collection(COLLECTIONS.reservations);
+    this.orders = db.collection(COLLECTIONS.orders);
+  }
+
+  async isGuestOf(restaurantId: ObjectId, customerId: ObjectId): Promise<boolean> {
+    const [booking, order] = await Promise.all([
+      this.reservations.findOne({ restaurantId, customerId }, { projection: { _id: 1 } }),
+      this.orders.findOne({ restaurantId, customerId }, { projection: { _id: 1 } }),
+    ]);
+    return booking !== null || order !== null;
+  }
+
+  async get(restaurantId: ObjectId, customerId: ObjectId): Promise<GuestProfileSummary> {
+    return toGuestSummary(await this.profiles.findOne({ restaurantId, customerId }));
+  }
+
+  async update(
+    restaurantId: ObjectId,
+    customerId: ObjectId,
+    changes: GuestProfileChanges,
+    now: Date,
+  ): Promise<GuestProfileSummary> {
+    const set: Record<string, unknown> = { updatedAt: now };
+    const unset: Record<string, ""> = {};
+    if (changes.tags !== undefined) set.tags = changes.tags;
+    if (changes.staffNote === null) unset.staffNote = "";
+    else if (changes.staffNote !== undefined) set.staffNote = changes.staffNote;
+    const updated = await this.profiles.findOneAndUpdate(
+      { restaurantId, customerId },
+      {
+        $set: set,
+        ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+        $setOnInsert: {
+          restaurantId,
+          customerId,
+          visitCount: 0,
+          noShowCount: 0,
+          ...(changes.tags === undefined ? { tags: [] } : {}),
+          createdAt: now,
+        },
+      },
+      { upsert: true, returnDocument: "after", includeResultMetadata: false },
+    );
+    return toGuestSummary(updated);
+  }
+}
+
+/** Validates a staff edit: known tags only, no repeats, and a bounded note. Null clears the note. */
+export function parseGuestProfileChanges(value: unknown): GuestProfileChanges | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const body = value as Record<string, unknown>;
+  if (Object.keys(body).some((key) => key !== "tags" && key !== "staffNote")) return null;
+  const changes: GuestProfileChanges = {};
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags) || body.tags.some((tag) => !TAGS.has(tag as string))) return null;
+    changes.tags = [...new Set(body.tags as GuestTag[])];
+  }
+  if (body.staffNote !== undefined) {
+    if (body.staffNote === null) changes.staffNote = null;
+    else if (typeof body.staffNote !== "string") return null;
+    else {
+      const note = body.staffNote.trim();
+      if (note.length > GUEST_NOTE_MAX_LENGTH) return null;
+      changes.staffNote = note || null;
+    }
+  }
+  return Object.keys(changes).length > 0 ? changes : null;
+}
+
+export function guestSummaryToJson(summary: GuestProfileSummary) {
+  return {
+    visitCount: summary.visitCount,
+    noShowCount: summary.noShowCount,
+    lastVisitAt: summary.lastVisitAt?.toISOString() ?? null,
+    tags: summary.tags,
+    staffNote: summary.staffNote,
+  };
+}

@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb";
 import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
+import { guestSummaryToJson } from "../customers/guest-profile.repository.js";
 import { isObjectIdString, parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
 import {
   AvailabilityNotFoundError,
@@ -289,6 +290,11 @@ function toJson(reservation: ReservationRecord) {
     ...(reservation.dietaryNotes ? { dietaryNotes: reservation.dietaryNotes } : {}),
     ...(reservation.arrivedAt ? { arrivedAt: reservation.arrivedAt.toISOString() } : {}),
     ...(reservation.seatedAt ? { seatedAt: reservation.seatedAt.toISOString() } : {}),
+    // Set only on staff reads by the repository; customers never receive staff notes.
+    ...(reservation.customerId ? { customerId: reservation.customerId.toHexString() } : {}),
+    ...(reservation.guestProfile
+      ? { guestProfile: guestSummaryToJson(reservation.guestProfile) }
+      : {}),
     createdAt: reservation.createdAt.toISOString(),
     updatedAt: reservation.updatedAt.toISOString(),
   };
