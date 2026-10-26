@@ -6212,3 +6212,21 @@ button.notification-item:focus-visible {
   font-size: 12px;
   font-weight: 650;
 }
+
+.connection-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 28px 0;
+  padding: 10px 14px;
+  border: 1px solid #e6cf9a;
+  border-radius: 10px;
+  color: #5c4613;
+  background: #fff7e2;
+  font-size: 13px;
+}
+.connection-banner-offline {
+  border-color: #efc9b8;
+  color: #8a4a30;
+  background: #fdf3ee;
+}

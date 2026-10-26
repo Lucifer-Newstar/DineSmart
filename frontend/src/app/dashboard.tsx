@@ -59,7 +59,7 @@ import type {
   Section,
 } from "./_dashboard/types";
 import { DemoBanner, Icon, PageHeading } from "./_dashboard/ui";
-import { LiveAnnouncer, useArrivalAnnouncement } from "./_dashboard/widgets";
+import { ConnectionBanner, LiveAnnouncer, useArrivalAnnouncement } from "./_dashboard/widgets";
 import { classifyRequestError, DEFAULT_REQUEST_TIMEOUT_MS, fetchWithTimeout } from "./api-client";
 import { useAuth } from "./auth-provider";
 import { BrandMark } from "./brand-mark";
@@ -1131,6 +1131,7 @@ export function Dashboard() {
             </div>
           </div>
         </header>
+        <ConnectionBanner realtime={user ? notificationFeed.realtime : "off"} />
 
         <div className="page-content">
           <PageHeading

@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
+import { connectionNotice, type LiveUpdateStatus } from "../connection-status";
 import { type Arrival, type ArrivalNoun, describeArrivals } from "../live-announcements";
 import type { Recommendation } from "../recommendation-data";
 import { displayOrderId } from "./parsers";
@@ -28,6 +29,38 @@ export function useArrivalAnnouncement(
     if (text) setMessage(text);
   }, [items, ready]);
   return message;
+}
+
+/** Tracks navigator.onLine through the browser's online and offline events (S5-05). */
+export function useOnlineStatus(): boolean {
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+  return online;
+}
+
+/** A banner that appears while the network or the live-update socket is down. */
+export function ConnectionBanner({ realtime }: { realtime: LiveUpdateStatus }) {
+  const online = useOnlineStatus();
+  const message = connectionNotice(online, realtime);
+  return (
+    <div className="connection-banner-region" role="status" aria-live="polite">
+      {message ? (
+        <p className={`connection-banner ${online ? "" : "connection-banner-offline"}`}>
+          <Icon name="alert" size={16} />
+          <span>{message}</span>
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 /** A visually hidden polite live region; screen readers read each new message once. */
