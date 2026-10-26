@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { relativeTime } from "../notifications/notification-data";
+import { NotificationPreferencesFields } from "../notifications/notification-preferences";
 import { parseSessions, type SignedInDevice } from "./session-data";
 import { Icon } from "./ui";
 import { apiSend, useApiResource } from "./use-api";
@@ -91,6 +92,18 @@ export function DevicesPanel({
           ))}
         </ul>
       )}
+    </article>
+  );
+}
+
+/** S5-04: staff choose their optional in-app alerts; incident alerts always stay on. */
+export function NotificationSettingsPanel({ accessToken }: { accessToken: string | null }) {
+  return (
+    <article className="card devices-card" aria-labelledby="notification-settings-title">
+      <div className="card-overline">NOTIFICATIONS</div>
+      <h2 id="notification-settings-title">Your alerts</h2>
+      <p>Incident alerts always reach you. You can turn the others off.</p>
+      <NotificationPreferencesFields accessToken={accessToken} idPrefix="settings" />
     </article>
   );
 }

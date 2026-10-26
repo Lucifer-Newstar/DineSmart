@@ -41,7 +41,7 @@ import {
 import { ReservationsPage } from "./_dashboard/reservations-page";
 import { useServiceClock } from "./_dashboard/service-clock";
 import { KitchenPage, OrdersPage } from "./_dashboard/service-pages";
-import { DevicesPanel, SettingsPage } from "./_dashboard/settings-page";
+import { DevicesPanel, NotificationSettingsPanel, SettingsPage } from "./_dashboard/settings-page";
 import { StaffPanel } from "./_dashboard/staff-panel";
 import { TableQrPanel } from "./_dashboard/table-qr";
 import type {
@@ -1377,6 +1377,7 @@ export function Dashboard() {
                 onToast={notify}
               />
               {user ? <DevicesPanel accessToken={accessToken} onToast={notify} /> : null}
+              {user ? <NotificationSettingsPanel accessToken={accessToken} /> : null}
               {user && user.role !== "Kitchen Staff" ? (
                 <BookingRulesPanel
                   accessToken={accessToken}

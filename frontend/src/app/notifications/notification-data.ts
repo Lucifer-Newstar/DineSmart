@@ -60,3 +60,27 @@ export function relativeTime(iso: string, now = Date.now()): string {
   if (hours < 24) return `${hours} h ago`;
   return new Date(then).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
+
+/** Labels for the notification categories the API returns (S5-04), in display order. */
+export const NOTIFICATION_PREFERENCE_LABELS: Readonly<Record<string, string>> = {
+  bookings: "Booking confirmations, changes and reminders",
+  orders: "When my order is ready",
+  waiterAlerts: "Dine-in orders ready to take to a table",
+};
+
+export interface NotificationPreference {
+  key: string;
+  label: string;
+  enabled: boolean;
+}
+
+/** Known categories only, in a stable order; unknown keys from a newer API are ignored. */
+export function parseNotificationPreferences(value: unknown): NotificationPreference[] | null {
+  if (typeof value !== "object" || value === null) return null;
+  const raw = (value as Record<string, unknown>).preferences;
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const stored = raw as Record<string, unknown>;
+  return Object.entries(NOTIFICATION_PREFERENCE_LABELS)
+    .filter(([key]) => typeof stored[key] === "boolean")
+    .map(([key, label]) => ({ key, label, enabled: stored[key] === true }));
+}

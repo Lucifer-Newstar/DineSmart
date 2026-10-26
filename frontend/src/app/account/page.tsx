@@ -6,6 +6,7 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
+import { NotificationPreferencesFields } from "../notifications/notification-preferences";
 import {
   type AccountProfile,
   canConfirmDeletion,
@@ -435,6 +436,10 @@ export default function AccountPage() {
                 {status}
               </p>
             </form>
+            <section className="account-card" aria-labelledby="account-notifications-title">
+              <h2 id="account-notifications-title">Notifications</h2>
+              <NotificationPreferencesFields accessToken={accessToken} idPrefix="account" />
+            </section>
             <PasswordSection
               accessToken={accessToken}
               hasPassword={profile.hasPassword}

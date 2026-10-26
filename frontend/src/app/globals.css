@@ -545,6 +545,29 @@ a {
   color: #617b5e;
   font-size: 12px;
 }
+.notification-preferences {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #e3dfd2;
+  border-radius: 10px;
+}
+.notification-preferences legend {
+  padding: 0 4px;
+  font-weight: 650;
+}
+.notification-preferences label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.notification-preferences-status {
+  min-height: 1em;
+  margin: 0;
+  color: #3f5a43;
+  font-size: 12px;
+}
 .popover-heading .text-button {
   margin-left: auto;
   margin-right: 10px;
