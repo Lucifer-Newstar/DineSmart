@@ -115,7 +115,7 @@ export function GuestProfileCell({
           </fieldset>
         ) : (
           <button
-            aria-label={`Edit guest profile for ${guest}`}
+            aria-label={`Tags and notes for ${guest}`}
             className="text-link guest-edit-link"
             type="button"
             onClick={() => {
