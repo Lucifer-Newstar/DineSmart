@@ -1,0 +1,68 @@
+.account-content {
+  display: grid;
+  gap: 18px;
+}
+.account-card {
+  display: grid;
+  gap: 12px;
+  max-width: 560px;
+  padding: 20px;
+  border: 1px solid #e3dfd2;
+  border-radius: 14px;
+  background: #fffdf8;
+}
+.account-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.account-field {
+  display: grid;
+  gap: 4px;
+}
+.account-field input {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #b9b3a3;
+  border-radius: 8px;
+  font: inherit;
+}
+.account-fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #e3dfd2;
+  border-radius: 10px;
+}
+.account-readonly {
+  margin: 0;
+  color: #4a5a4f;
+}
+.account-error {
+  color: #a3261b;
+  font-weight: 600;
+}
+.account-status {
+  min-height: 1.2em;
+  margin: 0;
+  color: #2e3d33;
+}
+.account-danger {
+  border-color: #e7b9b2;
+}
+.account-danger-button {
+  justify-self: start;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid #a3261b;
+  border-radius: 999px;
+  color: #fff;
+  background: #a3261b;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.account-danger-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

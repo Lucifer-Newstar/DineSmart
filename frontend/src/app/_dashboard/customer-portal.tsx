@@ -279,6 +279,9 @@ export function CustomerPortal({
               <small>Customer account</small>
             </span>
           </div>
+          <Link className="customer-signout" href="/account">
+            Account settings
+          </Link>
           <button className="customer-signout" type="button" onClick={() => void onSignOut()}>
             Sign out
           </button>

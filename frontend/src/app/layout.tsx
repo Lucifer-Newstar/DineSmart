@@ -5,6 +5,7 @@ import "./globals.css";
 import "./menu/menu.css";
 import "./orders/orders.css";
 import "./bookings/bookings.css";
+import "./account/account.css";
 
 export const metadata: Metadata = {
   title: {

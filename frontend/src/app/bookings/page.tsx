@@ -331,6 +331,9 @@ export default function MyBookingsPage() {
           <Link className="menu-back-link" href="/book">
             Book a table
           </Link>
+          <Link className="menu-back-link" href="/account">
+            Account
+          </Link>
           <Link className="menu-back-link" href="/">
             Home
           </Link>
