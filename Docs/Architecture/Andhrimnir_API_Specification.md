@@ -28,6 +28,12 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | GET | /waitlist | Read the signed-restaurant FIFO waitlist (Reception/Manager/Administrator) | Jegatheesan |
 | POST | /waitlist | Add a walk-in party to the signed-restaurant waitlist | Jegatheesan |
 | PUT | /waitlist/{id} | Resolve a waitlist party or seat it at a same-tenant available table | Jegatheesan |
+| GET | /reservations/availability?restaurantId&date&partySize | Public: bookable time slots for one day and party size (S5-01) | Jegatheesan |
+| GET | /reservations/{id}/availability?date | Customer: open slots for moving their own booking (S5-01) | Jegatheesan |
+| GET | /reservations/{id}/table-suggestion | Reception/Manager/Administrator: the best-fit free table for a booking (S5-01) | Jegatheesan |
+| GET | /booking-rules | Reception/Manager/Administrator: turn times, pacing, lead time, booking window, change cutoff (S5-01) | Jegatheesan |
+| PUT | /booking-rules | Manager/Administrator: save the booking rules (S5-01) | Jegatheesan |
+| GET | /waitlist/estimate?restaurantId&partySize | Public: the current walk-in wait quote in minutes (S5-01) | Jegatheesan |
 | POST | /orders | Place customer order; server derives prices/status | Jegatheesan |
 | GET | /orders | List tenant-scoped active staff orders; Kitchen Staff see kitchen-relevant statuses only | Jegatheesan |
 | GET | /orders/history | Get own order history across restaurants | Jegatheesan |
@@ -52,6 +58,37 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | PUT | /tables/{id}/status | Staff-directed tenant-scoped table status transition | Jegatheesan |
 | GET | /notifications | List the authenticated recipient's notifications; customer history spans restaurants, staff is scoped to its signed restaurant and own recipient ID | Gokul |
 | PATCH | /notifications/{id}/read | Idempotently mark the authenticated recipient's own notification as read | Gokul |
+
+## S5-01 Reservations 2.0: availability, booking changes and waitlist estimates
+
+This section extends S2-03. It describes the local implementation on `main`, backed by route and service tests and the `reservations.spec.ts` / `customer-booking.spec.ts` end-to-end specs run against a local MongoDB. It has not been verified against MongoDB Atlas or a deployed environment.
+
+**Booking rules.** Each restaurant stores `bookingRules` (defaults apply when unset): `turnTimes` (party size bands with minutes, 30 to 300; defaults 90 min up to 4 guests, 120 up to 6, 150 up to 12), `pacingCoversPer15Min` (default 20 covers that may start in any 15-minute window), `minLeadMinutes` (default 60), `maxAdvanceDays` (default 60) and `changeCutoffMinutes` (default 120). The end time of every booking is now the start plus the turn time for its party size, not a fixed 90 minutes.
+
+| Route | Authorization | Request and behavior | Success response |
+| --- | --- | --- | --- |
+| `GET /reservations/availability` | Public (no token); sits ahead of authentication. | Query `restaurantId`, `date` (`YYYY-MM-DD` in the restaurant's time zone) and `partySize` (1 to 12). Slots every 30 minutes inside opening hours. An unavailable slot carries its reason: `past`, `too_soon` (lead time), `too_far` (booking window), `pacing`, or `no_table` (no table that seats the party is free for the whole turn). | `200 { date, partySize, timeZone, turnMinutes, slots: [{ startAt, endAt, localTime, available, reason? }] }` |
+| `GET /reservations/{id}/availability` | Customer, own booking only (`reservations:own:read`). | Query `date`. The same slots, computed as if this booking did not exist, so a guest can move it without colliding with itself. | `200` same shape |
+| `PUT /reservations/{id}` (customer) | Customer, own booking (`reservations:own:update`). | Either `{ "status": "Cancelled" }` alone, or any of `startAt`, `partySize`, `notes`, `occasion`, `dietaryNotes`. Changes and cancellations close `changeCutoffMinutes` before the start. A moved booking is re-checked against tables, pacing, lead time and window. Customers cannot set a table. | `200 { reservation }` |
+| `PUT /reservations/{id}` (staff) | Reception/Manager/Administrator (`reservations:write`). | Adds the `Arrived` status (`Awaiting`/`Confirmed` to `Arrived`, then `Seated`) and records `arrivedAt` and `seatedAt`. Seating needs a table (`409 reservation_table_required`). Seating, completion and no-shows update the guest profile counters (S5-02). | `200 { reservation }` |
+| `GET /reservations/{id}/table-suggestion` | Reception/Manager/Administrator (`reservations:write`). | Optional `accessible=true`. The free table (or, failing that, a pair of tables) that seats the party for the whole turn with the fewest spare seats. | `200 { suggestion: { kind: "single" or "combined", spareSeats, tables } }` or `200 { suggestion: null }` |
+| `GET /booking-rules` | `reservations:read`, signed restaurant scope. | Returns the stored rules, or the defaults when none are saved. | `200 { rules, usingDefaults, limits }` |
+| `PUT /booking-rules` | `restaurant:write` (Manager/Administrator), signed restaurant scope. | Replaces the rules. Every number is bounded as listed above; turn time bands are sorted by party size, may not repeat a size and must cover the largest bookable party. Writes a `restaurant.booking_rules_changed` audit entry with before and after values. | `200 { rules, usingDefaults: false, limits }` |
+| `GET /waitlist/estimate` | Public (no token). | Query `restaurantId` and `partySize`. Each table that seats the party frees up when its current party's turn ends; parties already waiting take the earliest tables first. Rounded up to 5 minutes and capped at 120. `POST /waitlist` also returns `quotedWaitMinutes` on the new entry. | `200 { partySize, quotedWaitMinutes }` |
+
+**Errors** (all `{ "error": { "code", "message" } }`):
+
+| Status | Codes |
+| --- | --- |
+| 400 | `invalid_availability_query`, `invalid_wait_estimate_query`, `invalid_party_size`, `invalid_reservation_slot`, `invalid_reservation_time`, `reservation_time_in_past`, `reservation_too_soon`, `reservation_too_far`, `outside_operating_hours`, `invalid_reservation_occasion`, `reservation_notes_too_long`, `reservation_dietary_notes_too_long`, `invalid_reservation_update` |
+| 403 | `customer_profile_required` |
+| 404 | `reservation_not_found`, `restaurant_not_found`, `table_not_found`, `customer_not_found` |
+| 409 | `reservation_slot_unavailable` (table or pacing full), `reservation_change_window_closed`, `reservation_not_changeable`, `reservation_cannot_be_cancelled`, `invalid_reservation_transition`, `reservation_table_required`, `reservation_table_conflict`, `table_capacity_exceeded`, `table_unavailable`, `reservation_no_show_too_early`, `reservation_changed` (another write landed first) |
+| 503 | `reservation_unavailable`, `restaurant_schedule_unavailable` |
+
+**Notifications (S5-04).** A staff confirmation, a staff change of time or party size, and a staff cancellation each send the guest an in-app notification and, when they allow booking emails, an email with a calendar file (`STATUS:CANCELLED` for a cancellation). Guests are not notified about their own edits. A reminder goes out the day before, once per booking. Email goes through the configured transport; with `EMAIL_PROVIDER=mock` (the development default) nothing leaves the machine.
+
+**Limits.** Slot checks and the booking write are separate steps; two guests racing for the last table can both pass the slot check, and the table conflict check on write is what stops the second. This is not a database transaction.
 
 ## S2-03 Reservations — locally implemented contract
 
