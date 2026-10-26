@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnalyticsPage } from "./_dashboard/analytics-page";
 import { BillingPanel } from "./_dashboard/billing-panel";
+import { BookingRulesPanel } from "./_dashboard/booking-rules-panel";
 import { CustomerPortal } from "./_dashboard/customer-portal";
 import {
   API_BASE,
@@ -1367,6 +1368,13 @@ export function Dashboard() {
                 onToast={notify}
               />
               {user ? <DevicesPanel accessToken={accessToken} onToast={notify} /> : null}
+              {user && user.role !== "Kitchen Staff" ? (
+                <BookingRulesPanel
+                  accessToken={accessToken}
+                  canEdit={user.role === "Manager" || user.role === "Administrator"}
+                  onToast={notify}
+                />
+              ) : null}
               {!user || user.role === "Manager" || user.role === "Administrator" ? (
                 <StaffPanel
                   accessToken={accessToken}
