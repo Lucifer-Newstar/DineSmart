@@ -163,6 +163,9 @@ export function parseReservationRecord(value: unknown): Reservation | null {
     table: record.tableNumber ? `Table ${record.tableNumber}` : "Unassigned",
     status: record.status as ReservationStatus,
     startAt: record.startAt,
+    ...(typeof record.endAt === "string" && Number.isFinite(Date.parse(record.endAt))
+      ? { endAt: record.endAt }
+      : {}),
     restaurantName: record.restaurantName,
   };
 }

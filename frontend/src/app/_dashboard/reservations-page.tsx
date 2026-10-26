@@ -1,5 +1,6 @@
 "use client";
 
+import { ReservationsTimeline } from "./reservations-timeline";
 import type { Reservation, ReservationViewStatus } from "./types";
 import { Icon, ScrollRegion, StatusPill } from "./ui";
 
@@ -196,6 +197,7 @@ export function ReservationsPage({
           </button>
         </div>
       </article>
+      {status === "live" ? <ReservationsTimeline reservations={reservations} /> : null}
       <div className="reservation-note-card">
         <span>
           <Icon name="spark" size={18} />

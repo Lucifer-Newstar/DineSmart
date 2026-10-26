@@ -1,0 +1,95 @@
+/* Reservations day timeline and booking actions (S5-01). */
+.reservations-timeline {
+  margin-top: 18px;
+}
+.timeline-day-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.timeline-empty {
+  margin: 12px 0 4px;
+  color: #4a5a4f;
+}
+.timeline-grid {
+  overflow-x: auto;
+}
+.timeline-scale,
+.timeline-row {
+  display: grid;
+  grid-template-columns: 110px minmax(720px, 1fr);
+  align-items: stretch;
+}
+.timeline-marks {
+  display: flex;
+  justify-content: space-between;
+  color: #4a5a4f;
+  font-size: 12px;
+}
+.timeline-rows,
+.timeline-track {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.timeline-row {
+  min-height: 56px;
+  border-top: 1px solid #e7e3d8;
+}
+.timeline-row-label {
+  align-self: center;
+  color: #2e3d33;
+  font-size: 13px;
+  font-weight: 650;
+}
+.timeline-track {
+  position: relative;
+  min-height: 56px;
+}
+.timeline-block {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2px 8px;
+  border-left: 4px solid #2f5b43;
+  border-radius: 6px;
+  color: #1f2c24;
+  background: #e3efe7;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.timeline-block strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.timeline-block span {
+  overflow: hidden;
+  color: #33443a;
+  text-overflow: ellipsis;
+}
+.timeline-block-awaiting {
+  border-left-color: #8a5a00;
+  background: #fbf0d9;
+}
+.timeline-block-arrived {
+  border-left-color: #1d4f91;
+  background: #e2ecfa;
+}
+.timeline-block-seated {
+  border-left-color: #7a2e8a;
+  background: #f1e4f4;
+}
+.timeline-block-completed {
+  border-left-color: #5c625e;
+  background: #eceeed;
+}
+.reservation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}

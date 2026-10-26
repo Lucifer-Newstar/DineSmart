@@ -104,6 +104,7 @@ export interface Reservation {
   table: string;
   status: ReservationStatus;
   startAt?: string;
+  endAt?: string;
   restaurantName?: string;
 }
 
