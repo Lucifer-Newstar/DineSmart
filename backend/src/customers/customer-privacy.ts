@@ -1,14 +1,20 @@
 import type { ObjectId } from "mongodb";
+import { verifyPassword } from "../auth/auth.service.js";
 import {
   type BillDocument,
   COLLECTIONS,
   type NotificationDocument,
   type OrderDocument,
   type OrderItemDocument,
+  type RefreshSessionDocument,
   type ReservationDocument,
   type RestaurantDocument,
 } from "../database/schema.js";
-import { contactPreferencesOf, MongoCustomerAccountRepository } from "./customer-account.js";
+import {
+  AccountError,
+  contactPreferencesOf,
+  MongoCustomerAccountRepository,
+} from "./customer-account.js";
 
 /**
  * Data export and account erasure for customers (S5-02). The export holds the
@@ -17,6 +23,8 @@ import { contactPreferencesOf, MongoCustomerAccountRepository } from "./customer
  */
 
 export const EXPORT_LIST_LIMIT = 5_000;
+export const ERASE_CONFIRMATION = "DELETE";
+export const ERASED_NAME = "Deleted guest";
 
 export interface AccountExport {
   exportedAt: string;
@@ -32,6 +40,16 @@ export interface AccountExport {
   bills: Array<Record<string, unknown>>;
   notifications: Array<Record<string, unknown>>;
 }
+
+export interface ErasureSummary {
+  cancelledReservations: number;
+  scrubbedReservations: number;
+  scrubbedOrderItems: number;
+  deletedNotifications: number;
+  deletedGuestProfiles: number;
+}
+
+const ACTIVE_BOOKING_STATUSES = ["Awaiting", "Confirmed"];
 
 function iso(value: Date | null | undefined): string | null {
   return value instanceof Date ? value.toISOString() : null;
@@ -140,6 +158,112 @@ export class MongoCustomerPrivacyRepository extends MongoCustomerAccountReposito
         createdAt: notification.createdAt.toISOString(),
         readAt: iso(notification.readAt),
       })),
+    };
+  }
+
+  /**
+   * Erases the account: personal details are removed or replaced, upcoming
+   * bookings are cancelled, every session ends and sign-in stops working.
+   * Order and bill amounts stay, without a name, because the restaurant must
+   * keep its sales records.
+   */
+  async eraseAccount(
+    userId: ObjectId,
+    confirmation: unknown,
+    password: unknown,
+    now: Date,
+  ): Promise<ErasureSummary> {
+    if (confirmation !== ERASE_CONFIRMATION) {
+      throw new AccountError(
+        400,
+        "confirmation_required",
+        `Type ${ERASE_CONFIRMATION} to confirm.`,
+      );
+    }
+    const { user, customerId } = await this.owner(userId, now);
+    if (
+      typeof user.passwordHash === "string" &&
+      (typeof password !== "string" || !(await verifyPassword(password, user.passwordHash)))
+    ) {
+      throw new AccountError(400, "invalid_current_password", "The password is incorrect.");
+    }
+
+    const placeholder = `deleted-${userId.toHexString()}@deleted.invalid`;
+    await this.users.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          name: ERASED_NAME,
+          email: placeholder,
+          normalizedEmail: placeholder,
+          status: "disabled",
+          refreshSessionsInvalidBefore: now,
+          updatedAt: now,
+        },
+        $unset: {
+          passwordHash: "",
+          googleSubject: "",
+          authProvider: "",
+          emailOtpCodeHash: "",
+          emailOtpExpiresAt: "",
+          emailOtpResendAt: "",
+          emailOtpAttempts: "",
+          passwordResetCodeHash: "",
+          passwordResetExpiresAt: "",
+          passwordResetResendAt: "",
+          passwordResetAttempts: "",
+          failedLoginAttempts: "",
+          loginLockedUntil: "",
+        },
+      },
+    );
+    await this.db
+      .collection<RefreshSessionDocument>(COLLECTIONS.refreshSessions)
+      .updateMany({ userId, revokedAt: null }, { $set: { revokedAt: now, updatedAt: now } });
+    await this.customers.updateOne(
+      { _id: customerId },
+      {
+        $set: {
+          displayName: ERASED_NAME,
+          contactPreferences: { email: false, offers: false },
+          updatedAt: now,
+        },
+        $unset: { email: "", phone: "", userId: "" },
+      },
+    );
+
+    const reservations = this.db.collection<ReservationDocument>(COLLECTIONS.reservations);
+    const cancelled = await reservations.updateMany(
+      { customerId, status: { $in: ACTIVE_BOOKING_STATUSES }, startAt: { $gt: now } },
+      { $set: { status: "Cancelled", tableId: null, updatedAt: now } },
+    );
+    const scrubbed = await reservations.updateMany(
+      { customerId },
+      { $unset: { notes: "", occasion: "", dietaryNotes: "" }, $set: { updatedAt: now } },
+    );
+    const orderIds = (
+      await this.db
+        .collection<OrderDocument>(COLLECTIONS.orders)
+        .find({ customerId }, { projection: { _id: 1 } })
+        .toArray()
+    ).map((order) => order._id);
+    const items = await this.db
+      .collection<OrderItemDocument>(COLLECTIONS.orderItems)
+      .updateMany(
+        { orderId: { $in: orderIds }, notes: { $exists: true } },
+        { $unset: { notes: "" }, $set: { updatedAt: now } },
+      );
+    const notifications = await this.db
+      .collection<NotificationDocument>(COLLECTIONS.notifications)
+      .deleteMany({ recipientUserId: userId });
+    const profiles = await this.db.collection(COLLECTIONS.guestProfiles).deleteMany({ customerId });
+
+    return {
+      cancelledReservations: cancelled.modifiedCount,
+      scrubbedReservations: scrubbed.modifiedCount,
+      scrubbedOrderItems: items.modifiedCount,
+      deletedNotifications: notifications.deletedCount,
+      deletedGuestProfiles: profiles.deletedCount,
     };
   }
 }

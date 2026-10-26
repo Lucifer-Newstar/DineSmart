@@ -61,6 +61,13 @@ async function call(role: AuthPrincipal["role"], method: "GET" | "PATCH", body?:
       bills: [],
       notifications: [],
     }),
+    eraseAccount: async () => ({
+      cancelledReservations: 0,
+      scrubbedReservations: 0,
+      scrubbedOrderItems: 0,
+      deletedNotifications: 0,
+      deletedGuestProfiles: 0,
+    }),
     getProfile: async () => profile,
     updateProfile: async (_id, changes) => {
       updates.push(changes);
