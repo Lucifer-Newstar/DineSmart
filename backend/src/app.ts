@@ -68,7 +68,11 @@ import {
 import { MongoNotificationRepository } from "./notifications/notification.repository.js";
 import { createNotificationRouter } from "./notifications/notification.router.js";
 import { NotificationService } from "./notifications/notification.service.js";
-import { createOrderReadyNotifier, MongoOrderReadyStore } from "./notifications/order-notifier.js";
+import {
+  createOrderReadyNotifier,
+  MongoOrderReadyStore,
+  MongoWaiterRecipients,
+} from "./notifications/order-notifier.js";
 import { MongoReminderStore, ReminderScheduler } from "./notifications/reminder.scheduler.js";
 import {
   createReservationNotifier,
@@ -252,6 +256,7 @@ export function createApp(options: AppOptions = {}) {
     const db = await (options.getDatabase?.() ?? connectToDatabase());
     await createOrderReadyNotifier({
       store: new MongoOrderReadyStore(db),
+      waiters: new MongoWaiterRecipients(db),
       createNotification: (notification) =>
         new NotificationService(
           new MongoNotificationRepository(db),
