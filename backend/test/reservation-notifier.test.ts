@@ -2,12 +2,18 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { EmailMessage } from "../src/email/email-transport.js";
-import { bookingConfirmedEmail, formatVisitTime } from "../src/email/templates/booking.js";
+import {
+  bookingCancelledEmail,
+  bookingChangedEmail,
+  bookingConfirmedEmail,
+  formatVisitTime,
+} from "../src/email/templates/booking.js";
 import { buildIcs, escapeIcsText, foldIcsLine, icsDate } from "../src/email/templates/calendar.js";
 import type { NewNotification } from "../src/notifications/notification.types.js";
 import {
   createReservationNotifier,
   noticeFor,
+  type ReservationChange,
   type ReservationContact,
 } from "../src/notifications/reservation-notifier.js";
 import type { ReservationRecord } from "../src/reservations/reservation.types.js";
@@ -120,7 +126,62 @@ test("only a staff confirmation counts as a confirmation notice", () => {
   );
 });
 
-async function run(found: ReservationContact | null, failEmail = false) {
+test("staff cancellations and moves are notices; seating and guest edits are not", () => {
+  const later = { ...record("Confirmed"), startAt: new Date("2026-10-28T15:00:00.000Z") };
+  const bigger = { ...record("Awaiting"), partySize: 6 };
+  assert.equal(
+    noticeFor({ previous: record("Confirmed"), updated: record("Cancelled"), actor: "staff" }),
+    "cancelled",
+  );
+  assert.equal(
+    noticeFor({ previous: record("Cancelled"), updated: record("Cancelled"), actor: "staff" }),
+    null,
+  );
+  assert.equal(
+    noticeFor({ previous: record("Confirmed"), updated: later, actor: "staff" }),
+    "changed",
+  );
+  assert.equal(
+    noticeFor({ previous: record("Awaiting"), updated: bigger, actor: "staff" }),
+    "changed",
+  );
+  assert.equal(
+    noticeFor({ previous: record("Confirmed"), updated: later, actor: "customer" }),
+    null,
+  );
+  assert.equal(
+    noticeFor({ previous: record("Confirmed"), updated: record("Seated"), actor: "staff" }),
+    null,
+  );
+  assert.equal(
+    noticeFor({ previous: record("Confirmed"), updated: record("NoShow"), actor: "staff" }),
+    null,
+  );
+});
+
+test("change and cancellation emails carry the right calendar file", () => {
+  const details = { ...contact, email: "ananya@example.test" };
+  const changed = bookingChangedEmail(details, "Confirmed", now);
+  assert.equal(changed.subject, "Your booking at Saffron & Co. has changed");
+  assert.match(changed.text, /It is now for 4 guests on Wednesday, 28 October 2026/);
+  assert.match(changed.attachments?.[0]?.content ?? "", /STATUS:CONFIRMED\r\n/);
+  assert.equal(bookingChangedEmail(details, "Awaiting", now).attachments, undefined);
+
+  const cancelled = bookingCancelledEmail(details, now);
+  assert.equal(cancelled.subject, "Your booking at Saffron & Co. was cancelled");
+  assert.match(cancelled.attachments?.[0]?.content ?? "", /STATUS:CANCELLED\r\n/);
+  assert.ok(cancelled.html?.includes("has cancelled your booking"));
+});
+
+async function run(
+  found: ReservationContact | null,
+  failEmail = false,
+  change: ReservationChange = {
+    previous: record("Awaiting"),
+    updated: record("Confirmed"),
+    actor: "staff",
+  },
+) {
   const emails: EmailMessage[] = [];
   const notifications: NewNotification[] = [];
   const errors: unknown[] = [];
@@ -134,7 +195,7 @@ async function run(found: ReservationContact | null, failEmail = false) {
     clock: () => now,
     onError: (error) => errors.push(error),
   });
-  notify({ previous: record("Awaiting"), updated: record("Confirmed"), actor: "staff" });
+  notify(change);
   await new Promise((resolve) => setTimeout(resolve, 10));
   return { emails, notifications, errors };
 }
@@ -161,4 +222,18 @@ test("a failed email is reported but the in-app notice still goes out", async ()
   assert.equal(errors.length, 1);
   const missing = await run(null);
   assert.equal(missing.notifications.length + missing.emails.length, 0);
+});
+
+test("a staff cancellation reaches the guest in the app and by email", async () => {
+  const { emails, notifications } = await run(contact, false, {
+    previous: record("Confirmed"),
+    updated: record("Cancelled"),
+    actor: "staff",
+  });
+  assert.deepEqual(
+    notifications.map((notice) => notice.type),
+    ["reservation.cancelled"],
+  );
+  assert.match(notifications[0]?.title ?? "", /was cancelled$/);
+  assert.equal(emails[0]?.subject, "Your booking at Saffron & Co. was cancelled");
 });
