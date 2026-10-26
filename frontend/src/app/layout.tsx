@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AuthProvider } from "./auth-provider";
+import { ServiceWorkerRegistration } from "./service-worker-registration";
 import "./globals.css";
 import "./menu/menu.css";
 import "./orders/orders.css";
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           Skip to main content
         </a>
         <AuthProvider>{children}</AuthProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
