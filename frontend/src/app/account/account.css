@@ -66,3 +66,7 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+.account-delete-form {
+  display: grid;
+  gap: 10px;
+}

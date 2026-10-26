@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import {
   type AccountProfile,
+  canConfirmDeletion,
+  exportFileName,
   type PasswordForm,
   parseAccountProfile,
   validateName,
@@ -122,9 +125,143 @@ function PasswordSection({
   );
 }
 
+function DataSection({
+  accessToken,
+  hasPassword,
+  onDeleted,
+}: {
+  accessToken: string;
+  hasPassword: boolean;
+  onDeleted: () => Promise<void>;
+}) {
+  const [status, setStatus] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [password, setPassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const download = async () => {
+    setExporting(true);
+    setStatus("");
+    try {
+      const response = await fetchWithTimeout(`${API_BASE}/account/export`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) throw new Error(await errorMessage(response, "The export failed."));
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = exportFileName(
+        response.headers.get("Content-Disposition"),
+        new Date().toISOString().slice(0, 10),
+      );
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setStatus("Your data download has started.");
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "The export failed.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const erase = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canConfirmDeletion(typed, password, hasPassword)) return;
+    setDeleting(true);
+    setStatus("");
+    try {
+      const response = await fetchWithTimeout(`${API_BASE}/account`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: typed, ...(hasPassword ? { password } : {}) }),
+      });
+      if (!response.ok)
+        throw new Error(await errorMessage(response, "Your account was not deleted."));
+      await onDeleted();
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "Your account was not deleted.");
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <section className="account-card account-danger" aria-labelledby="account-data-title">
+      <h2 id="account-data-title">Your data</h2>
+      <p className="account-readonly">
+        Download your profile, bookings, orders, bills and notifications as a JSON file.
+      </p>
+      <button
+        className="orders-secondary-link"
+        disabled={exporting}
+        type="button"
+        onClick={() => void download()}
+      >
+        {exporting ? "Preparing…" : "Download my data"}
+      </button>
+      {confirming ? (
+        <form className="account-delete-form" onSubmit={erase} noValidate>
+          <p className="account-readonly">
+            Deleting your account removes your name, email, notes and notifications, cancels
+            upcoming bookings and signs you out everywhere. Restaurants keep order totals without
+            your name. This cannot be undone.
+          </p>
+          <label className="account-field">
+            <span>Type DELETE to confirm</span>
+            <input
+              autoComplete="off"
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+            />
+          </label>
+          {hasPassword ? (
+            <label className="account-field">
+              <span>Password</span>
+              <input
+                autoComplete="current-password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </label>
+          ) : null}
+          <div className="orders-header-actions">
+            <button
+              className="account-danger-button"
+              disabled={deleting || !canConfirmDeletion(typed, password, hasPassword)}
+              type="submit"
+            >
+              {deleting ? "Deleting…" : "Delete my account"}
+            </button>
+            <button
+              className="orders-secondary-link"
+              type="button"
+              onClick={() => setConfirming(false)}
+            >
+              Keep my account
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button className="account-danger-button" type="button" onClick={() => setConfirming(true)}>
+          Delete account…
+        </button>
+      )}
+      <p className="account-status" role="status">
+        {status}
+      </p>
+    </section>
+  );
+}
+
 /** S5-02: a customer's own profile, contact preferences, password and data. */
 export default function AccountPage() {
-  const { user, accessToken, isLoading: authLoading, refreshSession } = useAuth();
+  const { user, accessToken, isLoading: authLoading, refreshSession, signOut } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [name, setName] = useState("");
@@ -297,6 +434,14 @@ export default function AccountPage() {
               accessToken={accessToken}
               hasPassword={profile.hasPassword}
               onChanged={refreshSession}
+            />
+            <DataSection
+              accessToken={accessToken}
+              hasPassword={profile.hasPassword}
+              onDeleted={async () => {
+                await signOut();
+                router.replace("/");
+              }}
             />
           </>
         )}
