@@ -6,16 +6,19 @@ import { useEffect, useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
+import {
+  type BookingSlot,
+  type DayAvailability,
+  formatSlotTime,
+  parseAvailability,
+  reconcileSelection,
+  shouldOfferWaitlist,
+  slotLabel,
+} from "./booking-data";
 
 const API_BASE = "/api/v1";
 const RESTAURANT_ID = process.env.NEXT_PUBLIC_DEMO_RESTAURANT_ID ?? "710000000000000000000001";
 const TIME_ZONE = "Asia/Kolkata";
-const TIMES = Array.from({ length: 22 }, (_, index) => {
-  const minutes = 11 * 60 + index * 30;
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-});
 
 interface SavedReservation {
   id: string;
@@ -33,24 +36,6 @@ function indiaDate(now: Date): string {
   }).formatToParts(now);
   const values = new Map(parts.map((part) => [part.type, part.value]));
   return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
-}
-
-function indiaMinutes(now: Date): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(now);
-  const values = new Map(parts.map((part) => [part.type, Number(part.value)]));
-  return (values.get("hour") ?? 0) * 60 + (values.get("minute") ?? 0);
-}
-
-function formatTime(time: string): string {
-  const [hour, minute] = time.split(":").map(Number);
-  const suffix = hour >= 12 ? "pm" : "am";
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
 function parseReservation(value: unknown): SavedReservation | null {
@@ -98,9 +83,12 @@ async function responseError(response: Response): Promise<string> {
 export default function BookTablePage() {
   const { user, accessToken, isLoading } = useAuth();
   const [today, setToday] = useState("");
-  const [nowMinutes, setNowMinutes] = useState(0);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("19:00");
+  const [availability, setAvailability] = useState<DayAvailability | null>(null);
+  const [availabilityState, setAvailabilityState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
   const [guests, setGuests] = useState("2");
   const [notes, setNotes] = useState("");
   const [savedReservation, setSavedReservation] = useState<SavedReservation | null>(null);
@@ -116,8 +104,13 @@ export default function BookTablePage() {
       return;
     }
 
-    const [hour, minute] = time.split(":").map(Number);
-    const localStart = `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+05:30`;
+    const slot = availability?.slots.find(
+      (candidate) => candidate.localTime === time && candidate.available,
+    );
+    if (!slot) {
+      setError("That time is no longer open. Please choose another slot.");
+      return;
+    }
     setSubmitting(true);
     try {
       const response = await fetchWithTimeout(`${API_BASE}/reservations`, {
@@ -130,7 +123,7 @@ export default function BookTablePage() {
         body: JSON.stringify({
           restaurantId: RESTAURANT_ID,
           partySize: Number(guests),
-          startAt: new Date(localStart).toISOString(),
+          startAt: slot.startAt,
           ...(notes.trim() ? { notes: notes.trim() } : {}),
         }),
       });
@@ -159,37 +152,41 @@ export default function BookTablePage() {
   };
 
   useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      setToday(indiaDate(now));
-      setNowMinutes(indiaMinutes(now));
-    };
-    const now = new Date();
-    const currentDate = indiaDate(now);
+    const updateClock = () => setToday(indiaDate(new Date()));
+    const currentDate = indiaDate(new Date());
     setToday(currentDate);
     setDate((current) => current || currentDate);
-    setNowMinutes(indiaMinutes(now));
     const timer = window.setInterval(updateClock, 60_000);
     return () => window.clearInterval(timer);
   }, []);
 
-  const noAvailableSlots =
-    date === today &&
-    !TIMES.some((slot) => {
-      const [hour, minute] = slot.split(":").map(Number);
-      return hour * 60 + minute > nowMinutes;
-    });
-
   useEffect(() => {
-    if (date !== today) return;
-    const [selectedHour, selectedMinute] = time.split(":").map(Number);
-    if (selectedHour * 60 + selectedMinute > nowMinutes) return;
-    const nextAvailable = TIMES.find((slot) => {
-      const [hour, minute] = slot.split(":").map(Number);
-      return hour * 60 + minute > nowMinutes;
-    });
-    if (nextAvailable) setTime(nextAvailable);
-  }, [date, time, today, nowMinutes]);
+    if (!date) return;
+    const controller = new AbortController();
+    setAvailabilityState("loading");
+    const query = new URLSearchParams({ restaurantId: RESTAURANT_ID, date, partySize: guests });
+    fetchWithTimeout(`${API_BASE}/reservations/availability?${query.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await responseError(response));
+        const day = parseAvailability(await response.json());
+        if (!day) throw new Error("The availability response was invalid.");
+        setAvailability(day);
+        setTime((current) => reconcileSelection(day, current) ?? current);
+        setAvailabilityState("ready");
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setAvailability(null);
+        setAvailabilityState("error");
+      });
+    return () => controller.abort();
+  }, [date, guests]);
+
+  const slots: BookingSlot[] = availability?.slots ?? [];
+  const selectedSlot = slots.find((slot) => slot.localTime === time && slot.available);
+  const noAvailableSlots = availabilityState === "ready" && shouldOfferWaitlist(availability);
 
   return (
     <main className="book-page" id="main-content">
@@ -250,7 +247,7 @@ export default function BookTablePage() {
                 <strong>Thanks, {user?.name.split(" ")[0] || "there"}.</strong>
                 <p>
                   Your request for {guests} {guests === "1" ? "guest" : "guests"} on {date} at{" "}
-                  {formatTime(time)} has been saved.
+                  {formatSlotTime(time)} has been saved.
                 </p>
                 <p>
                   Status: {savedReservation.status}. The restaurant must confirm your request before
@@ -321,29 +318,39 @@ export default function BookTablePage() {
                   </div>
                   <div className="book-time-label">
                     <span>Choose a time</span>
-                    <small>All times in IST · 90-minute seating</small>
+                    <small>
+                      All times in IST · {availability?.turnMinutes ?? 90}-minute seating
+                    </small>
                   </div>
+                  {availabilityState === "loading" ? (
+                    <p className="book-preview-note" role="status">
+                      Checking open tables…
+                    </p>
+                  ) : null}
+                  {availabilityState === "error" ? (
+                    <p className="book-request-error" role="alert">
+                      We couldn’t load open times. Please try again in a moment.
+                    </p>
+                  ) : null}
                   <div className="book-time-grid">
-                    {TIMES.map((slot) => {
-                      const [hour, minute] = slot.split(":").map(Number);
-                      const unavailable = date === today && hour * 60 + minute <= nowMinutes;
-                      return (
-                        <button
-                          aria-pressed={time === slot}
-                          className={time === slot ? "book-time-active" : ""}
-                          disabled={unavailable}
-                          key={slot}
-                          type="button"
-                          onClick={() => setTime(slot)}
-                        >
-                          {formatTime(slot)}
-                        </button>
-                      );
-                    })}
+                    {slots.map((slot) => (
+                      <button
+                        aria-label={`${formatSlotTime(slot.localTime)}, ${slotLabel(slot)}`}
+                        aria-pressed={time === slot.localTime}
+                        className={time === slot.localTime ? "book-time-active" : ""}
+                        disabled={!slot.available}
+                        key={slot.startAt}
+                        type="button"
+                        onClick={() => setTime(slot.localTime)}
+                      >
+                        {formatSlotTime(slot.localTime)}
+                      </button>
+                    ))}
                   </div>
                   {noAvailableSlots ? (
                     <p className="book-preview-note" role="status">
-                      No remaining reservation times today. Please choose another date.
+                      No open tables for {guests} {guests === "1" ? "guest" : "guests"} on this
+                      date. Try another date, or join the walk-in waitlist when you arrive.
                     </p>
                   ) : null}
                   <label className="form-field">
@@ -366,7 +373,7 @@ export default function BookTablePage() {
                   ) : null}
                   <button
                     className="button button-dark book-submit"
-                    disabled={!canBook || submitting || isLoading || noAvailableSlots}
+                    disabled={!canBook || submitting || isLoading || !selectedSlot}
                     type="submit"
                   >
                     {submitting
