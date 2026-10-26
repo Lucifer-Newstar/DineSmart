@@ -240,3 +240,10 @@ export function reorderNotice(unavailable: readonly string[]): string | null {
       : `${unavailable.slice(0, -1).join(", ")} and ${unavailable[unavailable.length - 1]}`;
   return `${names} ${unavailable.length === 1 ? "is" : "are"} not available today, so ${unavailable.length === 1 ? "it was" : "they were"} left out.`;
 }
+
+/** Recounts the minutes left from the ready time, so the page stays right between updates. */
+export function liveEta(eta: TrackedEta | null, now: Date): TrackedEta | null {
+  if (!eta) return null;
+  const remaining = Date.parse(eta.readyAt) - now.getTime();
+  return { ...eta, minutesLeft: Math.max(1, Math.ceil(remaining / 60_000)), late: remaining < 0 };
+}

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   etaLine,
+  liveEta,
   orderStatusFromEvent,
   parseTrackingResponse,
   planReorder,
@@ -158,4 +159,19 @@ test("a dish whose options changed is left out rather than guessed", () => {
     reorderNotice(["Masala dosa"]),
     "Masala dosa is not available today, so it was left out.",
   );
+});
+
+test("the minutes left are recounted from the ready time", () => {
+  const eta = { readyAt: "2026-10-26T13:18:00.000Z", minutesLeft: 18, late: false };
+  assert.deepEqual(liveEta(eta, new Date("2026-10-26T13:10:30.000Z")), {
+    ...eta,
+    minutesLeft: 8,
+    late: false,
+  });
+  assert.deepEqual(liveEta(eta, new Date("2026-10-26T13:20:00.000Z")), {
+    ...eta,
+    minutesLeft: 1,
+    late: true,
+  });
+  assert.equal(liveEta(null, new Date()), null);
 });

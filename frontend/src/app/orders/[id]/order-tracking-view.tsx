@@ -10,6 +10,7 @@ import { formatMinorCurrency } from "../../currency";
 import { connectRealtime, resolveRealtimeBase } from "../../realtime-client";
 import {
   etaLine,
+  liveEta,
   orderStatusFromEvent,
   parseTrackingResponse,
   stepState,
@@ -105,7 +106,14 @@ export function OrderTrackingView() {
     };
   }, [accessToken, load, orderId, user?.role]);
 
-  const message = order ? etaLine(order.status, eta) : null;
+  // Recount the minutes left once a minute between server updates.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const message = order ? etaLine(order.status, now ? liveEta(eta, now) : eta) : null;
 
   return (
     <main className="orders-page" id="main-content">

@@ -8,6 +8,7 @@ import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
 import { formatMinorCurrency } from "../currency";
 import { useDialogFocus } from "../dialog-focus";
+import { parseEta } from "../orders/order-tracking";
 import { tabId, tabIndexForKey } from "../roving-tabs";
 import {
   DINE_IN_STORAGE_KEY,
@@ -55,6 +56,8 @@ interface PlacedOrder {
   status: string;
   totalMinor: number;
   currency: string;
+  /** Minutes until ready, from the kitchen estimate (S5-03). */
+  etaMinutes?: number;
 }
 
 const API_BASE = "/api/v1";
@@ -80,11 +83,13 @@ function parsePlacedOrder(value: unknown): PlacedOrder | null {
   ) {
     return null;
   }
+  const eta = parseEta(value.eta);
   return {
     id: order.id,
     status: order.status,
     totalMinor: order.totalMinor,
     currency: order.currency,
+    ...(eta ? { etaMinutes: eta.minutesLeft } : {}),
   };
 }
 
@@ -514,10 +519,11 @@ export default function MenuPage() {
       setPlacedOrder(saved);
       setCart([]);
       setCartOpen(false);
+      const ready = saved.etaMinutes ? ` Ready in about ${saved.etaMinutes} min.` : "";
       setToast(
         dineIn
-          ? `Order placed for table ${dineIn.tableNumber}. We'll bring it over.`
-          : `Order placed with status ${saved.status}.`,
+          ? `Order placed for table ${dineIn.tableNumber}.${ready} We'll bring it over.`
+          : `Order placed with status ${saved.status}.${ready}`,
       );
       window.setTimeout(() => setToast(""), 5000);
     } catch (error) {
