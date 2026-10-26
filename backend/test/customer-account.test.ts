@@ -5,6 +5,7 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import type { AuthPrincipal } from "../src/auth/auth.service.js";
 import {
+  AccountError,
   type CustomerAccountChanges,
   type CustomerAccountProfile,
   contactPreferencesOf,
@@ -14,6 +15,7 @@ import {
   type CustomerAccountStore,
   createCustomerAccountRouter,
 } from "../src/customers/customer-account.router.js";
+import { MongoCustomerPrivacyRepository } from "../src/customers/customer-privacy.js";
 
 const userId = new ObjectId();
 
@@ -38,8 +40,14 @@ test("account changes accept a tidy name and known boolean preferences only", ()
   assert.deepEqual(contactPreferencesOf({ email: false }), { email: false, offers: false });
 });
 
-async function call(role: AuthPrincipal["role"], method: "GET" | "PATCH", body?: unknown) {
+async function call(
+  role: AuthPrincipal["role"],
+  method: "GET" | "PATCH" | "DELETE",
+  body?: unknown,
+  path = "/profile",
+) {
   const updates: CustomerAccountChanges[] = [];
+  const erasures: Array<{ confirmation: unknown; password: unknown }> = [];
   let profile: CustomerAccountProfile = {
     name: "Ananya Menon",
     email: "ananya@example.test",
@@ -61,13 +69,19 @@ async function call(role: AuthPrincipal["role"], method: "GET" | "PATCH", body?:
       bills: [],
       notifications: [],
     }),
-    eraseAccount: async () => ({
-      cancelledReservations: 0,
-      scrubbedReservations: 0,
-      scrubbedOrderItems: 0,
-      deletedNotifications: 0,
-      deletedGuestProfiles: 0,
-    }),
+    eraseAccount: async (_id, confirmation, password) => {
+      if (confirmation !== "DELETE") {
+        throw new AccountError(400, "confirmation_required", "Type DELETE to confirm.");
+      }
+      erasures.push({ confirmation, password });
+      return {
+        cancelledReservations: 0,
+        scrubbedReservations: 0,
+        scrubbedOrderItems: 0,
+        deletedNotifications: 0,
+        deletedGuestProfiles: 0,
+      };
+    },
     getProfile: async () => profile,
     updateProfile: async (_id, changes) => {
       updates.push(changes);
@@ -99,7 +113,7 @@ async function call(role: AuthPrincipal["role"], method: "GET" | "PATCH", body?:
   try {
     const address = server.address();
     assert.ok(address && typeof address !== "string");
-    const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/account/profile`, {
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/account${path}`, {
       method,
       headers: {
         authorization: "Bearer token",
@@ -107,7 +121,7 @@ async function call(role: AuthPrincipal["role"], method: "GET" | "PATCH", body?:
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    return { response, updates };
+    return { response, updates, erasures };
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
@@ -140,4 +154,53 @@ test("staff accounts are turned away from the customer account routes", async ()
   for (const role of ["Reception", "Manager", "Kitchen Staff"] as const) {
     assert.equal((await call(role, "GET")).response.status, 403);
   }
+});
+
+test("export downloads as a dated JSON attachment", async () => {
+  const { response } = await call("Customer", "GET", undefined, "/export");
+  assert.equal(response.status, 200);
+  assert.match(
+    response.headers.get("content-disposition") ?? "",
+    /^attachment; filename="dinesmart-account-\d{4}-\d{2}-\d{2}\.json"$/,
+  );
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  const payload = (await response.json()) as { account: { email: string }; orders: unknown[] };
+  assert.equal(payload.account.email, "ananya@example.test");
+  assert.deepEqual(payload.orders, []);
+});
+
+test("deleting the account needs the typed confirmation and passes the password through", async () => {
+  const refused = await call("Customer", "DELETE", { confirm: "delete" }, "/");
+  assert.equal(refused.response.status, 400);
+  assert.equal(refused.erasures.length, 0);
+
+  const done = await call("Customer", "DELETE", { confirm: "DELETE", password: "secret" }, "/");
+  assert.equal(done.response.status, 200);
+  assert.deepEqual(done.erasures, [{ confirmation: "DELETE", password: "secret" }]);
+  assert.equal(((await done.response.json()) as { deleted: boolean }).deleted, true);
+
+  assert.equal((await call("Manager", "DELETE", { confirm: "DELETE" }, "/")).response.status, 403);
+  assert.equal((await call("Reception", "GET", undefined, "/export")).response.status, 403);
+});
+
+test("erasure refuses a missing confirmation before touching any data", async () => {
+  const touched: string[] = [];
+  const db = {
+    collection: (name: string) =>
+      new Proxy(
+        {},
+        {
+          get: (_target, method) => () => {
+            touched.push(`${name}.${String(method)}`);
+            throw new Error("no database in this test");
+          },
+        },
+      ),
+  } as unknown as ConstructorParameters<typeof MongoCustomerPrivacyRepository>[0];
+  const repository = new MongoCustomerPrivacyRepository(db);
+  await assert.rejects(
+    repository.eraseAccount(new ObjectId(), "yes please", "secret", new Date()),
+    (error: unknown) => error instanceof AccountError && error.code === "confirmation_required",
+  );
+  assert.deepEqual(touched, []);
 });
