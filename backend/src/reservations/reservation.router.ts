@@ -13,6 +13,7 @@ import { isObjectIdString, parseObjectId, requireObjectIdParam } from "../http/o
 import {
   AvailabilityNotFoundError,
   type AvailabilityReader,
+  BookingNotFoundError,
   type DayAvailability,
   parseLocalDate,
 } from "./availability.service.js";
@@ -422,6 +423,58 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
               });
         response.status(201).json({ reservation: toJson(reservation) });
       } catch (error) {
+        sendReservationError(error, response);
+      }
+    },
+  );
+
+  router.get(
+    "/:id/table-suggestion",
+    requirePermissions("reservations:write"),
+    requireRestaurantScope(),
+    requireObjectIdParam("id", "invalid_reservation_id", "A valid reservation ID is required."),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      const reservationId = objectId(request.params.id);
+      if (!runtime || !principal || !reservationId) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+      if (!runtime.availability?.suggestTable) {
+        sendUnavailable(response);
+        return;
+      }
+      try {
+        const suggestion = await runtime.availability.suggestTable({
+          restaurantId: asObjectId(principal.restaurantId),
+          reservationId,
+          needsAccessible: request.query.accessible === "true",
+        });
+        response.status(200).json({
+          suggestion: suggestion
+            ? {
+                kind: suggestion.kind,
+                spareSeats: suggestion.spareSeats,
+                tables: suggestion.tables.map((table) => ({
+                  id: table.id,
+                  tableNumber: table.tableNumber,
+                  capacity: table.capacity,
+                  ...(table.zone ? { zone: table.zone } : {}),
+                  accessible: table.accessible === true,
+                })),
+              }
+            : null,
+        });
+      } catch (error) {
+        if (error instanceof BookingNotFoundError) {
+          response.status(404).json({
+            error: { code: "reservation_not_found", message: "The reservation was not found." },
+          });
+          return;
+        }
         sendReservationError(error, response);
       }
     },

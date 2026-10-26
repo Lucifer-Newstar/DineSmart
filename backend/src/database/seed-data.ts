@@ -376,7 +376,14 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
       ),
       withId<TableDocument>(
         tableThreeId,
-        { restaurantId, tableNumber: "03", capacity: 4, zone: "Dining room", status: "available" },
+        {
+          restaurantId,
+          tableNumber: "03",
+          capacity: 4,
+          zone: "Dining room",
+          accessible: true,
+          status: "available",
+        },
         now,
       ),
       withId<TableDocument>(

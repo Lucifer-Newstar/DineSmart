@@ -179,6 +179,8 @@ export interface TableDocument extends TimestampedDocument {
   tableNumber: string;
   capacity: number;
   zone?: string;
+  /** Step-free and wheelchair-friendly; preferred when a guest asks for it (S5-01). */
+  accessible?: boolean;
   status: string;
   currentReservationId?: ObjectId | null;
   currentOrderId?: ObjectId | null;

@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import { suggestTable, type TableSuggestion } from "../tables/table-assignment.js";
 import { type BookingRules, resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
 import type { ReservationSlotGuard } from "./reservation.types.js";
 
@@ -20,6 +21,9 @@ export interface AvailabilityTable {
   id: string;
   capacity: number;
   status: string;
+  tableNumber?: string;
+  zone?: string;
+  accessible?: boolean;
 }
 
 export interface AvailabilityBooking {
@@ -228,6 +232,10 @@ export interface AvailabilityRepository {
     to: Date,
     excludingReservationId?: ObjectId,
   ): Promise<AvailabilityBooking[]>;
+  findBooking?(
+    restaurantId: ObjectId,
+    reservationId: ObjectId,
+  ): Promise<{ partySize: number; startAt: Date; endAt: Date } | null>;
 }
 
 export interface AvailabilityQuery {
@@ -244,8 +252,23 @@ export interface DayAvailability {
   slots: AvailabilitySlot[];
 }
 
+export interface TableSuggestionQuery {
+  restaurantId: ObjectId;
+  reservationId: ObjectId;
+  needsAccessible: boolean;
+}
+
 export interface AvailabilityReader {
   getDay(query: AvailabilityQuery): Promise<DayAvailability>;
+  /** Null when no free table or same-zone pair can seat the party. */
+  suggestTable?(query: TableSuggestionQuery): Promise<TableSuggestion | null>;
+}
+
+export class BookingNotFoundError extends Error {
+  constructor() {
+    super("The reservation was not found.");
+    this.name = "BookingNotFoundError";
+  }
 }
 
 export class AvailabilityNotFoundError extends Error {
@@ -294,6 +317,41 @@ export class ReservationAvailabilityService implements AvailabilityReader {
         now: this.clock(),
       }),
     };
+  }
+
+  async suggestTable(query: TableSuggestionQuery): Promise<TableSuggestion | null> {
+    const booking = await this.repository.findBooking?.(query.restaurantId, query.reservationId);
+    if (!booking) throw new BookingNotFoundError();
+    const [tables, bookings] = await Promise.all([
+      this.repository.listTables(query.restaurantId),
+      this.repository.listActiveBookings(
+        query.restaurantId,
+        booking.startAt,
+        booking.endAt,
+        query.reservationId,
+      ),
+    ]);
+    const free = new Set(
+      freeTablesFor(tables, bookings, booking.startAt, booking.endAt).map((table) => table.id),
+    );
+    const held = new Set(tables.filter((table) => !free.has(table.id)).map((table) => table.id));
+    return suggestTable(
+      tables.map((table) => ({
+        id: table.id,
+        tableNumber: table.tableNumber ?? table.id,
+        capacity: table.capacity,
+        status: table.status,
+        ...(table.zone ? { zone: table.zone } : {}),
+        ...(table.accessible ? { accessible: true } : {}),
+      })),
+      booking.partySize,
+      held,
+      {
+        needsAccessible: query.needsAccessible,
+        // Within half an hour of the start, a table still in use cannot be offered.
+        skipOccupied: booking.startAt.getTime() - this.clock().getTime() <= 30 * MINUTE_MS,
+      },
+    );
   }
 }
 

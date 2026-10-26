@@ -55,14 +55,33 @@ export class MongoAvailabilityRepository implements AvailabilityRepository {
 
   async listTables(restaurantId: ObjectId): Promise<AvailabilityTable[]> {
     const tables = await this.tables
-      .find({ restaurantId }, { projection: { capacity: 1, status: 1 } })
+      .find(
+        { restaurantId },
+        { projection: { capacity: 1, status: 1, tableNumber: 1, zone: 1, accessible: 1 } },
+      )
       .limit(AVAILABILITY_TABLE_LIMIT)
       .toArray();
     return tables.map((table) => ({
       id: table._id.toHexString(),
       capacity: table.capacity,
       status: table.status,
+      tableNumber: table.tableNumber,
+      ...(table.zone ? { zone: table.zone } : {}),
+      ...(table.accessible ? { accessible: true } : {}),
     }));
+  }
+
+  async findBooking(
+    restaurantId: ObjectId,
+    reservationId: ObjectId,
+  ): Promise<{ partySize: number; startAt: Date; endAt: Date } | null> {
+    const booking = await this.reservations.findOne(
+      { _id: reservationId, restaurantId },
+      { projection: { partySize: 1, startAt: 1, endAt: 1 } },
+    );
+    return booking
+      ? { partySize: booking.partySize, startAt: booking.startAt, endAt: booking.endAt }
+      : null;
   }
 
   async listActiveBookings(
