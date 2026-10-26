@@ -78,6 +78,10 @@ import {
   createSlotGuard,
   ReservationAvailabilityService,
 } from "./reservations/availability.service.js";
+import {
+  createBookingRulesRouter,
+  MongoBookingRulesRepository,
+} from "./reservations/booking-rules.router.js";
 import { MongoReservationRepository } from "./reservations/reservation.repository.js";
 import { createReservationRouter } from "./reservations/reservation.router.js";
 import { ReservationService } from "./reservations/reservation.service.js";
@@ -398,6 +402,20 @@ export function createApp(options: AppOptions = {}) {
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
           availability: new ReservationAvailabilityService(availabilityRepository),
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/booking-rules",
+    createBookingRulesRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          repository: new MongoBookingRulesRepository(db),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
+          audit: new AuditService(new MongoAuditRepository(db)).record,
         };
       },
     }),
