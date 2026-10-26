@@ -47,7 +47,9 @@ export interface AvailabilityInput {
   slotMinutes?: number;
 }
 
-export type SlotUnavailableReason = "past" | "no_table";
+export type SlotUnavailableReason = "past" | "no_table" | "pacing";
+
+export const PACING_WINDOW_MINUTES = 15;
 
 export interface AvailabilitySlot {
   startAt: Date;
@@ -177,6 +179,31 @@ export function freeTablesFor(
   return free;
 }
 
+/** Covers already booked to start inside the 15-minute pacing window that holds `startAt`. */
+export function coversInPacingWindow(
+  bookings: readonly AvailabilityBooking[],
+  startAt: Date,
+): number {
+  const windowMs = PACING_WINDOW_MINUTES * MINUTE_MS;
+  const windowStart = Math.floor(startAt.getTime() / windowMs) * windowMs;
+  return bookings
+    .filter((booking) => {
+      const time = booking.startAt.getTime();
+      return time >= windowStart && time < windowStart + windowMs;
+    })
+    .reduce((total, booking) => total + booking.partySize, 0);
+}
+
+/** True when the party would push its pacing window over the restaurant's cover cap. */
+export function exceedsPacing(
+  rules: BookingRules,
+  bookings: readonly AvailabilityBooking[],
+  startAt: Date,
+  partySize: number,
+): boolean {
+  return coversInPacingWindow(bookings, startAt) + partySize > rules.pacingCoversPer15Min;
+}
+
 export function computeAvailability(input: AvailabilityInput): AvailabilitySlot[] {
   if (!parseLocalDate(input.date)) {
     throw new AvailabilityInputError("A valid YYYY-MM-DD date is required.");
@@ -203,6 +230,9 @@ export function computeAvailability(input: AvailabilityInput): AvailabilitySlot[
     if (startAt <= input.now) {
       slot.available = false;
       slot.reason = "past";
+    } else if (exceedsPacing(input.rules, input.bookings, startAt, input.partySize)) {
+      slot.available = false;
+      slot.reason = "pacing";
     } else if (
       !freeTablesFor(input.tables, input.bookings, startAt, endAt).some(
         (table) => table.capacity >= input.partySize,
@@ -358,10 +388,17 @@ export class ReservationAvailabilityService implements AvailabilityReader {
 /** Builds the create/change guard: some bookable table must stay free for the whole turn. */
 export function createSlotGuard(repository: AvailabilityRepository): ReservationSlotGuard {
   return async ({ restaurantId, partySize, startAt, endAt, excludingReservationId }) => {
-    const [tables, bookings] = await Promise.all([
+    const windowMs = PACING_WINDOW_MINUTES * MINUTE_MS;
+    const pacingStart = new Date(Math.floor(startAt.getTime() / windowMs) * windowMs);
+    // Read from the pacing window's start so bookings that begin earlier in it count.
+    const from = pacingStart < startAt ? pacingStart : startAt;
+    const [restaurant, tables, bookings] = await Promise.all([
+      repository.getActiveRestaurant(restaurantId),
       repository.listTables(restaurantId),
-      repository.listActiveBookings(restaurantId, startAt, endAt, excludingReservationId),
+      repository.listActiveBookings(restaurantId, from, endAt, excludingReservationId),
     ]);
+    const rules = resolveBookingRules(restaurant?.bookingRules);
+    if (exceedsPacing(rules, bookings, startAt, partySize)) return false;
     return freeTablesFor(tables, bookings, startAt, endAt).some(
       (table) => table.capacity >= partySize,
     );
