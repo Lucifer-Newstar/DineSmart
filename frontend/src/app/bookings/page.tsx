@@ -194,7 +194,9 @@ export default function MyBookingsPage() {
   const [editingId, setEditingId] = useState("");
   const [confirmCancelId, setConfirmCancelId] = useState("");
   const [busyId, setBusyId] = useState("");
-  const [now, setNow] = useState(() => new Date());
+  // Read the clock after mount: a prerendered page must not bake in the build time.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => setNow(new Date()), []);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -253,7 +255,8 @@ export default function MyBookingsPage() {
     }
   };
 
-  const { upcoming, past } = groupBookings(bookings, now);
+  const reference = now ?? new Date(0);
+  const { upcoming, past } = groupBookings(bookings, reference);
 
   const card = (booking: CustomerBooking) => (
     <article className="customer-order-card" key={booking.id}>
@@ -271,7 +274,7 @@ export default function MyBookingsPage() {
         {booking.tableNumber ? ` · Table ${booking.tableNumber}` : " · Table assigned on arrival"}
       </p>
       {booking.notes ? <p className="customer-order-detail">Notes: {booking.notes}</p> : null}
-      {canChangeBooking(booking, now) ? (
+      {now && canChangeBooking(booking, reference) ? (
         editingId === booking.id && accessToken ? (
           <BookingEditor
             accessToken={accessToken}

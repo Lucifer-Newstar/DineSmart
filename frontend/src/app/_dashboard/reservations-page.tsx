@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { type ReservationActionStatus, reservationActions } from "./reservation-actions";
 import { ReservationsTimeline } from "./reservations-timeline";
 import type { Reservation, ReservationViewStatus } from "./types";
@@ -22,6 +23,13 @@ export function ReservationsPage({
   onRefresh: () => void;
   onToast: (message: string) => void;
 }) {
+  // The no-show button depends on the clock, read after mount and once a minute.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const reservationCount = status === "live" ? reservations.length : 12;
   const guestCount =
     status === "live"
@@ -110,7 +118,7 @@ export function ReservationsPage({
             <tbody>
               {reservations.length ? (
                 reservations.map((reservation) => {
-                  const actions = reservationActions(reservation, new Date());
+                  const actions = reservationActions(reservation, now ?? new Date(0));
                   const statusLabel =
                     reservation.status === "NoShow" ? "No show" : reservation.status;
                   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./reservations.css";
 import { buildTimeline, hourMarks, shiftDate, type TimelineReservation } from "./timeline-data";
 
@@ -31,9 +31,11 @@ export function ReservationsTimeline({
 }: {
   reservations: readonly TimelineReservation[];
 }) {
-  const [date, setDate] = useState(todayInRestaurant);
+  // Today is read after mount so a prerender never fixes the build date.
+  const [date, setDate] = useState("");
+  useEffect(() => setDate(todayInRestaurant()), []);
   const window = { date, startHour: 11, endHour: 23, timeZone: TIME_ZONE };
-  const rows = buildTimeline(reservations, window);
+  const rows = date ? buildTimeline(reservations, window) : [];
   const marks = hourMarks(window);
 
   return (
@@ -41,7 +43,7 @@ export function ReservationsTimeline({
       <div className="orders-toolbar">
         <div>
           <div className="card-overline">DAY TIMELINE · BY TABLE</div>
-          <h2 id="timeline-heading">{dayHeading(date)}</h2>
+          <h2 id="timeline-heading">{date ? dayHeading(date) : "Today"}</h2>
         </div>
         <div className="timeline-day-controls">
           <button
