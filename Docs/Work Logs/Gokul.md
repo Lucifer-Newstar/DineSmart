@@ -188,3 +188,37 @@ My part:
 - The secret scan downloads gitleaks 8.30.1 and checks it against the published SHA-256 before scanning the whole history; a local run over 330 commits found no leaks.
 - **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
 - **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
+
+## 2026-10-26
+
+### Sprint 5 Day 2: reservations 2.0, guest profiles, QR ordering, customer notifications and the installable app
+
+My part:
+
+- `745b733` test(S5-01): cover booking, changing and cancelling end to end
+- `b36466f` test(S5-02): cover the customer account page end to end
+- `6ab702f` test(S5-03): follow the new tracking link in the customer order spec
+- `8cc5d82` test(S5-03): cover QR dine-in ordering and live tracking end to end
+- `baea59c` feat(S5-04): email a booking confirmation with a calendar file
+- `a04d430` test(S5-04): cover booking confirmation content and the calendar file
+- `227865e` feat(S5-04): send booking reminders the day before
+- `070a168` test(S5-04): cover reminder scheduling and de-duplication
+- `04fa777` feat(S5-04): notify customers when their order is ready
+- `0a6d755` feat(S5-04): notify waiters when a dine-in order is ready (FR-6)
+- `cb88db6` fix(S5-04): send the waiter alert for dine-in orders that reach Ready
+- `31a4cd1` test(S5-04): cover order-ready notifications for customers and staff
+- `471eb86` feat(S5-04): let users choose which notifications they receive
+- `31c9292` feat(S5-04): add mark all as read to the notification bell
+- `d9904e6` test(S5-04): cover preferences and mark-all-read
+- `be12fe1` feat(S5-04): use shared HTML and plain-text email templates
+- `43bc5a1` feat(S5-04): notify customers when staff change or cancel their booking (FR-4)
+- `9cb4140` test(S5-04): cover booking change and cancellation notices
+- `fb4f56e` test(S5-05): cover offline menu and banner behaviour end to end
+- `ef46bef` docs(S5-04): document notification preferences and mark all as read
+- `99eaf86` fix(S4-02): skip the socket ticket rate limit in end-to-end runs, as for sign-in
+- Booking confirmations, staff changes and cancellations, day-before reminders and order-ready notices are sent in the app, and by email when the guest allows it; the emails share one HTML and plain-text layout and carry a calendar file where it helps.
+- `cb88db6` fixes a real gap: the earlier waiter-alert commit never added the Reception recipients, so no staff alert was sent. The new order-notifier test caught it.
+- Users can turn optional notification categories off; muted notices are never created. Incident alerts stay on.
+- `99eaf86`: the full browser suite failed two specs only when run in order, because the socket-ticket limit (10 per minute per IP) blocked live updates after many sign-ins from one address. The limit is now skipped under the same NODE_ENV=test switch as the sign-in limits; production keeps it.
+- **Local verification via Node `24.21.0`:** backend 524 tests, frontend 137 tests and repository tool 19 tests pass; the Playwright suite passes 44/44 against a local MongoDB, including the axe scans (0 serious or critical) and the new offline spec; Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check (70 routes, 0 unmatched calls) are clean.
+- **Not verified live:** nothing is pushed yet, so GitHub Actions have not run these commits; email went only through the mock transport (no SMTP or Resend send was made); installing the app and the offline mode were checked in headless Chromium only, not on a phone; MongoDB Atlas and the deployed WebSocket path still need a live check.
