@@ -29,6 +29,8 @@ import { MongoBillRepository } from "./bills/bill.repository.js";
 import { createBillRouter } from "./bills/bill.router.js";
 import { BillService } from "./bills/bill.service.js";
 import { createGuestRouter } from "./customers/customer.router.js";
+import { MongoCustomerAccountRepository } from "./customers/customer-account.js";
+import { createCustomerAccountRouter } from "./customers/customer-account.router.js";
 import { MongoGuestProfileStore } from "./customers/guest-profile.repository.js";
 import { connectToDatabase } from "./database.js";
 import {
@@ -418,6 +420,19 @@ export function createApp(options: AppOptions = {}) {
           repository: new MongoBookingRulesRepository(db),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
           audit: new AuditService(new MongoAuditRepository(db)).record,
+        };
+      },
+    }),
+  );
+
+  app.use(
+    "/api/v1/account",
+    createCustomerAccountRouter({
+      createRuntime: async () => {
+        const { db, service: authService } = await createAuthRuntime();
+        return {
+          store: new MongoCustomerAccountRepository(db),
+          verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },
     }),
