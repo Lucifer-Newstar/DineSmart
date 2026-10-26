@@ -309,7 +309,18 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
         .toArray(),
       this.restaurants.findOne({ _id: order.restaurantId }, { projection: { _id: 1, name: 1 } }),
     ]);
-    return toOrderRecord(order, restaurant?.name ?? "Restaurant", items.map(toItemRecord));
+    const record = toOrderRecord(order, restaurant?.name ?? "Restaurant", items.map(toItemRecord));
+    return this.withTableNumber(record);
+  }
+
+  /** Adds the table number to a dine-in order so trackers can show it (S5-03). */
+  private async withTableNumber(record: OrderRecord): Promise<OrderRecord> {
+    if (!record.tableId) return record;
+    const table = await this.tables.findOne(
+      { _id: record.tableId, restaurantId: record.restaurantId },
+      { projection: { tableNumber: 1 } },
+    );
+    return table ? { ...record, tableNumber: table.tableNumber } : record;
   }
 
   async cancelForCustomer(
