@@ -66,13 +66,10 @@ function BookingEditor({
 
   useEffect(() => {
     const controller = new AbortController();
-    const query = new URLSearchParams({
-      restaurantId: booking.restaurantId,
-      date,
-      partySize,
-    });
-    fetchWithTimeout(`${API_BASE}/reservations/availability?${query.toString()}`, {
+    const query = new URLSearchParams({ date, partySize });
+    fetchWithTimeout(`${API_BASE}/reservations/${booking.id}/availability?${query.toString()}`, {
       signal: controller.signal,
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then(async (response) => {
         if (!response.ok) throw new Error(await errorMessage(response, "No times loaded."));
@@ -87,14 +84,10 @@ function BookingEditor({
         setError(reason instanceof Error ? reason.message : "No times loaded.");
       });
     return () => controller.abort();
-  }, [booking.restaurantId, date, partySize]);
+  }, [accessToken, booking.id, date, partySize]);
 
-  // The booking's own slot shows as taken by itself, so it stays selectable here.
-  const slots = (day?.slots ?? []).map((slot) =>
-    slot.startAt === booking.startAt && String(booking.partySize) === partySize
-      ? { ...slot, available: true }
-      : slot,
-  );
+  // The API leaves this booking out, so its own time shows as open.
+  const slots = day?.slots ?? [];
   const selected = slots.find((slot) => slot.localTime === time && slot.available);
 
   const save = async () => {
