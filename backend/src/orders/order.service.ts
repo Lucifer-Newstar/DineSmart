@@ -174,6 +174,13 @@ export class OrderService implements OrderServiceReader {
     return this.repository.listForCustomer(customerId);
   }
 
+  async getForCustomer(userId: ObjectId, orderId: ObjectId): Promise<OrderRecord> {
+    const customerId = await this.customerIdForUser(userId);
+    const order = await this.repository.findForCustomer(orderId, customerId);
+    if (!order) throw new OrderError(404, "order_not_found", "The order was not found.");
+    return order;
+  }
+
   async cancelForCustomer(userId: ObjectId, orderId: ObjectId): Promise<OrderRecord> {
     const customerId = await this.customerIdForUser(userId);
     const current = await this.repository.findForCustomer(orderId, customerId);

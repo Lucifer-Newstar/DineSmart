@@ -104,6 +104,8 @@ export interface OrderRepository {
 
 export interface OrderServiceReader {
   createForCustomer(request: NewCustomerOrderRequest): Promise<OrderRecord>;
+  /** One of the customer's own orders, for live tracking (S5-03). */
+  getForCustomer?(userId: ObjectId, orderId: ObjectId): Promise<OrderRecord>;
   listForCustomer(userId: ObjectId): Promise<OrderListResult>;
   cancelForCustomer(userId: ObjectId, orderId: ObjectId): Promise<OrderRecord>;
 }

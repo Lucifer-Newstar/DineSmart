@@ -74,6 +74,7 @@ import { createOrderRouter } from "./orders/order.router.js";
 import { OrderService } from "./orders/order.service.js";
 import { createStaffOrderRouter } from "./orders/order.staff.router.js";
 import { StaffOrderService } from "./orders/order.staff.service.js";
+import { MongoOrderEtaEstimator } from "./orders/order-eta.js";
 import { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
 import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
@@ -576,6 +577,7 @@ export function createApp(options: AppOptions = {}) {
             (token) => tableQr.resolve(token),
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
+          eta: new MongoOrderEtaEstimator(db),
         };
       },
     }),

@@ -6,11 +6,15 @@ import { requirePermissions } from "../auth/authorization.middleware.js";
 import { parseObjectId, requireObjectIdParam } from "../http/object-id-param.js";
 import { MENU_OPTION_GROUPS_MAX, MENU_OPTION_ID_PATTERN } from "../menu/menu.types.js";
 import { OrderError } from "./order.service.js";
-import type { OrderRequestLine, OrderServiceReader } from "./order.types.js";
+import type { OrderRecord, OrderRequestLine, OrderServiceReader } from "./order.types.js";
+import { etaToJson, type OrderEtaEstimator } from "./order-eta.js";
 
 export interface OrderRuntime {
   service: OrderServiceReader;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
+  /** Ready-time estimates (S5-03); orders are returned without one when absent. */
+  eta?: OrderEtaEstimator;
+  clock?: () => Date;
 }
 
 export interface OrderRouterOptions {
@@ -148,7 +152,8 @@ export function createOrderRouter(options: OrderRouterOptions): ReturnType<typeo
           items: body.items,
           ...(body.tableToken === undefined ? {} : { tableToken: body.tableToken }),
         });
-        response.status(201).json({ order: toJson(order) });
+        const eta = await estimateSafely(runtime, order);
+        response.status(201).json({ order: toJson(order), eta: etaToJson(eta) });
       } catch (error) {
         sendOrderError(error, response);
       }
@@ -225,7 +230,45 @@ export function createOrderRouter(options: OrderRouterOptions): ReturnType<typeo
     },
   );
 
+  // One of the customer's own orders with its ready-time estimate, for the
+  // live tracking page (S5-03). Declared after /history so that path wins.
+  router.get(
+    "/:id",
+    requirePermissions("orders:own:read"),
+    requireObjectIdParam("id", "invalid_order_id", "A valid order ID is required."),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const principal = request.auth;
+      const orderId = objectId(request.params.id);
+      if (!runtime || !principal || !orderId) {
+        response.status(401).json({
+          error: { code: "missing_access_token", message: "Authentication is required." },
+        });
+        return;
+      }
+      if (!runtime.service.getForCustomer) return sendUnavailable(response);
+      try {
+        const order = await runtime.service.getForCustomer(userObjectId(principal.userId), orderId);
+        const eta = await estimateSafely(runtime, order);
+        response.set("Cache-Control", "no-store");
+        response.status(200).json({ order: toJson(order), eta: etaToJson(eta) });
+      } catch (error) {
+        sendOrderError(error, response);
+      }
+    },
+  );
+
   return router;
+}
+
+/** An estimate is a nicety: if it cannot be computed the order still answers. */
+async function estimateSafely(runtime: OrderRuntime, order: OrderRecord) {
+  if (!runtime.eta) return null;
+  try {
+    return await runtime.eta.estimate(order, runtime.clock?.() ?? new Date());
+  } catch {
+    return null;
+  }
 }
 
 function toJson(order: Awaited<ReturnType<OrderServiceReader["createForCustomer"]>>) {
