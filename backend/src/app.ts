@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler } from "express";
-import type { Db } from "mongodb";
+import { type Db, ObjectId } from "mongodb";
 import { createAiRouter } from "./ai/ai.router.js";
 import {
   DEFAULT_GEMINI_MODEL,
@@ -68,6 +68,7 @@ import {
 import { MongoNotificationRepository } from "./notifications/notification.repository.js";
 import { createNotificationRouter } from "./notifications/notification.router.js";
 import { NotificationService } from "./notifications/notification.service.js";
+import { createOrderReadyNotifier, MongoOrderReadyStore } from "./notifications/order-notifier.js";
 import { MongoReminderStore, ReminderScheduler } from "./notifications/reminder.scheduler.js";
 import {
   createReservationNotifier,
@@ -85,6 +86,7 @@ import {
   withCustomerOrderEvents,
 } from "./realtime/customer-order-events.js";
 import { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
+import type { RestaurantRealtimePublisher } from "./realtime/realtime.types.js";
 import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
 import { MongoAvailabilityRepository } from "./reservations/availability.repository.js";
@@ -238,13 +240,39 @@ export function createApp(options: AppOptions = {}) {
     return tableTokenKey(process.env.TABLE_QR_SECRET || jwtSecret);
   }
 
-  // Staff order changes also reach the customer who placed the order (S5-03).
-  const publishOrderEvents = withCustomerOrderEvents(
+  // Staff order changes also reach the customer who placed the order (S5-03),
+  // and a Ready order sends its "order ready" notices once (S5-04).
+  const publishToOrderCustomer = withCustomerOrderEvents(
     realtimeHub.publishRestaurantEvent,
     mongoOrderCustomerLookup(() => options.getDatabase?.() ?? connectToDatabase()),
     realtimeHub.publishCustomerOrderEvent,
     () => console.error("An order status event could not be sent to its customer."),
   );
+  const notifyOrderReady = async (restaurantId: ObjectId, orderId: ObjectId) => {
+    const db = await (options.getDatabase?.() ?? connectToDatabase());
+    await createOrderReadyNotifier({
+      store: new MongoOrderReadyStore(db),
+      createNotification: (notification) =>
+        new NotificationService(
+          new MongoNotificationRepository(db),
+          undefined,
+          realtimeHub.publishNotification,
+        ).create(notification),
+      onError: () => console.error("An order-ready notification could not be sent."),
+    })(restaurantId, orderId);
+  };
+  const publishOrderEvents: RestaurantRealtimePublisher = (event) => {
+    publishToOrderCustomer(event);
+    if (
+      event.event === "order.updated" &&
+      event.data.status === "Ready" &&
+      ObjectId.isValid(event.data.orderId)
+    ) {
+      void notifyOrderReady(event.restaurantId, new ObjectId(event.data.orderId)).catch(() =>
+        console.error("An order-ready notification could not be sent."),
+      );
+    }
+  };
 
   async function createAuthRuntime() {
     const secret = options.getJwtSecret?.() ?? process.env.JWT_SECRET;

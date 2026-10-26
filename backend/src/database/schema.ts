@@ -242,6 +242,8 @@ export interface OrderDocument extends TimestampedDocument {
   currency: string;
   status: OrderStatus;
   statusTimestamps?: Partial<Record<OrderStatus, Date>>;
+  /** Set when the "order ready" notices were claimed, so they go out once (S5-04). */
+  readyNotifiedAt?: Date;
 }
 
 export interface OrderItemDocument extends TimestampedDocument {
