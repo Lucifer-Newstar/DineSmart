@@ -1,4 +1,5 @@
 import type { Db, Document, IndexDescription, ObjectId } from "mongodb";
+import type { BookingRules } from "../reservations/booking-rules.js";
 
 export const COLLECTIONS = {
   users: "users",
@@ -108,6 +109,8 @@ export interface RestaurantDocument extends TimestampedDocument {
   thresholds?: Record<string, number>;
   /** Category names in the order the manager arranged them; unlisted ones follow. */
   menuCategoryOrder?: string[];
+  /** Turn times, pacing and booking windows (S5-01); defaults apply when unset. */
+  bookingRules?: BookingRules;
   status: string;
 }
 

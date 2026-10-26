@@ -1,4 +1,5 @@
 import { type Document, ObjectId, type WithId } from "mongodb";
+import { DEFAULT_BOOKING_RULES } from "../reservations/booking-rules.js";
 import type {
   BillDocument,
   CustomerDocument,
@@ -170,6 +171,10 @@ export function buildDemoSeedData(passwordHash: string, now = new Date()): DemoS
           currency: "INR",
           menuCategoryOrder: ["South Indian", "Small plates", "Mains", "Drinks"],
           operatingHours: { opensAt: "11:00", closesAt: "23:00" },
+          bookingRules: {
+            ...DEFAULT_BOOKING_RULES,
+            turnTimes: DEFAULT_BOOKING_RULES.turnTimes.map((rule) => ({ ...rule })),
+          },
           thresholds: {
             kitchenDelayWarningMinutes: 15,
             kitchenDelayCriticalMinutes: 25,

@@ -12,6 +12,7 @@ import {
   requireSeedTarget,
 } from "../src/database/seed-safety.js";
 import { MENU_PREP_STATIONS } from "../src/menu/menu.types.js";
+import { parseBookingRules } from "../src/reservations/booking-rules.js";
 
 const FIXED_NOW = new Date("2026-10-10T12:00:00.000Z");
 
@@ -156,4 +157,12 @@ test("seeded menu items carry a prep station, prep minutes and a menu position",
   }
   const categories = new Set(seed.menuItems.map((item) => item.category));
   assert.deepEqual(new Set(seed.restaurants[0]?.menuCategoryOrder), categories);
+});
+
+test("the seeded restaurant carries valid booking rules with turn times by party size", () => {
+  const seed = buildDemoSeedData("$argon2id$fixture-hash", FIXED_NOW);
+  const rules = seed.restaurants[0].bookingRules;
+  assert.ok(rules);
+  assert.deepEqual(parseBookingRules(rules), rules);
+  assert.equal(rules.turnTimes.at(-1)?.maxPartySize, 12);
 });
