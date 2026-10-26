@@ -58,6 +58,9 @@ This is the canonical endpoint inventory for the MVP. Paths below are relative t
 | PUT | /tables/{id}/status | Staff-directed tenant-scoped table status transition | Jegatheesan |
 | GET | /notifications | List the authenticated recipient's notifications; customer history spans restaurants, staff is scoped to its signed restaurant and own recipient ID | Gokul |
 | PATCH | /notifications/{id}/read | Idempotently mark the authenticated recipient's own notification as read | Gokul |
+| POST | /notifications/read-all | Mark every unread notification of the authenticated recipient as read (S5-04) | Gokul |
+| GET | /notifications/preferences | The caller's optional notification categories and whether each is on (S5-04) | Gokul |
+| PUT | /notifications/preferences | Turn the caller's optional notification categories on or off (S5-04) | Gokul |
 
 ## S5-01 Reservations 2.0: availability, booking changes and waitlist estimates
 
@@ -197,7 +200,10 @@ This contract is a team recommendation chosen to fill unspecified S2-10 details.
 | Route | Authorization and scope | Request/behavior | Success response |
 | --- | --- | --- | --- |
 | `GET /notifications` | Customer: `notifications:own:read`; Reception/Manager/Administrator: `notifications:restaurant:read`; Kitchen Staff denied | No client-selected filters. Customer records are filtered by authenticated `recipientUserId` across restaurants. Staff records are filtered by both signed `restaurantId` and authenticated `recipientUserId`; no user can read another recipient's notifications. Sort newest-first by `createdAt`, then `_id`; cap at 100. | `200 { notifications, unreadCount, truncated }`; `unreadCount` counts all unread records in the same recipient scope. |
-| `PATCH /notifications/{id}/read` | Customer and authorized restaurant staff: `notifications:own:update`; staff also uses the signed restaurant scope | Empty body only. Set `readAt` once; repeated requests return the existing timestamp without changing it. No mark-all operation. | `200 { notification }` |
+| `PATCH /notifications/{id}/read` | Customer and authorized restaurant staff: `notifications:own:update`; staff also uses the signed restaurant scope | Empty body only. Set `readAt` once; repeated requests return the existing timestamp without changing it. | `200 { notification }` |
+| `POST /notifications/read-all` (S5-04) | `notifications:own:update`, same recipient scope as the list | Empty body only. Sets `readAt` on every unread record in the caller's scope. | `200 { marked, unreadCount: 0 }` |
+| `GET /notifications/preferences` (S5-04) | Same as `GET /notifications` | Returns only the categories the caller's role can receive: Customer `bookings` (`reservation.*`) and `orders` (`order.*`); Reception `waiterAlerts` (`staff.order_ready`). Unset means on. Incident alerts are not optional and are not listed. | `200 { preferences }`, for example `{ "bookings": true, "orders": false }` |
+| `PUT /notifications/preferences` (S5-04) | `notifications:own:update` | Body: one or more of the caller's categories with `true` or `false`; anything else is `400 invalid_notification_preferences`. Stored on the user as `notificationPreferences`. The order-ready, booking and reminder notifiers skip a muted category before anything is stored or pushed. | `200 { preferences }` |
 
 The response exposes `id`, `restaurantId`, `type`, `title`, `body`, optional `relatedEntity`, `createdAt`, `deliveredAt`, and `readAt`; it never exposes `recipientUserId`. A missing or out-of-scope ID returns the same `404 notification_not_found` response. Trusted server-side creation stores new notifications unread with `deliveredAt: null`; S2-13 changes that field only after an explicit client acknowledgement is persisted. There is no public create route. S2-12 evaluates and persists supported rule-managed incidents after relevant successful operational writes and on scheduled sweeps, but does not automatically create/dispatch incident notifications. The local S2-13 WebSocket transport is documented below; mapping business events to notification recipients and retention/TTL remain undecided. See the [S2-10 team recommendation](Andhrimnir_Implementation_Decisions.md#s2-10-notification-api-and-read-state-recommendation-team-selected-2026-10-11).
 
