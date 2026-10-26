@@ -16,6 +16,8 @@ import type {
 export const ORDER_MAX_LINES = 20;
 export const ORDER_MAX_QUANTITY_PER_LINE = 20;
 export const ORDER_MAX_TOTAL_UNITS = 50;
+/** Special requests stay short enough to read on a kitchen ticket. */
+export const ORDER_LINE_NOTE_MAX_LENGTH = 140;
 
 export class OrderError extends Error {
   constructor(
@@ -111,6 +113,7 @@ export class OrderService implements OrderServiceReader {
         unitPriceMinor,
         quantity: line.quantity,
         ...(chosen.length > 0 ? { options: chosen } : {}),
+        ...(line.notes ? { notes: line.notes } : {}),
         preparationStatus: "Created",
       });
     }
@@ -251,7 +254,7 @@ function validateOrderLines(lines: OrderRequestLine[]): void {
       );
     }
     // The same dish may appear twice with different options (one mild, one hot).
-    const itemId = `${line.menuItemId.toHexString()}:${optionKey(line.options)}`;
+    const itemId = `${line.menuItemId.toHexString()}:${optionKey(line.options)}:${line.notes ?? ""}`;
     if (itemIds.has(itemId)) {
       throw new OrderError(
         400,
@@ -269,6 +272,16 @@ function validateOrderLines(lines: OrderRequestLine[]): void {
         400,
         "invalid_order_quantity",
         `Each item quantity must be a whole number from 1 to ${ORDER_MAX_QUANTITY_PER_LINE}.`,
+      );
+    }
+    if (
+      line.notes !== undefined &&
+      (typeof line.notes !== "string" || line.notes.length > ORDER_LINE_NOTE_MAX_LENGTH)
+    ) {
+      throw new OrderError(
+        400,
+        "invalid_order_note",
+        `Keep each special request to ${ORDER_LINE_NOTE_MAX_LENGTH} characters.`,
       );
     }
     totalUnits += line.quantity;

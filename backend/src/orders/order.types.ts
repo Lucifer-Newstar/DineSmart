@@ -13,6 +13,8 @@ export interface OrderRequestLine {
   quantity: number;
   /** Chosen option per group: `{ spice: "hot" }`. */
   options?: Record<string, string>;
+  /** A guest's special request for this line, such as "no onion" (S5-03). */
+  notes?: string;
 }
 
 export interface NewCustomerOrderRequest {
@@ -40,6 +42,7 @@ export interface OrderItemSnapshot {
   unitPriceMinor: number;
   quantity: number;
   options?: OrderItemOption[];
+  notes?: string;
   preparationStatus: PreparationStatus;
 }
 

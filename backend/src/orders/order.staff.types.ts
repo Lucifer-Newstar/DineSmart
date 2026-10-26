@@ -27,12 +27,16 @@ export interface KitchenTicketItem {
   name: string;
   quantity: number;
   options?: OrderItemOption[];
+  /** The guest's special request, printed on the ticket (S5-03). */
+  notes?: string;
   preparationStatus: PreparationStatus;
 }
 
 export interface KitchenTicket {
   id: ObjectId;
   status: KitchenTicketStatus;
+  /** Set for dine-in orders placed from a table QR link. */
+  tableNumber?: string;
   items: KitchenTicketItem[];
   createdAt: Date;
   updatedAt: Date;

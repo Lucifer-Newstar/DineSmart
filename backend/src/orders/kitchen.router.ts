@@ -94,11 +94,13 @@ export function createKitchenRouter(options: KitchenRouterOptions): ReturnType<t
           orders: result.tickets.map((ticket) => ({
             id: ticket.id.toHexString(),
             status: ticket.status,
+            ...(ticket.tableNumber ? { tableNumber: ticket.tableNumber } : {}),
             items: ticket.items.map((item) => ({
               id: item.id.toHexString(),
               name: item.name,
               quantity: item.quantity,
               ...(item.options ? { options: item.options } : {}),
+              ...(item.notes ? { notes: item.notes } : {}),
               preparationStatus: item.preparationStatus,
             })),
             createdAt: ticket.createdAt.toISOString(),
@@ -182,6 +184,7 @@ export function createKitchenRouter(options: KitchenRouterOptions): ReturnType<t
               name: item.nameSnapshot,
               quantity: item.quantity,
               ...(item.options ? { options: item.options } : {}),
+              ...(item.notes ? { notes: item.notes } : {}),
               preparationStatus: item.preparationStatus,
             })),
             createdAt: order.createdAt.toISOString(),

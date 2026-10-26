@@ -79,7 +79,20 @@ function parseCreateBody(
 
   const items: OrderRequestLine[] = [];
   for (const line of value.items) {
-    if (!isRecord(line) || !hasOnlyKeys(line, ["menuItemId", "quantity", "options"])) return null;
+    if (!isRecord(line) || !hasOnlyKeys(line, ["menuItemId", "quantity", "options", "notes"]))
+      return null;
+    if (line.notes !== undefined && typeof line.notes !== "string") return null;
+    // Line breaks and control characters become spaces so the request prints cleanly.
+    const notes =
+      typeof line.notes === "string"
+        ? Array.from(line.notes, (char) => {
+            const code = char.charCodeAt(0);
+            return code < 32 || code === 127 ? " " : char;
+          })
+            .join("")
+            .replace(/\s+/g, " ")
+            .trim()
+        : "";
     const menuItemId = objectId(line.menuItemId);
     if (!menuItemId || typeof line.quantity !== "number" || !Number.isFinite(line.quantity))
       return null;
@@ -89,6 +102,7 @@ function parseCreateBody(
       menuItemId,
       quantity: line.quantity,
       ...(options === undefined ? {} : { options }),
+      ...(notes ? { notes } : {}),
     });
   }
   return {
@@ -286,6 +300,7 @@ function toJson(order: Awaited<ReturnType<OrderServiceReader["createForCustomer"
       unitPriceMinor: item.unitPriceMinor,
       quantity: item.quantity,
       ...(item.options ? { options: item.options } : {}),
+      ...(item.notes ? { notes: item.notes } : {}),
     })),
     ...(order.tableId ? { tableId: order.tableId.toHexString() } : {}),
     ...(order.tableNumber ? { tableNumber: order.tableNumber } : {}),

@@ -184,8 +184,10 @@ function toStaffOrderJson(
       name: item.nameSnapshot,
       quantity: item.quantity,
       ...(item.options ? { options: item.options } : {}),
+      ...(item.notes ? { notes: item.notes } : {}),
       preparationStatus: item.preparationStatus,
     })),
+    ...(order.tableId ? { tableId: order.tableId.toHexString() } : {}),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };

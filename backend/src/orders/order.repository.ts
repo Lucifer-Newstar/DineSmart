@@ -9,6 +9,7 @@ import {
   type OrderStatus,
   type PreparationStatus,
   type RestaurantDocument,
+  type TableDocument,
 } from "../database/schema.js";
 import {
   KITCHEN_QUEUE_LIMIT,
@@ -35,6 +36,7 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
   private readonly orderItems;
   private readonly orders;
   private readonly restaurants;
+  private readonly tables;
 
   constructor(db: Db) {
     this.customerProfiles = new MongoCustomerProfileRepository(db);
@@ -42,6 +44,7 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
     this.orderItems = db.collection<OrderItemDocument>(COLLECTIONS.orderItems);
     this.orders = db.collection<OrderDocument>(COLLECTIONS.orders);
     this.restaurants = db.collection<RestaurantDocument>(COLLECTIONS.restaurants);
+    this.tables = db.collection<TableDocument>(COLLECTIONS.tables);
   }
 
   getCustomerIdForUser(userId: ObjectId, now: Date): Promise<ObjectId | null> {
@@ -202,16 +205,30 @@ export class MongoOrderRepository implements OrderRepository, StaffOrderReposito
       .sort({ createdAt: 1, _id: 1 })
       .toArray();
     const itemsByOrder = groupItemsByOrder(items);
+    const tableIds = visibleOrders.flatMap((order) => (order.tableId ? [order.tableId] : []));
+    const tables =
+      tableIds.length > 0
+        ? await this.tables
+            .find({ restaurantId, _id: { $in: tableIds } }, { projection: { tableNumber: 1 } })
+            .toArray()
+        : [];
+    const tableNumbers = new Map(
+      tables.map((table) => [table._id.toHexString(), table.tableNumber]),
+    );
 
     return {
       tickets: visibleOrders.map((order) => ({
         id: order._id,
         status: order.status as (typeof KITCHEN_QUEUE_STATUSES)[number],
+        ...(order.tableId && tableNumbers.has(order.tableId.toHexString())
+          ? { tableNumber: tableNumbers.get(order.tableId.toHexString()) as string }
+          : {}),
         items: (itemsByOrder.get(order._id.toHexString()) ?? []).map((item) => ({
           id: item.id,
           name: item.nameSnapshot,
           quantity: item.quantity,
           ...(item.options?.length ? { options: item.options } : {}),
+          ...(item.notes ? { notes: item.notes } : {}),
           preparationStatus: item.preparationStatus,
         })),
         createdAt: order.createdAt,
@@ -324,6 +341,7 @@ function toItemRecord(item: WithId<OrderItemDocument>): OrderItemRecord {
     unitPriceMinor: item.unitPriceMinor,
     quantity: item.quantity,
     ...(item.options?.length ? { options: item.options } : {}),
+    ...(item.notes ? { notes: item.notes } : {}),
     preparationStatus: item.preparationStatus,
   };
 }
