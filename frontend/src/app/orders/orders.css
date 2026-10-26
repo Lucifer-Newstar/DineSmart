@@ -117,9 +117,16 @@
 }
 .orders-secondary-link {
   margin-top: 12px;
-  color: #6b8069;
+  color: #4a6347;
   font-size: 12px;
   font-weight: 620;
+}
+button.orders-secondary-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
 }
 .orders-truncated {
   margin: 0 0 14px;
