@@ -18,13 +18,20 @@ const OFFLINE_URL = "/offline";
 const PAGE_ROUTES = new Set(["/", "/menu", OFFLINE_URL]);
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon.svg"];
 
+/** Saves the offline page with the scripts and styles it links, so it can render without a network. */
+async function precacheShell() {
+  const cache = await caches.open(SHELL_CACHE);
+  await cache.addAll(PRECACHE);
+  const page = await cache.match(OFFLINE_URL);
+  if (!page) return;
+  const html = await page.text();
+  const assets = new Set(html.match(/\/_next\/static\/[^"'\s)\\]+/g) ?? []);
+  // One missing chunk must not stop the worker from installing.
+  await Promise.allSettled([...assets].map((asset) => cache.add(asset)));
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(precacheShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
