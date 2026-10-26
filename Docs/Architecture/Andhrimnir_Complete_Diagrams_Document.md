@@ -167,6 +167,29 @@ Served-->Completed
 Completed-->[*]
 ```
 
+## Reservation Lifecycle
+
+The statuses a booking moves through (S5-01). Staff drive every transition except the guest's own cancellation, which closes at the restaurant's change cutoff. Seating needs a table; a no-show can only be recorded after the grace period. Confirmations, staff changes and cancellations notify the guest (S5-04).
+
+```mermaid
+stateDiagram-v2
+    [*] --> Awaiting: guest books online
+    [*] --> Confirmed: staff books with a table
+    Awaiting --> Confirmed: staff confirms
+    Awaiting --> Arrived: staff marks arrival
+    Confirmed --> Arrived: staff marks arrival
+    Confirmed --> Seated: staff seats at a table
+    Arrived --> Seated: staff seats at a table
+    Seated --> Completed: visit ends, table freed
+    Awaiting --> Cancelled: guest (before cutoff) or staff
+    Confirmed --> Cancelled: guest (before cutoff) or staff
+    Arrived --> Cancelled: staff
+    Confirmed --> NoShow: staff, after the grace period
+    Completed --> [*]
+    Cancelled --> [*]
+    NoShow --> [*]
+```
+
 ## Activity
 
 ```mermaid
