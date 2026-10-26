@@ -4,6 +4,7 @@ import { AuthProvider } from "./auth-provider";
 import "./globals.css";
 import "./menu/menu.css";
 import "./orders/orders.css";
+import "./bookings/bookings.css";
 
 export const metadata: Metadata = {
   title: {

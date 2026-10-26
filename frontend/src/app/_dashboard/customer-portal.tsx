@@ -389,7 +389,7 @@ export function CustomerPortal({
               </p>
             ) : null}
           </div>
-          <Link href="/book" aria-label="Book a table">
+          <Link href="/bookings" aria-label="View your bookings">
             <Icon name="arrow-right" size={17} />
           </Link>
         </article>

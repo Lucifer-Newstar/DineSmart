@@ -1,0 +1,64 @@
+/* My bookings page (S5-01). Shares the order history layout from orders.css. */
+.bookings-section-title {
+  margin: 30px 0 14px;
+  color: #33483a;
+  font-size: 18px;
+  font-weight: 700;
+}
+.orders-inline-note {
+  margin: 8px 0;
+  color: #4f5d53;
+  font-size: 14px;
+}
+.orders-inline-note a {
+  color: #2f5b43;
+  font-weight: 650;
+  text-decoration: underline;
+}
+.booking-editor {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e3dfd2;
+  border-radius: 12px;
+  background: #fffdf8;
+}
+.booking-editor-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.booking-editor-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.booking-slot {
+  min-width: 78px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #c9c3b2;
+  border-radius: 8px;
+  color: #304237;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.booking-slot:disabled {
+  color: #6b6b63;
+  background: #f1efe8;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+.booking-slot-active {
+  border-color: #2f5b43;
+  color: #fff;
+  background: #2f5b43;
+}
+.booking-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
