@@ -43,6 +43,7 @@ import { useServiceClock } from "./_dashboard/service-clock";
 import { KitchenPage, OrdersPage } from "./_dashboard/service-pages";
 import { DevicesPanel, SettingsPage } from "./_dashboard/settings-page";
 import { StaffPanel } from "./_dashboard/staff-panel";
+import { TableQrPanel } from "./_dashboard/table-qr";
 import type {
   HealthScoreData,
   HealthScoreViewStatus,
@@ -1320,6 +1321,13 @@ export function Dashboard() {
                 refreshKey={reservationsRefreshKey}
                 onToast={notify}
               />
+              {user ? (
+                <TableQrPanel
+                  accessToken={accessToken}
+                  canRotate={role === "Manager" || role === "Administrator"}
+                  onToast={notify}
+                />
+              ) : null}
             </>
           ) : currentSection === "Inventory" ? (
             <InventoryPage

@@ -1,0 +1,68 @@
+/* Printable table QR cards (S5-03). */
+.table-qr-card {
+  margin-top: 18px;
+}
+.qr-sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.qr-print-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border: 1px dashed #b9b3a3;
+  border-radius: 12px;
+  text-align: center;
+  background: #fff;
+}
+.qr-card-brand {
+  color: #4a5a4f;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.qr-card-table {
+  font-size: 22px;
+}
+.qr-code {
+  width: 160px;
+  height: 160px;
+}
+.qr-card-hint {
+  max-width: 180px;
+  color: #2e3d33;
+  font-size: 13px;
+}
+.qr-card-rotate {
+  font-size: 12px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .qr-sheet,
+  .qr-sheet * {
+    visibility: visible;
+  }
+  .qr-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+  }
+  .qr-print-card {
+    break-inside: avoid;
+    border-color: #000;
+  }
+  .qr-card-rotate {
+    display: none;
+  }
+}
