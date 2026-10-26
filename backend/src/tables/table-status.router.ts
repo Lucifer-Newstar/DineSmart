@@ -4,12 +4,15 @@ import { authenticateAccessToken } from "../auth/auth.middleware.js";
 import type { AuthPrincipal } from "../auth/auth.service.js";
 import { requirePermissions, requireRestaurantScope } from "../auth/authorization.middleware.js";
 import { requireObjectIdParam } from "../http/object-id-param.js";
+import { TableQrError, type TableQrService } from "./table-qr.service.js";
 import { TableStatusServiceError } from "./table-status.service.js";
 import type { TableOperationalStatus, TableStatusServiceReader } from "./table-status.types.js";
 import { TABLE_STATUSES } from "./table-status.types.js";
 
 export interface TableStatusRuntime {
   service: TableStatusServiceReader;
+  /** QR dine-in links (S5-03); absent when no signing secret is configured. */
+  qr?: TableQrService;
   verifyAccessToken: (token: string) => Promise<AuthPrincipal>;
 }
 
@@ -44,7 +47,7 @@ function sendUnavailable(response: Response): void {
 }
 
 function sendTableStatusError(error: unknown, response: Response): void {
-  if (error instanceof TableStatusServiceError) {
+  if (error instanceof TableStatusServiceError || error instanceof TableQrError) {
     response.status(error.statusCode).json({ error: { code: error.code, message: error.message } });
     return;
   }
@@ -66,6 +69,34 @@ function toResponse(table: Awaited<ReturnType<TableStatusServiceReader["updateSt
 export function createTableStatusRouter(options: TableStatusRouterOptions): Router {
   const router = Router();
   const runtimes = new WeakMap<Request, TableStatusRuntime>();
+
+  // Public: a guest's phone opens /menu?table=<token>, and the menu asks which
+  // table that is. Declared before authentication on purpose.
+  router.get("/qr/resolve", async (request: Request, response: Response) => {
+    const token = request.query.token;
+    if (typeof token !== "string" || Object.keys(request.query).length !== 1) {
+      response.status(400).json({
+        error: { code: "invalid_table_token", message: "A table token is required." },
+      });
+      return;
+    }
+    try {
+      const runtime = await options.createRuntime();
+      if (!runtime.qr) return sendUnavailable(response);
+      const table = await runtime.qr.resolve(token);
+      response.set("Cache-Control", "no-store");
+      response.status(200).json({
+        table: {
+          restaurantId: table.restaurantId.toHexString(),
+          restaurantName: table.restaurantName,
+          tableId: table.tableId.toHexString(),
+          tableNumber: table.tableNumber,
+        },
+      });
+    } catch (error) {
+      sendTableStatusError(error, response);
+    }
+  });
 
   router.use(async (request: Request, response: Response, next: NextFunction) => {
     try {
@@ -153,6 +184,61 @@ export function createTableStatusRouter(options: TableStatusRouterOptions): Rout
         );
         response.set("Cache-Control", "no-store");
         response.status(200).json({ table: toResponse(table) });
+      } catch (error) {
+        sendTableStatusError(error, response);
+      }
+    },
+  );
+
+  // Signed links for every table, for printing QR cards (S5-03).
+  router.get(
+    "/qr",
+    requirePermissions("tables:write"),
+    requireRestaurantScope(),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const restaurantId = request.auth?.restaurantId;
+      if (!runtime || !restaurantId) return sendUnavailable(response);
+      if (!runtime.qr) return sendUnavailable(response);
+      try {
+        const links = await runtime.qr.issueAll(new ObjectId(restaurantId));
+        response.set("Cache-Control", "no-store");
+        response.status(200).json({
+          tables: links.map((link) => ({
+            tableId: link.tableId.toHexString(),
+            tableNumber: link.tableNumber,
+            token: link.token,
+          })),
+        });
+      } catch (error) {
+        sendTableStatusError(error, response);
+      }
+    },
+  );
+
+  // Invalidates one table's printed card, for example after a card is stolen.
+  router.post(
+    "/:id/qr/rotate",
+    requirePermissions("restaurant:write"),
+    requireRestaurantScope(),
+    requireObjectIdParam("id", "invalid_table_id", "A valid table ID is required."),
+    async (request: Request, response: Response) => {
+      const runtime = runtimes.get(request);
+      const restaurantId = request.auth?.restaurantId;
+      const rawId = request.params.id;
+      const tableId =
+        typeof rawId === "string" && ObjectId.isValid(rawId) ? new ObjectId(rawId) : null;
+      if (!runtime || !restaurantId || !tableId) return sendUnavailable(response);
+      if (!runtime.qr) return sendUnavailable(response);
+      try {
+        const link = await runtime.qr.rotate(new ObjectId(restaurantId), tableId);
+        response.status(200).json({
+          table: {
+            tableId: link.tableId.toHexString(),
+            tableNumber: link.tableNumber,
+            token: link.token,
+          },
+        });
       } catch (error) {
         sendTableStatusError(error, response);
       }

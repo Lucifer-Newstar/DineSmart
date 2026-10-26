@@ -182,6 +182,8 @@ export interface TableDocument extends TimestampedDocument {
   zone?: string;
   /** Step-free and wheelchair-friendly; preferred when a guest asks for it (S5-01). */
   accessible?: boolean;
+  /** Bumped to invalidate this table's printed QR card (S5-03). */
+  qrVersion?: number;
   status: string;
   currentReservationId?: ObjectId | null;
   currentOrderId?: ObjectId | null;

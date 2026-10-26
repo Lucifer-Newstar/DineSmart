@@ -92,9 +92,11 @@ import { ReservationService } from "./reservations/reservation.service.js";
 import { MongoStaffRepository } from "./staff/staff.repository.js";
 import { createStaffRouter } from "./staff/staff.router.js";
 import { StaffService } from "./staff/staff.service.js";
+import { MongoTableQrRepository, TableQrService } from "./tables/table-qr.service.js";
 import { MongoTableStatusRepository } from "./tables/table-status.repository.js";
 import { createTableStatusRouter } from "./tables/table-status.router.js";
 import { TableStatusService } from "./tables/table-status.service.js";
+import { tableTokenKey } from "./tables/table-token.js";
 import { MongoWaitQuoteRepository, WaitQuoteService } from "./waitlist/wait-estimate.js";
 import { MongoWaitlistRepository } from "./waitlist/waitlist.repository.js";
 import { createWaitlistRouter } from "./waitlist/waitlist.router.js";
@@ -200,6 +202,11 @@ export function createApp(options: AppOptions = {}) {
     onError: () => console.error("A notification acknowledgement could not be persisted."),
   });
   app.locals.notificationRealtimeGateway = notificationRealtimeGateway;
+
+  /** TABLE_QR_SECRET when set (rotate it to void every printed card), else derived from the JWT secret. */
+  function tableQrKey(jwtSecret: string): Buffer {
+    return tableTokenKey(process.env.TABLE_QR_SECRET || jwtSecret);
+  }
 
   async function createAuthRuntime() {
     const secret = options.getJwtSecret?.() ?? process.env.JWT_SECRET;
@@ -518,7 +525,7 @@ export function createApp(options: AppOptions = {}) {
     "/api/v1/tables",
     createTableStatusRouter({
       createRuntime: async () => {
-        const { db, service: authService } = await createAuthRuntime();
+        const { db, secret, service: authService } = await createAuthRuntime();
         return {
           service: new TableStatusService(
             new MongoTableStatusRepository(db),
@@ -528,6 +535,7 @@ export function createApp(options: AppOptions = {}) {
             realtimeHub.publishRestaurantEvent,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
+          qr: new TableQrService(new MongoTableQrRepository(db), tableQrKey(secret)),
         };
       },
     }),
