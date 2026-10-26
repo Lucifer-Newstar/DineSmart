@@ -2,7 +2,7 @@ import type { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
 import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
-import { resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
+import { type BookingRules, resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
 import type {
   CustomerReservationRequest,
   CustomerReservationUpdate,
@@ -77,6 +77,7 @@ export class ReservationService implements ReservationServiceReader {
       request.startAt,
       now,
       request.partySize,
+      true,
     );
     const notes = validateNotes(request.notes);
     const details = withoutNulls(validateGuestDetails(request));
@@ -201,6 +202,7 @@ export class ReservationService implements ReservationServiceReader {
           nextStartAt,
           now,
           nextPartySize,
+          nextStartAt.getTime() !== current.startAt.getTime(),
         );
         await this.requireOpenSlot(
           current.restaurantId,
@@ -419,6 +421,7 @@ export class ReservationService implements ReservationServiceReader {
     startAt: Date,
     now: Date,
     partySize: number,
+    enforceBookingWindow = false,
   ): Promise<{ schedule: ReservationSchedule; endAt: Date }> {
     if (!(startAt instanceof Date) || !Number.isFinite(startAt.getTime())) {
       throw new ReservationError(
@@ -440,6 +443,7 @@ export class ReservationService implements ReservationServiceReader {
       throw new ReservationError(404, "restaurant_not_found", "The restaurant was not found.");
     }
     const rules = resolveBookingRules(schedule.bookingRules);
+    if (enforceBookingWindow) validateBookingWindow(startAt, now, rules);
     const endAt = new Date(startAt.getTime() + turnTimeMinutes(rules, partySize) * 60_000);
     validateSlotAndOperatingHours(startAt, endAt, schedule);
     return { schedule, endAt };
@@ -486,6 +490,26 @@ export class ReservationService implements ReservationServiceReader {
         "The table already has an overlapping reservation.",
       );
     }
+  }
+}
+
+/** Online bookings must respect the lead time and how far ahead the restaurant takes them. */
+function validateBookingWindow(startAt: Date, now: Date, rules: BookingRules): void {
+  const leadMs = rules.minLeadMinutes * 60_000;
+  if (startAt.getTime() - now.getTime() < leadMs) {
+    throw new ReservationError(
+      400,
+      "reservation_too_soon",
+      `Online bookings need at least ${rules.minLeadMinutes} minutes' notice. Please call the restaurant.`,
+    );
+  }
+  const windowMs = rules.maxAdvanceDays * 24 * 60 * 60_000;
+  if (startAt.getTime() - now.getTime() > windowMs) {
+    throw new ReservationError(
+      400,
+      "reservation_too_far",
+      `Bookings open ${rules.maxAdvanceDays} days ahead. Please choose an earlier date.`,
+    );
   }
 }
 

@@ -111,12 +111,20 @@ test("a one-seat gap does not open a slot for a larger party", () => {
   assert.ok(slots.every((slot) => !slot.available && slot.reason === "no_table"));
 });
 
-test("slots that have already started are marked past", () => {
+test("slots that have started are past and slots inside the lead time are too soon", () => {
   const slots = computeAvailability(input({ now: new Date("2026-10-12T08:45:00.000Z") }));
   const byTime = new Map(slots.map((slot) => [slot.localTime, slot]));
-  // 08:45Z is 14:15 in Kolkata.
+  // 08:45Z is 14:15 in Kolkata; the default lead time is 60 minutes.
   assert.equal(byTime.get("14:00")?.reason, "past");
-  assert.equal(byTime.get("14:30")?.available, true);
+  assert.equal(byTime.get("14:30")?.reason, "too_soon");
+  assert.equal(byTime.get("15:00")?.reason, "too_soon");
+  assert.equal(byTime.get("15:30")?.available, true);
+});
+
+test("days past the booking window offer no slots", () => {
+  const slots = computeAvailability(input({ date: "2026-12-20" }));
+  assert.ok(slots.length > 0);
+  assert.ok(slots.every((slot) => slot.reason === "too_far"));
 });
 
 test("local dates convert through the restaurant time zone, including DST days", () => {

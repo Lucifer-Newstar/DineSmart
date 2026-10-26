@@ -47,7 +47,7 @@ export interface AvailabilityInput {
   slotMinutes?: number;
 }
 
-export type SlotUnavailableReason = "past" | "no_table" | "pacing";
+export type SlotUnavailableReason = "past" | "too_soon" | "too_far" | "no_table" | "pacing";
 
 export const PACING_WINDOW_MINUTES = 15;
 
@@ -227,9 +227,16 @@ export function computeAvailability(input: AvailabilityInput): AvailabilitySlot[
       localTime: formatWallClock(minute),
       available: true,
     };
+    const aheadMs = startAt.getTime() - input.now.getTime();
     if (startAt <= input.now) {
       slot.available = false;
       slot.reason = "past";
+    } else if (aheadMs < input.rules.minLeadMinutes * MINUTE_MS) {
+      slot.available = false;
+      slot.reason = "too_soon";
+    } else if (aheadMs > input.rules.maxAdvanceDays * 24 * 60 * MINUTE_MS) {
+      slot.available = false;
+      slot.reason = "too_far";
     } else if (exceedsPacing(input.rules, input.bookings, startAt, input.partySize)) {
       slot.available = false;
       slot.reason = "pacing";
