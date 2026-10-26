@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
@@ -289,9 +289,14 @@ export default function AccountPage() {
     }
   }, [accessToken]);
 
+  // Load once. A renewed access token (after a save or a password change) must not
+  // reload the page and wipe the status messages.
+  const loaded = useRef(false);
   useEffect(() => {
-    if (user?.role === "Customer") void load();
-  }, [load, user?.role]);
+    if (user?.role !== "Customer" || !accessToken || loaded.current) return;
+    loaded.current = true;
+    void load();
+  }, [accessToken, load, user?.role]);
 
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
