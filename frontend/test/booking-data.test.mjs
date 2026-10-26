@@ -4,9 +4,11 @@ import {
   formatSlotTime,
   openSlots,
   parseAvailability,
+  parseWaitEstimate,
   reconcileSelection,
   shouldOfferWaitlist,
   slotLabel,
+  walkInWaitLabel,
 } from "../src/app/book/booking-data.ts";
 
 function slot(localTime, available, reason) {
@@ -76,4 +78,13 @@ test("slot labels and times read naturally", () => {
   assert.equal(slotLabel(slot("19:00", false, "past")), "Passed");
   assert.equal(slotLabel(slot("19:00", false, "pacing")), "Fully booked");
   assert.equal(slotLabel(slot("19:00", false, "no_table")), "No table");
+});
+
+test("the walk-in estimate is read safely and worded for guests", () => {
+  assert.equal(parseWaitEstimate({ partySize: 2, quotedWaitMinutes: 30 }), 30);
+  assert.equal(parseWaitEstimate({ quotedWaitMinutes: "30" }), null);
+  assert.equal(parseWaitEstimate(null), null);
+  assert.equal(walkInWaitLabel(0), "no wait right now");
+  assert.equal(walkInWaitLabel(30), "about 30 minutes");
+  assert.equal(walkInWaitLabel(120), "over 2 hours");
 });

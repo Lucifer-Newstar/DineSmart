@@ -97,3 +97,16 @@ export function formatSlotTime(time: string): string {
   const suffix = hour >= 12 ? "pm" : "am";
   return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
+
+/** Reads GET /waitlist/estimate; null when the answer is unusable. */
+export function parseWaitEstimate(payload: unknown): number | null {
+  if (!isRecord(payload)) return null;
+  const minutes = payload.quotedWaitMinutes;
+  return typeof minutes === "number" && Number.isFinite(minutes) && minutes >= 0 ? minutes : null;
+}
+
+export function walkInWaitLabel(minutes: number): string {
+  if (minutes <= 0) return "no wait right now";
+  if (minutes >= 120) return "over 2 hours";
+  return `about ${minutes} minutes`;
+}

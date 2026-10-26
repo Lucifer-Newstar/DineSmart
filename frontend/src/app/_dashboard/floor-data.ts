@@ -33,6 +33,8 @@ export interface WaitlistEntry {
   partySize: number;
   phone?: string;
   notes?: string;
+  /** Minutes the API quotes until this party is likely seated (S5-01). */
+  quotedWaitMinutes?: number;
   createdAt: string;
 }
 
@@ -68,6 +70,9 @@ export function parseWaitlist(value: unknown): WaitlistEntry[] | null {
         createdAt: raw.createdAt,
         ...(typeof raw.phone === "string" ? { phone: raw.phone } : {}),
         ...(typeof raw.notes === "string" ? { notes: raw.notes } : {}),
+        ...(typeof raw.quotedWaitMinutes === "number" && raw.quotedWaitMinutes >= 0
+          ? { quotedWaitMinutes: raw.quotedWaitMinutes }
+          : {}),
       },
     ];
   });
@@ -83,4 +88,18 @@ export function tablesForParty(tables: readonly FloorTable[], partySize: number)
 export function minutesWaiting(createdAt: string, now = Date.now()): number {
   const created = Date.parse(createdAt);
   return Number.isNaN(created) ? 0 : Math.max(0, Math.round((now - created) / 60_000));
+}
+
+/** Reads the quote from POST /waitlist's entry, if the API sent one. */
+export function quotedWaitOf(payload: unknown): number | null {
+  if (!isRecord(payload) || !isRecord(payload.entry)) return null;
+  const minutes = payload.entry.quotedWaitMinutes;
+  return typeof minutes === "number" && minutes >= 0 ? minutes : null;
+}
+
+/** "Ready now", "About 25 min", or "Over 2 hours" for the cap. */
+export function formatQuotedWait(minutes: number, capMinutes = 120): string {
+  if (minutes <= 0) return "Table ready now";
+  if (minutes >= capMinutes) return "Over 2 hours";
+  return `About ${minutes} min`;
 }

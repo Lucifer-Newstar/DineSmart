@@ -11,9 +11,11 @@ import {
   type DayAvailability,
   formatSlotTime,
   parseAvailability,
+  parseWaitEstimate,
   reconcileSelection,
   shouldOfferWaitlist,
   slotLabel,
+  walkInWaitLabel,
 } from "./booking-data";
 
 const API_BASE = "/api/v1";
@@ -86,6 +88,7 @@ export default function BookTablePage() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("19:00");
   const [availability, setAvailability] = useState<DayAvailability | null>(null);
+  const [walkInWait, setWalkInWait] = useState<number | null>(null);
   const [availabilityState, setAvailabilityState] = useState<"loading" | "ready" | "error">(
     "loading",
   );
@@ -183,6 +186,33 @@ export default function BookTablePage() {
       });
     return () => controller.abort();
   }, [date, guests]);
+
+  // The walk-in quote only means something for today; it refreshes every minute.
+  useEffect(() => {
+    if (!date || date !== today) {
+      setWalkInWait(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      const query = new URLSearchParams({ restaurantId: RESTAURANT_ID, partySize: guests });
+      fetchWithTimeout(`${API_BASE}/waitlist/estimate?${query.toString()}`)
+        .then(async (response) => {
+          if (!response.ok) throw new Error("No estimate.");
+          const minutes = parseWaitEstimate(await response.json());
+          if (!cancelled) setWalkInWait(minutes);
+        })
+        .catch(() => {
+          if (!cancelled) setWalkInWait(null);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [date, today, guests]);
 
   const slots: BookingSlot[] = availability?.slots ?? [];
   const selectedSlot = slots.find((slot) => slot.localTime === time && slot.available);
@@ -351,6 +381,12 @@ export default function BookTablePage() {
                     <p className="book-preview-note" role="status">
                       No open tables for {guests} {guests === "1" ? "guest" : "guests"} on this
                       date. Try another date, or join the walk-in waitlist when you arrive.
+                    </p>
+                  ) : null}
+                  {walkInWait !== null ? (
+                    <p className="book-preview-note" aria-live="polite">
+                      Walking in instead? Current wait for {guests}{" "}
+                      {guests === "1" ? "guest" : "guests"}: {walkInWaitLabel(walkInWait)}.
                     </p>
                   ) : null}
                   <label className="form-field">

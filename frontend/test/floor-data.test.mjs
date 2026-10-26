@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  formatQuotedWait,
   minutesWaiting,
   parseTables,
   parseWaitlist,
+  quotedWaitOf,
   TABLE_TRANSITIONS,
   tablesForParty,
 } from "../src/app/_dashboard/floor-data.ts";
@@ -60,4 +62,32 @@ test("wait time is whole minutes and never negative", () => {
   assert.equal(minutesWaiting("2026-10-23T10:00:00Z", now), 30);
   assert.equal(minutesWaiting("2026-10-23T11:00:00Z", now), 0);
   assert.equal(minutesWaiting("nonsense", now), 0);
+});
+
+test("waitlist quotes are read from the list and the add response", () => {
+  const entries = parseWaitlist({
+    entries: [
+      {
+        id: "w1",
+        guestName: "Ravi",
+        partySize: 2,
+        createdAt: "2026-10-11T12:00:00Z",
+        quotedWaitMinutes: 25,
+      },
+      {
+        id: "w2",
+        guestName: "Asha",
+        partySize: 4,
+        createdAt: "2026-10-11T12:05:00Z",
+        quotedWaitMinutes: -5,
+      },
+    ],
+  });
+  assert.equal(entries?.[0].quotedWaitMinutes, 25);
+  assert.equal("quotedWaitMinutes" in (entries?.[1] ?? {}), false);
+  assert.equal(quotedWaitOf({ entry: { quotedWaitMinutes: 0 } }), 0);
+  assert.equal(quotedWaitOf({ entry: {} }), null);
+  assert.equal(formatQuotedWait(0), "Table ready now");
+  assert.equal(formatQuotedWait(25), "About 25 min");
+  assert.equal(formatQuotedWait(120), "Over 2 hours");
 });

@@ -4,9 +4,11 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import {
   type FloorTable,
+  formatQuotedWait,
   minutesWaiting,
   parseTables,
   parseWaitlist,
+  quotedWaitOf,
   TABLE_STATUS_LABELS,
   TABLE_TRANSITIONS,
   tablesForParty,
@@ -103,7 +105,12 @@ export function FloorPanel({ accessToken, refreshKey, onToast }: FloorPanelProps
       onToast(result.message);
       return;
     }
-    onToast(`${guestName.trim()} added to the waitlist.`);
+    const quote = quotedWaitOf(result.data);
+    onToast(
+      quote === null
+        ? `${guestName.trim()} added to the waitlist.`
+        : `${guestName.trim()} added to the waitlist. Quote: ${formatQuotedWait(quote).toLowerCase()}.`,
+    );
     setGuestName("");
     setPartySize("2");
     setPhone("");
@@ -240,6 +247,9 @@ export function FloorPanel({ accessToken, refreshKey, onToast }: FloorPanelProps
                     </span>
                     <span className="cell-subline">
                       Waiting {minutesWaiting(entry.createdAt)} min
+                      {entry.quotedWaitMinutes === undefined
+                        ? ""
+                        : ` · Quoted: ${formatQuotedWait(entry.quotedWaitMinutes)}`}
                       {entry.notes ? ` · ${entry.notes}` : ""}
                     </span>
                   </div>
