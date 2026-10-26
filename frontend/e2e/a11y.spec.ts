@@ -9,7 +9,16 @@ const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag2
 /** The S4-03 gate: no serious or critical violation on any scanned page. */
 const BLOCKING = new Set(["serious", "critical"]);
 
-const PUBLIC_PAGES = ["/", "/login", "/register", "/forgot-password", "/menu", "/book", "/orders"];
+const PUBLIC_PAGES = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/menu",
+  "/book",
+  "/orders",
+  "/offline",
+];
 
 const DASHBOARD_SECTIONS = [
   "Overview",
