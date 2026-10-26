@@ -448,3 +448,20 @@ My part:
 - `npm audit` flagged a new high advisory in body-parser (compressed request bodies); the lockfile now pins 2.4.0 and both audits are clean.
 - **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
 - **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
+
+## 2026-10-26
+
+### Sprint 5 Day 2: reservations 2.0, guest profiles, QR ordering, customer notifications and the installable app
+
+My part:
+
+- `d7ef31a` docs(S5-02): add a privacy notice covering the data held and the rights offered
+- `f7c7e79` feat(S5-03): publish order status changes to the customer who placed them
+- `c975e5c` test(S5-03): cover customer order events and their isolation
+- `20e1216` docs(S5-01): add the reservation lifecycle diagram
+- `cd1d137` docs(S5-00): update the SRS with booking changes, guest profiles and QR ordering
+- Customer order events go only to the customer who placed the order; a test checks that other customers and other restaurants do not receive them.
+- The SRS now traces FR-4.1 to FR-15.4 to the Sprint 5 tasks and their tests. The reservation lifecycle diagram was written by hand from the status rules in the service and has not been checked in GitHub's Mermaid renderer yet.
+- The 0.3.0 changelog entry follows this log.
+- **Local verification via Node `24.21.0`:** backend 524 tests, frontend 137 tests and repository tool 19 tests pass; the Playwright suite passes 44/44 against a local MongoDB, including the axe scans (0 serious or critical) and the new offline spec; Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check (70 routes, 0 unmatched calls) are clean.
+- **Not verified live:** nothing is pushed yet, so GitHub Actions have not run these commits; email went only through the mock transport (no SMTP or Resend send was made); installing the app and the offline mode were checked in headless Chromium only, not on a phone; MongoDB Atlas and the deployed WebSocket path still need a live check.
