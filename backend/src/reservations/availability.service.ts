@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { type BookingRules, resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
+import type { ReservationSlotGuard } from "./reservation.types.js";
 
 /**
  * Open booking slots for one day and party size (S5-01).
@@ -294,4 +295,17 @@ export class ReservationAvailabilityService implements AvailabilityReader {
       }),
     };
   }
+}
+
+/** Builds the create/change guard: some bookable table must stay free for the whole turn. */
+export function createSlotGuard(repository: AvailabilityRepository): ReservationSlotGuard {
+  return async ({ restaurantId, partySize, startAt, endAt, excludingReservationId }) => {
+    const [tables, bookings] = await Promise.all([
+      repository.listTables(restaurantId),
+      repository.listActiveBookings(restaurantId, startAt, endAt, excludingReservationId),
+    ]);
+    return freeTablesFor(tables, bookings, startAt, endAt).some(
+      (table) => table.capacity >= partySize,
+    );
+  };
 }

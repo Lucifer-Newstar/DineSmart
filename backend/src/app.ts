@@ -74,7 +74,10 @@ import { NotificationRealtimeGateway } from "./realtime/notification-realtime.ga
 import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
 import { MongoAvailabilityRepository } from "./reservations/availability.repository.js";
-import { ReservationAvailabilityService } from "./reservations/availability.service.js";
+import {
+  createSlotGuard,
+  ReservationAvailabilityService,
+} from "./reservations/availability.service.js";
 import { MongoReservationRepository } from "./reservations/reservation.repository.js";
 import { createReservationRouter } from "./reservations/reservation.router.js";
 import { ReservationService } from "./reservations/reservation.service.js";
@@ -382,6 +385,7 @@ export function createApp(options: AppOptions = {}) {
     createReservationRouter({
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
+        const availabilityRepository = new MongoAvailabilityRepository(db);
         return {
           service: new ReservationService(
             new MongoReservationRepository(db),
@@ -389,9 +393,10 @@ export function createApp(options: AppOptions = {}) {
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
             realtimeHub.publishRestaurantEvent,
+            createSlotGuard(availabilityRepository),
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
-          availability: new ReservationAvailabilityService(new MongoAvailabilityRepository(db)),
+          availability: new ReservationAvailabilityService(availabilityRepository),
         };
       },
     }),

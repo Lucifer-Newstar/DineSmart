@@ -131,7 +131,11 @@ interface ParsedUpdateBody {
 function parseUpdateBody(value: unknown, role: AuthPrincipal["role"]): ParsedUpdateBody | null {
   if (!isRecord(value) || Object.keys(value).length === 0) return null;
   if (!hasOnlyKeys(value, ["status", "tableId", "partySize", "startAt", "notes"])) return null;
-  if (role === "Customer" && Object.keys(value).some((key) => key !== "status")) return null;
+  // Customers may cancel, or move their own booking's time, party size or notes (S5-01).
+  if (role === "Customer" && Object.hasOwn(value, "tableId")) return null;
+  if (role === "Customer" && value.status !== undefined && Object.keys(value).length > 1) {
+    return null;
+  }
 
   const parsed: ParsedUpdateBody = {};
   if (value.status !== undefined) {
@@ -166,7 +170,6 @@ function parseUpdateBody(value: unknown, role: AuthPrincipal["role"]): ParsedUpd
     parsed.notes = value.notes;
   }
   if (Object.keys(parsed).length === 0) return null;
-  if (role === "Customer" && parsed.status !== "Cancelled") return null;
   return parsed;
 }
 
@@ -410,7 +413,10 @@ export function createReservationRouter(options: ReservationRouterOptions): Rout
             ? await runtime.service.updateForCustomer({
                 userId: asObjectId(principal.userId),
                 reservationId,
-                status: "Cancelled",
+                ...(changes.status === "Cancelled" ? { status: "Cancelled" as const } : {}),
+                ...(changes.startAt === undefined ? {} : { startAt: changes.startAt }),
+                ...(changes.partySize === undefined ? {} : { partySize: changes.partySize }),
+                ...(changes.notes === undefined ? {} : { notes: changes.notes }),
               })
             : await runtime.service.updateForStaff({
                 restaurantId: asObjectId(principal.restaurantId),

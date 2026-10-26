@@ -54,6 +54,7 @@ export class MongoReservationRepository implements ReservationRepository {
     return {
       timeZone: restaurant.timezone,
       ...(restaurant.operatingHours ? { operatingHours: restaurant.operatingHours } : {}),
+      ...(restaurant.bookingRules ? { bookingRules: restaurant.bookingRules } : {}),
     };
   }
 

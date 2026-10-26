@@ -2,14 +2,17 @@ import type { ObjectId } from "mongodb";
 import type { HealthScoreRefreshNotifier } from "../healthscore/health-score.types.js";
 import type { IncidentDetectionNotifier } from "../incidents/incident.types.js";
 import type { RestaurantRealtimePublisher } from "../realtime/realtime.types.js";
+import { resolveBookingRules, turnTimeMinutes } from "./booking-rules.js";
 import type {
   CustomerReservationRequest,
   CustomerReservationUpdate,
   NewReservation,
+  ReservationChanges,
   ReservationRecord,
   ReservationRepository,
   ReservationSchedule,
   ReservationServiceReader,
+  ReservationSlotGuard,
   StaffReservationRequest,
   StaffReservationUpdate,
 } from "./reservation.types.js";
@@ -48,6 +51,7 @@ export class ReservationService implements ReservationServiceReader {
     private readonly notifyHealthScoreRefresh: HealthScoreRefreshNotifier = () => undefined,
     private readonly notifyIncidentDetection: IncidentDetectionNotifier = () => undefined,
     private readonly publishRealtime: RestaurantRealtimePublisher = () => undefined,
+    private readonly isSlotOpen: ReservationSlotGuard = async () => true,
   ) {}
 
   async listForCustomer(userId: ObjectId) {
@@ -62,9 +66,15 @@ export class ReservationService implements ReservationServiceReader {
   async createForCustomer(request: CustomerReservationRequest): Promise<ReservationRecord> {
     const now = this.clock();
     const customerId = await this.customerIdForUser(request.userId, now);
-    const { endAt } = await this.validateRequestedTime(request.restaurantId, request.startAt, now);
     validatePartySize(request.partySize);
+    const { endAt } = await this.validateRequestedTime(
+      request.restaurantId,
+      request.startAt,
+      now,
+      request.partySize,
+    );
     const notes = validateNotes(request.notes);
+    await this.requireOpenSlot(request.restaurantId, request.partySize, request.startAt, endAt);
 
     const reservation: NewReservation = {
       restaurantId: request.restaurantId,
@@ -89,8 +99,13 @@ export class ReservationService implements ReservationServiceReader {
 
   async createForStaff(request: StaffReservationRequest): Promise<ReservationRecord> {
     const now = this.clock();
-    const { endAt } = await this.validateRequestedTime(request.restaurantId, request.startAt, now);
     validatePartySize(request.partySize);
+    const { endAt } = await this.validateRequestedTime(
+      request.restaurantId,
+      request.startAt,
+      now,
+      request.partySize,
+    );
     const notes = validateNotes(request.notes);
 
     if (!(await this.repository.customerExists(request.customerId))) {
@@ -142,13 +157,70 @@ export class ReservationService implements ReservationServiceReader {
         "A reservation can only be cancelled before its start time.",
       );
     }
-    validateStatusTransition(current.status, request.status, current.startAt, now);
+    const schedule = await this.repository.getActiveRestaurant(current.restaurantId);
+    const rules = resolveBookingRules(schedule?.bookingRules);
+    const cutoff = current.startAt.getTime() - rules.changeCutoffMinutes * 60_000;
+    if (now.getTime() > cutoff) {
+      throw new ReservationError(
+        409,
+        "reservation_change_window_closed",
+        `Bookings can be changed or cancelled online until ${rules.changeCutoffMinutes} minutes before the start. Please call the restaurant.`,
+      );
+    }
+
+    const changes: ReservationChanges = {};
+    if (request.status !== undefined) {
+      validateStatusTransition(current.status, request.status, current.startAt, now);
+      changes.status = request.status;
+    } else {
+      if (current.status !== "Awaiting" && current.status !== "Confirmed") {
+        throw new ReservationError(
+          409,
+          "reservation_not_changeable",
+          `A ${current.status} reservation cannot be changed.`,
+        );
+      }
+      const nextStartAt = request.startAt ?? current.startAt;
+      const nextPartySize = request.partySize ?? current.partySize;
+      if (
+        nextStartAt.getTime() !== current.startAt.getTime() ||
+        nextPartySize !== current.partySize
+      ) {
+        validatePartySize(nextPartySize);
+        const { endAt } = await this.validateRequestedTime(
+          current.restaurantId,
+          nextStartAt,
+          now,
+          nextPartySize,
+        );
+        await this.requireOpenSlot(
+          current.restaurantId,
+          nextPartySize,
+          nextStartAt,
+          endAt,
+          current.id,
+        );
+        changes.startAt = nextStartAt;
+        changes.endAt = endAt;
+        changes.partySize = nextPartySize;
+        if (
+          current.tableId &&
+          !(await this.tableStillFits(current, nextPartySize, nextStartAt, endAt))
+        ) {
+          // The old table no longer works, so the restaurant confirms a new one.
+          changes.tableId = null;
+          changes.status = "Awaiting";
+        }
+      }
+      if (request.notes !== undefined) changes.notes = validateNotes(request.notes);
+      if (Object.keys(changes).length === 0) return current;
+    }
 
     const updated = await this.repository.updateForCustomer(
       current.id,
       customerId,
       current.updatedAt,
-      { status: request.status },
+      changes,
       now,
     );
     if (!updated) throw changedReservationError();
@@ -181,7 +253,12 @@ export class ReservationService implements ReservationServiceReader {
 
     if (startOrPartyChanged) {
       validatePartySize(nextPartySize);
-      const validated = await this.validateRequestedTime(request.restaurantId, nextStartAt, now);
+      const validated = await this.validateRequestedTime(
+        request.restaurantId,
+        nextStartAt,
+        now,
+        nextPartySize,
+      );
       nextEndAt = validated.endAt;
       changes.startAt = nextStartAt;
       changes.endAt = nextEndAt;
@@ -238,10 +315,52 @@ export class ReservationService implements ReservationServiceReader {
     return customerId;
   }
 
+  private async tableStillFits(
+    current: ReservationRecord,
+    partySize: number,
+    startAt: Date,
+    endAt: Date,
+  ): Promise<boolean> {
+    if (!current.tableId) return false;
+    const table = await this.repository.getTable(current.restaurantId, current.tableId);
+    if (!table || partySize > table.capacity) return false;
+    return !(await this.repository.hasTableConflict(
+      current.restaurantId,
+      current.tableId,
+      startAt,
+      endAt,
+      current.id,
+    ));
+  }
+
+  private async requireOpenSlot(
+    restaurantId: ObjectId,
+    partySize: number,
+    startAt: Date,
+    endAt: Date,
+    excludingReservationId?: ObjectId,
+  ): Promise<void> {
+    const open = await this.isSlotOpen({
+      restaurantId,
+      partySize,
+      startAt,
+      endAt,
+      ...(excludingReservationId ? { excludingReservationId } : {}),
+    });
+    if (!open) {
+      throw new ReservationError(
+        409,
+        "reservation_slot_unavailable",
+        "No table is free for that time and party size. Please choose another slot.",
+      );
+    }
+  }
+
   private async validateRequestedTime(
     restaurantId: ObjectId,
     startAt: Date,
     now: Date,
+    partySize: number,
   ): Promise<{ schedule: ReservationSchedule; endAt: Date }> {
     if (!(startAt instanceof Date) || !Number.isFinite(startAt.getTime())) {
       throw new ReservationError(
@@ -262,7 +381,8 @@ export class ReservationService implements ReservationServiceReader {
     if (!schedule) {
       throw new ReservationError(404, "restaurant_not_found", "The restaurant was not found.");
     }
-    const endAt = new Date(startAt.getTime() + RESERVATION_DURATION_MS);
+    const rules = resolveBookingRules(schedule.bookingRules);
+    const endAt = new Date(startAt.getTime() + turnTimeMinutes(rules, partySize) * 60_000);
     validateSlotAndOperatingHours(startAt, endAt, schedule);
     return { schedule, endAt };
   }

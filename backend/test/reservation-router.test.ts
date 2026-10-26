@@ -225,7 +225,7 @@ test("reservation routes enforce role permissions and tenant scope", async () =>
   assert.equal(forgedCustomer.response.status, 400);
 });
 
-test("customers can only request cancellation and staff updates are tenant scoped", async () => {
+test("customers cancel or change their own booking and staff updates are tenant scoped", async () => {
   const customerCancel = await getResponse({
     principal: principal("Customer"),
     method: "PUT",
@@ -243,8 +243,25 @@ test("customers can only request cancellation and staff updates are tenant scope
     body: { partySize: 6 },
     token: "valid-reservation-token",
   });
-  assert.equal(customerEdit.response.status, 400);
-  assert.equal(customerEdit.calls.customerUpdate, undefined);
+  assert.equal(customerEdit.response.status, 200);
+  assert.equal(customerEdit.calls.customerUpdate?.partySize, 6);
+  assert.equal(customerEdit.calls.customerUpdate?.status, undefined);
+
+  for (const body of [
+    { tableId: tableId.toHexString() },
+    { status: "Seated" },
+    { status: "Cancelled", partySize: 3 },
+  ]) {
+    const refused = await getResponse({
+      principal: principal("Customer"),
+      method: "PUT",
+      path: `/api/v1/reservations/${reservationId.toHexString()}`,
+      body,
+      token: "valid-reservation-token",
+    });
+    assert.equal(refused.response.status, 400);
+    assert.equal(refused.calls.customerUpdate, undefined);
+  }
 
   const staffUpdate = await getResponse({
     principal: principal("Manager"),

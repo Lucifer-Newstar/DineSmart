@@ -32,7 +32,18 @@ export interface ReservationListResult {
 export interface ReservationSchedule {
   timeZone: string;
   operatingHours?: Record<string, unknown>;
+  /** Stored booking rules; `resolveBookingRules` supplies defaults when absent. */
+  bookingRules?: unknown;
 }
+
+/** Answers whether some table can still seat the party for the whole turn (S5-01). */
+export type ReservationSlotGuard = (request: {
+  restaurantId: ObjectId;
+  partySize: number;
+  startAt: Date;
+  endAt: Date;
+  excludingReservationId?: ObjectId;
+}) => Promise<boolean>;
 
 export interface NewReservation {
   restaurantId: ObjectId;
@@ -113,7 +124,11 @@ export interface StaffReservationRequest {
 export interface CustomerReservationUpdate {
   userId: ObjectId;
   reservationId: ObjectId;
-  status: "Cancelled";
+  /** Cancel; cannot be combined with other changes. */
+  status?: "Cancelled";
+  startAt?: Date;
+  partySize?: number;
+  notes?: string;
 }
 
 export interface StaffReservationUpdate {
