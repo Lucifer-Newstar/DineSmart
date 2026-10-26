@@ -5,7 +5,13 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { fetchWithTimeout } from "../api-client";
 import { useAuth } from "../auth-provider";
 import { BrandMark } from "../brand-mark";
-import { type AccountProfile, parseAccountProfile, validateName } from "./account-data";
+import {
+  type AccountProfile,
+  type PasswordForm,
+  parseAccountProfile,
+  validateName,
+  validatePasswordForm,
+} from "./account-data";
 
 const API_BASE = "/api/v1";
 
@@ -16,6 +22,104 @@ async function errorMessage(response: Response, fallback: string): Promise<strin
   } catch {
     return fallback;
   }
+}
+
+function PasswordSection({
+  accessToken,
+  hasPassword,
+  onChanged,
+}: {
+  accessToken: string;
+  hasPassword: boolean;
+  onChanged: () => Promise<unknown>;
+}) {
+  const empty: PasswordForm = { currentPassword: "", newPassword: "", confirmPassword: "" };
+  const [form, setForm] = useState<PasswordForm>(empty);
+  const [errors, setErrors] = useState<Partial<Record<keyof PasswordForm, string>>>({});
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  if (!hasPassword) {
+    return (
+      <section className="account-card" aria-labelledby="account-password-title">
+        <h2 id="account-password-title">Password</h2>
+        <p className="account-readonly">
+          You sign in with Google. To add a password, use{" "}
+          <Link href="/forgot-password">password reset</Link>.
+        </p>
+      </section>
+    );
+  }
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const found = validatePasswordForm(form);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+    setSaving(true);
+    setStatus("");
+    try {
+      const response = await fetchWithTimeout(`${API_BASE}/auth/password/change`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: form.currentPassword,
+          newPassword: form.newPassword,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(await errorMessage(response, "Your password was not changed."));
+      }
+      setForm(empty);
+      setStatus("Password changed. Other devices have been signed out.");
+      // The response set a new refresh cookie for this device; take a token from it.
+      await onChanged();
+    } catch (caught) {
+      setStatus(caught instanceof Error ? caught.message : "Your password was not changed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field = (key: keyof PasswordForm, label: string, autoComplete: string) => (
+    <label className="account-field">
+      <span>{label}</span>
+      <input
+        aria-describedby={errors[key] ? `account-${key}-error` : undefined}
+        aria-invalid={errors[key] ? true : undefined}
+        autoComplete={autoComplete}
+        type="password"
+        value={form[key]}
+        onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+      />
+      {errors[key] ? (
+        <small className="account-error" id={`account-${key}-error`}>
+          {errors[key]}
+        </small>
+      ) : null}
+    </label>
+  );
+
+  return (
+    <form
+      aria-labelledby="account-password-title"
+      className="account-card"
+      onSubmit={submit}
+      noValidate
+    >
+      <h2 id="account-password-title">Password</h2>
+      {field("currentPassword", "Current password", "current-password")}
+      {field("newPassword", "New password", "new-password")}
+      {field("confirmPassword", "Confirm new password", "new-password")}
+      <button className="orders-primary-button" disabled={saving} type="submit">
+        {saving ? "Changing…" : "Change password"}
+      </button>
+      <p className="account-status" role="status">
+        {status}
+      </p>
+    </form>
+  );
 }
 
 /** S5-02: a customer's own profile, contact preferences, password and data. */
@@ -137,57 +241,64 @@ export default function AccountPage() {
             </button>
           </div>
         ) : (
-          <form className="account-card" onSubmit={saveProfile} noValidate>
-            <h2>Profile</h2>
-            <label className="account-field">
-              <span>Name</span>
-              <input
-                aria-describedby={nameError ? "account-name-error" : undefined}
-                aria-invalid={nameError ? true : undefined}
-                autoComplete="name"
-                maxLength={100}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              {nameError ? (
-                <small className="account-error" id="account-name-error">
-                  {nameError}
-                </small>
-              ) : null}
-            </label>
-            <p className="account-readonly">
-              Email <strong>{profile.email}</strong>
-            </p>
-            <fieldset className="account-fieldset">
-              <legend>Contact preferences</legend>
-              <label>
+          <>
+            <form className="account-card" onSubmit={saveProfile} noValidate>
+              <h2>Profile</h2>
+              <label className="account-field">
+                <span>Name</span>
                 <input
-                  checked={prefs.email}
-                  type="checkbox"
-                  onChange={(event) =>
-                    setPrefs((current) => ({ ...current, email: event.target.checked }))
-                  }
-                />{" "}
-                Booking and order emails
+                  aria-describedby={nameError ? "account-name-error" : undefined}
+                  aria-invalid={nameError ? true : undefined}
+                  autoComplete="name"
+                  maxLength={100}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+                {nameError ? (
+                  <small className="account-error" id="account-name-error">
+                    {nameError}
+                  </small>
+                ) : null}
               </label>
-              <label>
-                <input
-                  checked={prefs.offers}
-                  type="checkbox"
-                  onChange={(event) =>
-                    setPrefs((current) => ({ ...current, offers: event.target.checked }))
-                  }
-                />{" "}
-                Occasional offers from restaurants I visit
-              </label>
-            </fieldset>
-            <button className="orders-primary-button" disabled={saving} type="submit">
-              {saving ? "Saving…" : "Save profile"}
-            </button>
-            <p className="account-status" role="status">
-              {status}
-            </p>
-          </form>
+              <p className="account-readonly">
+                Email <strong>{profile.email}</strong>
+              </p>
+              <fieldset className="account-fieldset">
+                <legend>Contact preferences</legend>
+                <label>
+                  <input
+                    checked={prefs.email}
+                    type="checkbox"
+                    onChange={(event) =>
+                      setPrefs((current) => ({ ...current, email: event.target.checked }))
+                    }
+                  />{" "}
+                  Booking and order emails
+                </label>
+                <label>
+                  <input
+                    checked={prefs.offers}
+                    type="checkbox"
+                    onChange={(event) =>
+                      setPrefs((current) => ({ ...current, offers: event.target.checked }))
+                    }
+                  />{" "}
+                  Occasional offers from restaurants I visit
+                </label>
+              </fieldset>
+              <button className="orders-primary-button" disabled={saving} type="submit">
+                {saving ? "Saving…" : "Save profile"}
+              </button>
+              <p className="account-status" role="status">
+                {status}
+              </p>
+            </form>
+            <PasswordSection
+              accessToken={accessToken}
+              hasPassword={profile.hasPassword}
+              onChanged={refreshSession}
+            />
+          </>
         )}
       </section>
     </main>
