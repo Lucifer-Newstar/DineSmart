@@ -8,6 +8,7 @@ import type {
   NotificationRecord,
 } from "../notifications/notification.types.js";
 import {
+  type CustomerOrderPublisher,
   type NotificationDeliveryAcknowledgement,
   type NotificationRealtimePublisher,
   REALTIME_ACK_TTL_MS,
@@ -148,6 +149,32 @@ export class RealtimeHub {
         this.send(client, payload);
       }
     }
+  };
+
+  /**
+   * Order status for the customer who placed the order (S5-03). Only that
+   * customer's own connections receive it; staff get the restaurant event.
+   */
+  readonly publishCustomerOrderEvent: CustomerOrderPublisher = (event) => {
+    const envelope: RealtimeEnvelope = {
+      eventId: randomUUID(),
+      event: "order.status",
+      occurredAt: new Date(this.clock()).toISOString(),
+      restaurantId: event.restaurantId.toHexString(),
+      data: { orderId: event.orderId, status: event.status },
+    };
+    const payload = JSON.stringify(envelope);
+    let deliveries = 0;
+    for (const client of this.clients.values()) {
+      if (
+        client.identity.role === "Customer" &&
+        client.identity.userId.equals(event.customerUserId) &&
+        this.send(client, payload)
+      ) {
+        deliveries += 1;
+      }
+    }
+    return deliveries;
   };
 
   /** Notifications are sent only to the stored recipient and within the recipient's scope. */

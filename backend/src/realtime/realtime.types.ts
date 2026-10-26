@@ -94,6 +94,17 @@ export type NotificationRealtimePublisher = (
 
 export type RestaurantRealtimePublisher = (event: RestaurantRealtimeEvent) => void;
 
+/** A status change on one order, for the customer who placed it (S5-03). */
+export interface CustomerOrderEvent {
+  customerUserId: ObjectId;
+  restaurantId: ObjectId;
+  orderId: string;
+  status: string;
+}
+
+/** Returns how many of the customer's open connections received the event. */
+export type CustomerOrderPublisher = (event: CustomerOrderEvent) => number;
+
 export type NotificationDeliveryMarker = (
   scope: NotificationRecipientScope,
   notificationId: ObjectId,

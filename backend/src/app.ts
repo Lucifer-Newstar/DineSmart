@@ -75,6 +75,10 @@ import { OrderService } from "./orders/order.service.js";
 import { createStaffOrderRouter } from "./orders/order.staff.router.js";
 import { StaffOrderService } from "./orders/order.staff.service.js";
 import { MongoOrderEtaEstimator } from "./orders/order-eta.js";
+import {
+  mongoOrderCustomerLookup,
+  withCustomerOrderEvents,
+} from "./realtime/customer-order-events.js";
 import { NotificationRealtimeGateway } from "./realtime/notification-realtime.gateway.js";
 import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { SocketTicketStore } from "./realtime/socket-ticket.store.js";
@@ -208,6 +212,14 @@ export function createApp(options: AppOptions = {}) {
   function tableQrKey(jwtSecret: string): Buffer {
     return tableTokenKey(process.env.TABLE_QR_SECRET || jwtSecret);
   }
+
+  // Staff order changes also reach the customer who placed the order (S5-03).
+  const publishOrderEvents = withCustomerOrderEvents(
+    realtimeHub.publishRestaurantEvent,
+    mongoOrderCustomerLookup(() => options.getDatabase?.() ?? connectToDatabase()),
+    realtimeHub.publishCustomerOrderEvent,
+    () => console.error("An order status event could not be sent to its customer."),
+  );
 
   async function createAuthRuntime() {
     const secret = options.getJwtSecret?.() ?? process.env.JWT_SECRET;
@@ -553,7 +565,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
-            realtimeHub.publishRestaurantEvent,
+            publishOrderEvents,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
@@ -594,7 +606,7 @@ export function createApp(options: AppOptions = {}) {
             undefined,
             healthScoreRefreshScheduler.notifyOperationalEvent,
             incidentDetectionScheduler.notifyOperationalEvent,
-            realtimeHub.publishRestaurantEvent,
+            publishOrderEvents,
           ),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
