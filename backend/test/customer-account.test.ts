@@ -47,6 +47,20 @@ async function call(role: AuthPrincipal["role"], method: "GET" | "PATCH", body?:
     hasPassword: true,
   };
   const store: CustomerAccountStore = {
+    exportData: async (_id, now) => ({
+      exportedAt: now.toISOString(),
+      account: {
+        name: profile.name,
+        email: profile.email,
+        signInMethod: "email",
+        createdAt: now.toISOString(),
+        contactPreferences: profile.contactPreferences,
+      },
+      reservations: [],
+      orders: [],
+      bills: [],
+      notifications: [],
+    }),
     getProfile: async () => profile,
     updateProfile: async (_id, changes) => {
       updates.push(changes);

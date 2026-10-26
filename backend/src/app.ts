@@ -29,8 +29,8 @@ import { MongoBillRepository } from "./bills/bill.repository.js";
 import { createBillRouter } from "./bills/bill.router.js";
 import { BillService } from "./bills/bill.service.js";
 import { createGuestRouter } from "./customers/customer.router.js";
-import { MongoCustomerAccountRepository } from "./customers/customer-account.js";
 import { createCustomerAccountRouter } from "./customers/customer-account.router.js";
+import { MongoCustomerPrivacyRepository } from "./customers/customer-privacy.js";
 import { MongoGuestProfileStore } from "./customers/guest-profile.repository.js";
 import { connectToDatabase } from "./database.js";
 import {
@@ -431,7 +431,7 @@ export function createApp(options: AppOptions = {}) {
       createRuntime: async () => {
         const { db, service: authService } = await createAuthRuntime();
         return {
-          store: new MongoCustomerAccountRepository(db),
+          store: new MongoCustomerPrivacyRepository(db),
           verifyAccessToken: (token) => authService.verifyAccessToken(token),
         };
       },

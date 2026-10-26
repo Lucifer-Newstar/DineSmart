@@ -9,10 +9,12 @@ import {
   type CustomerAccountProfile,
   parseAccountChanges,
 } from "./customer-account.js";
+import type { AccountExport } from "./customer-privacy.js";
 
 /** A customer's own account routes (S5-02). Staff accounts are managed elsewhere. */
 
 export interface CustomerAccountStore {
+  exportData(userId: ObjectId, now: Date): Promise<AccountExport>;
   getProfile(userId: ObjectId, now: Date): Promise<CustomerAccountProfile>;
   updateProfile(
     userId: ObjectId,
@@ -109,6 +111,23 @@ export function createCustomerAccountRouter(options: CustomerAccountRouterOption
         current.now,
       );
       response.status(200).json({ profile: accountProfileToJson(profile) });
+    } catch (error) {
+      sendAccountError(error, response);
+    }
+  });
+
+  // Everything the customer gave us or did here, as one JSON download (S5-02).
+  router.get("/export", async (request: Request, response: Response) => {
+    const current = context(request);
+    if (!current) return sendUnavailable(response);
+    try {
+      const data = await current.runtime.store.exportData(current.userId, current.now);
+      response.set("Cache-Control", "no-store");
+      response.set(
+        "Content-Disposition",
+        `attachment; filename="dinesmart-account-${current.now.toISOString().slice(0, 10)}.json"`,
+      );
+      response.status(200).json(data);
     } catch (error) {
       sendAccountError(error, response);
     }
