@@ -276,3 +276,47 @@ My part:
 - Anonymous visitors get sold-out changes by a 30-second re-read and on tab focus; signed-in visitors get them instantly over the socket.
 - **Local verification via Node `24.21.0`:** backend 404 tests, frontend 91 tests and repository tool 19 tests pass; the Playwright suite passes 37/37 against a local MongoDB, including the axe scans (0 serious or critical); Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check are clean.
 - **Not verified live:** nothing is pushed yet, so the GitHub Actions jobs (including the new secret scan and e2e workflow) have not run remotely; MongoDB Atlas and the deployed WebSocket path still need a live check.
+
+## 2026-10-26
+
+### Sprint 5 Day 2: reservations 2.0, guest profiles, QR ordering, customer notifications and the installable app
+
+My part:
+
+- `94482ef` feat(S5-01): show bookable time slots on the booking page
+- `a234cbf` test(S5-01): cover slot parsing and selection state
+- `ae9637d` feat(S5-01): add a My bookings view with change and cancel
+- `0da10fc` test(S5-01): cover booking list grouping and change rules
+- `10cbcd8` feat(S5-01): add a day timeline of bookings by table to the dashboard
+- `aa70759` feat(S5-01): add arrive, seat and no-show actions to the reservations page
+- `b38d3c0` feat(S5-01): show the quoted wait to guests joining the waitlist
+- `970016d` feat(S5-01): add booking rules to settings (turn times, pacing, window)
+- `736f17e` fix(S5-01): read the clock after mount so the bookings and timeline views prerender
+- `fa34866` fix(S5-01): load change slots without the booking being moved
+- `278bf55` feat(S5-02): show the guest profile beside each booking for staff
+- `27535a0` feat(S5-02): let signed-in users change their password and sign out other devices
+- `9a90d3a` test(S5-02): cover password change, refusals and session revocation
+- `89f7f45` feat(S5-02): add an account page for name and contact preferences
+- `15d5bf3` feat(S5-02): add change password to the account page
+- `e669b5a` feat(S5-02): add data export and account deletion controls
+- `b5c54a7` fix(S5-02): keep account page messages when the session token renews
+- `6b8984d` feat(S5-03): add printable QR cards per table to the floor view
+- `0b46059` feat(S5-03): open the menu in dine-in mode from a table link
+- `9a1335c` feat(S5-03): let guests add special requests and show them on kitchen tickets
+- `2a09fbf` feat(S5-03): add a live order tracking page for customers
+- `5c64621` feat(S5-03): reorder a past order in one tap
+- `1756909` test(S5-03): cover order tracking parsing and reorder rules
+- `648d853` feat(S5-03): show the estimated ready time on confirmation and tracking
+- `58a3f38` feat(S5-04): add notification preferences to settings and the account page
+- `b2b963a` feat(S5-05): add a web app manifest and icons
+- `af07f94` feat(S5-05): add an offline page for lost connections
+- `75a281c` feat(S5-05): cache the last loaded menu for offline reading
+- `350a5d3` feat(S5-05): show a connection banner when the socket or network drops
+- `d6e865d` fix(S5-05): save the offline page's scripts and styles so it renders without a network
+- `edb3d02` fix(S5-02): start the guest profile button name with its visible text
+- `2433d68` fix(S5-03): darken the order again and track order links to pass contrast
+- The booking page, My bookings, the reservations timeline and actions, booking rules in settings, the account page, QR cards, dine-in mode, order tracking and reorder are new screens or panels.
+- The app now has a manifest, icons, a service worker and an offline page. Offline, the last loaded menu stays readable with ordering turned off; other pages show the offline page. The worker is registered in production builds only.
+- Two axe findings from the full suite are fixed: the guest profile button's name now starts with its visible text, and the order again and track order links were darkened to pass contrast.
+- **Local verification via Node `24.21.0`:** backend 524 tests, frontend 137 tests and repository tool 19 tests pass; the Playwright suite passes 44/44 against a local MongoDB, including the axe scans (0 serious or critical) and the new offline spec; Biome, typecheck, both production builds, `npm audit --audit-level=high` for both apps, actionlint, commitlint over the day's range, demo readiness and the strict API contract check (70 routes, 0 unmatched calls) are clean.
+- **Not verified live:** nothing is pushed yet, so GitHub Actions have not run these commits; email went only through the mock transport (no SMTP or Resend send was made); installing the app and the offline mode were checked in headless Chromium only, not on a phone; MongoDB Atlas and the deployed WebSocket path still need a live check.
