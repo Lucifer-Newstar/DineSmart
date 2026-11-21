@@ -15,6 +15,20 @@ The documented MVP scope includes:
 - Rule-based incident detection and explainable AI-assisted recommendations
 - Restaurant health score, analytics, notifications, and role-based access
 
+## Screenshots
+
+Captured from a local run with seeded demo data; the full set (and a recorded backup demo) lives in [`demo-capture/`](demo-capture/).
+
+| Customer landing | Public menu |
+| --- | --- |
+| ![Customer landing](demo-capture/01-landing.png) | ![Public menu](demo-capture/02-menu.png) |
+| **Booking** | **Sign in** |
+| ![Booking](demo-capture/06-booking.png) | ![Sign in](demo-capture/05-login.png) |
+| **Operations dashboard** | **Kitchen queue** |
+| ![Operations dashboard](demo-capture/07-dashboard-overview.png) | ![Kitchen queue](demo-capture/08-dashboard-kitchen.png) |
+| **Incidents** | **Analytics** |
+| ![Incidents](demo-capture/09-dashboard-incidents.png) | ![Analytics](demo-capture/11-dashboard-analytics.png) |
+
 ## Architecture
 
 | Layer | Technology |
@@ -69,7 +83,7 @@ Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.m
 
 ## Continuous integration
 
-The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It declares `contents: read` permissions and a concurrency group that cancels superseded runs, then checks the frontend, the backend, and the demo preflight as separate jobs with their own timeouts, pinned actions, `persist-credentials: false`, the Node version from `.nvmrc`, `npm ci` installation, high-severity dependency audits, and the full lint/test/typecheck/build sequence. `tools/ci-workflow.test.mjs` guards those invariants locally. Local runs of the same checks on Node `24.21.0`: backend 328 tests, frontend 50 tests, Biome, typechecks and production builds pass, and `npm audit --audit-level=high` reports no high or critical advisories in either package. Deployment (CD) is not configured; see the [deployment checklist](Docs/Developers%20Guide/Deployment.md).
+The [GitHub Actions CI workflow](.github/workflows/ci.yml) runs on pull requests, pushes to `main`, and manual dispatch. It declares `contents: read` permissions and a concurrency group that cancels superseded runs, then checks the frontend, the backend, and the demo preflight as separate jobs with their own timeouts, pinned actions, `persist-credentials: false`, the Node version from `.nvmrc`, `npm ci` installation, high-severity dependency audits, and the full lint/test/typecheck/build sequence. `tools/ci-workflow.test.mjs` guards those invariants locally. Local runs of the same checks on Node `24.21.0`: backend 524 tests, frontend 137 tests, Biome, typechecks and production builds pass, and `npm audit --audit-level=high` reports no high or critical advisories in either package. Deployment (CD) is not configured; see the [deployment checklist](Docs/Developers%20Guide/Deployment.md).
 
 ## Documentation
 
@@ -123,7 +137,7 @@ The MVP scope, architecture, API inventory, delivery plan, and acceptance criter
 
 **Done in code and covered by local tests:** authentication and RBAC (S1-09–S1-12), the customer landing, menu, cart and order history (S2-01–S2-04), kitchen/order workflow (S2-05), inventory (S2-06), staff dashboard views (S2-07), health score (S2-08), analytics (S2-09), notifications with automatic incident alerts and the live bell (S2-10, S2-13), role-based presentation (S2-11), incident rules (S2-12), bills (S2-14), forgot password (S2-15), staff roster and the bootstrap command (S2-16), floor view, waitlist and tables (S2-17, S2-18), and the AI recommendation flow with a deterministic fallback (S3-01–S3-05, S3-13).
 
-**Not verified live:** every test uses fakes. Nothing has run against MongoDB Atlas, a real email provider, Google sign-in, or a Gemini key, and there is no browser end-to-end suite. Rate-limit behaviour behind Vercel → Render depends on `TRUST_PROXY` and needs a check after deploying.
+**Not verified live:** every test uses fakes. Nothing has run against MongoDB Atlas, a real email provider, Google sign-in, or a Gemini key. A Playwright browser end-to-end suite ([`frontend/e2e`](frontend/e2e)) runs in the [End-to-end workflow](.github/workflows/e2e.yml) against a local MongoDB service; it does not cover the live providers above. Rate-limit behaviour behind Vercel → Render depends on `TRUST_PROXY` and needs a check after deploying.
 
 **Still to do:** Atlas provisioning (S1-05), deployment of the frontend and backend (S3-08, S3-09), live acceptance and the demo rehearsal (S3-12), and p95 performance measurement (S3-10), which needs live services. The [deployment checklist](Docs/Developers%20Guide/Deployment.md) lists every input needed.
 
